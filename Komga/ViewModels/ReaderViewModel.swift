@@ -20,13 +20,21 @@ class ReaderViewModel {
   private let bookService = BookService.shared
   private var bookId: String = ""
 
-  func loadPages(bookId: String) async {
+  func loadPages(bookId: String, initialPage: Int? = nil) async {
     self.bookId = bookId
     isLoading = true
     errorMessage = nil
 
     do {
       pages = try await bookService.getBookPages(id: bookId)
+
+      // Set initial page if provided (page number is 1-based)
+      if let initialPage = initialPage {
+        // Find the page index that matches the page number (1-based)
+        if let pageIndex = pages.firstIndex(where: { $0.number == initialPage }) {
+          currentPage = pageIndex
+        }
+      }
     } catch {
       errorMessage = error.localizedDescription
     }
@@ -71,13 +79,16 @@ class ReaderViewModel {
 
   func updateProgress() async {
     guard !bookId.isEmpty else { return }
+    guard currentPage >= 0 && currentPage < pages.count else { return }
 
     let completed = currentPage >= pages.count - 1
+    // Use the API page number (1-based) instead of array index (0-based)
+    let apiPageNumber = pages[currentPage].number
 
     do {
       try await bookService.updateReadProgress(
         bookId: bookId,
-        page: currentPage,
+        page: apiPageNumber,
         completed: completed
       )
     } catch {

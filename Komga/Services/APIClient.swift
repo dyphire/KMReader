@@ -106,15 +106,29 @@ class APIClient {
         throw APIError.httpError(httpResponse.statusCode, errorMessage)
       }
 
+      // Handle 204 No Content responses - skip JSON decoding
+      if httpResponse.statusCode == 204 || data.isEmpty {
+        // Check if we're expecting an EmptyResponse by comparing type names
+        let expectedTypeName = String(describing: T.self)
+        let emptyResponseTypeName = String(describing: EmptyResponse.self)
+
+        if expectedTypeName == emptyResponseTypeName {
+          // Return empty response instance for 204/empty responses
+          return EmptyResponse() as! T
+        } else if data.isEmpty {
+          // For non-empty response types, empty data is an error
+          logger.warning("⚠️ Empty response data from \(url.absoluteString)")
+          throw APIError.decodingError(
+            NSError(
+              domain: "APIClient", code: -1,
+              userInfo: [NSLocalizedDescriptionKey: "Empty response data"]))
+        }
+      }
+
       let decoder = JSONDecoder()
       decoder.dateDecodingStrategy = .iso8601
 
       do {
-        // Log response data for debugging
-        if data.isEmpty {
-          logger.warning("⚠️ Empty response data from \(url.absoluteString)")
-        }
-
         return try decoder.decode(T.self, from: data)
       } catch let decodingError as DecodingError {
         // Provide detailed decoding error information

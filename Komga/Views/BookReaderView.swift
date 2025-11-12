@@ -128,7 +128,16 @@ struct BookReaderView: View {
     .navigationBarHidden(true)
     .statusBar(hidden: !showingControls)
     .task {
-      await viewModel.loadPages(bookId: bookId)
+      // Load book info to get read progress page
+      var initialPage: Int? = nil
+      do {
+        let book = try await BookService.shared.getBook(id: bookId)
+        initialPage = book.readProgress?.page
+      } catch {
+        // Silently fail, will start from first page
+      }
+
+      await viewModel.loadPages(bookId: bookId, initialPage: initialPage)
       await viewModel.preloadPages()
     }
     .onDisappear {
