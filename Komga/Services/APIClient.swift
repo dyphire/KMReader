@@ -30,6 +30,19 @@ class APIClient {
     UserDefaults.standard.string(forKey: "authToken")
   }
 
+  // URLSession with cache configuration for all requests
+  private lazy var cachedSession: URLSession = {
+    let configuration = URLSessionConfiguration.default
+    // Enable disk cache
+    configuration.urlCache = URLCache(
+      memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache
+      diskCapacity: 500 * 1024 * 1024,  // 500MB disk cache
+      diskPath: "komga_cache"
+    )
+    configuration.requestCachePolicy = .useProtocolCachePolicy
+    return URLSession(configuration: configuration)
+  }()
+
   private init() {}
 
   func setServer(url: String) {
@@ -80,7 +93,7 @@ class APIClient {
     let startTime = Date()
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await cachedSession.data(for: request)
 
       let duration = Date().timeIntervalSince(startTime)
 
@@ -196,7 +209,7 @@ class APIClient {
     let startTime = Date()
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await cachedSession.data(for: request)
 
       let duration = Date().timeIntervalSince(startTime)
 
