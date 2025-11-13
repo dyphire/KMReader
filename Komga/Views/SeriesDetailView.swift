@@ -64,23 +64,139 @@ struct SeriesDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
               Text(series.metadata.title)
                 .font(.title2)
-                .fontWeight(.bold)
 
+              // Status
+              if let status = series.metadata.status {
+                Text(statusDisplayName(status))
+                  .font(.caption)
+                  .padding(.horizontal, 8)
+                  .padding(.vertical, 4)
+                  .background(statusColor(status))
+                  .foregroundColor(.white)
+                  .cornerRadius(4)
+              }
+
+              // Age Rating, Language
+              if series.metadata.ageRating != nil || series.metadata.language != nil {
+                HStack {
+                  if let ageRating = series.metadata.ageRating {
+                    Text("\(ageRating)+")
+                      .font(.caption)
+                      .padding(.horizontal, 8)
+                      .padding(.vertical, 4)
+                      .background(Color.secondary.opacity(0.2))
+                      .foregroundColor(.primary)
+                      .cornerRadius(4)
+                  }
+
+                  if let language = series.metadata.language {
+                    Text(languageDisplayName(language))
+                      .font(.caption)
+                      .padding(.horizontal, 8)
+                      .padding(.vertical, 4)
+                      .background(Color.secondary.opacity(0.2))
+                      .foregroundColor(.primary)
+                      .cornerRadius(4)
+                  }
+                }
+              }
+
+              // Reading Direction
+              if let readingDirection = series.metadata.readingDirection {
+                Text(readingDirectionDisplayName(readingDirection))
+                  .font(.caption)
+                  .padding(.horizontal, 8)
+                  .padding(.vertical, 4)
+                  .background(Color.secondary.opacity(0.2))
+                  .foregroundColor(.primary)
+                  .cornerRadius(4)
+              }
+
+              // Publisher
               if let publisher = series.metadata.publisher, !publisher.isEmpty {
                 Text(publisher)
                   .font(.subheadline)
                   .foregroundColor(.secondary)
               }
 
-              HStack {
-                Label("\(series.booksCount)", systemImage: "book")
+              // Books count
+              HStack(spacing: 4) {
+                if let totalBookCount = series.metadata.totalBookCount {
+                  Text("\(series.booksCount) / \(totalBookCount) books")
+                } else {
+                  Text("\(series.booksCount) books")
+                }
               }
               .font(.caption)
+              .foregroundColor(.secondary)
+
+              // Release date
+              if let releaseDate = series.booksMetadata.releaseDate {
+                HStack(spacing: 4) {
+                  Image(systemName: "calendar")
+                    .font(.caption2)
+                  Text(formatReleaseDate(releaseDate))
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+              }
+
+              // Authors
+              if let authors = series.booksMetadata.authors, !authors.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                  ForEach(
+                    Array(groupAuthorsByRole(authors).sorted(by: { $0.key < $1.key })), id: \.key
+                  ) { role, names in
+                    HStack(alignment: .top, spacing: 4) {
+                      Text("\(roleDisplayName(role)):")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(width: 60, alignment: .leading)
+                      Text(names.joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                    }
+                  }
+                }
+              }
+
+              // Genres
+              if let genres = series.metadata.genres, !genres.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                  HStack(spacing: 6) {
+                    ForEach(genres.sorted(), id: \.self) { genre in
+                      Text(genre)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(4)
+                    }
+                  }
+                }
+              }
+
+              // Tags
+              if let tags = series.metadata.tags, !tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                  HStack(spacing: 6) {
+                    ForEach(tags.sorted(), id: \.self) { tag in
+                      Text(tag)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.1))
+                        .foregroundColor(.secondary)
+                        .cornerRadius(4)
+                    }
+                  }
+                }
+              }
             }
 
             Spacer()
           }
-          .padding()
 
           if let summary = series.metadata.summary, !summary.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
@@ -89,14 +205,12 @@ struct SeriesDetailView: View {
               Text(summary)
                 .font(.body)
             }
-            .padding(.horizontal)
           }
 
           // Books list
           VStack(alignment: .leading, spacing: 8) {
             Text("Books")
               .font(.headline)
-              .padding(.horizontal)
 
             if bookViewModel.isLoading && bookViewModel.books.isEmpty {
               ProgressView()
@@ -113,7 +227,6 @@ struct SeriesDetailView: View {
                   .buttonStyle(PlainButtonStyle())
                 }
               }
-              .padding(.horizontal)
             }
           }
         } else {
@@ -121,6 +234,7 @@ struct SeriesDetailView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
       }
+      .padding(.horizontal)
     }
     .navigationBarTitleDisplayMode(.inline)
     .fullScreenCover(isPresented: isBookReaderPresented) {
@@ -240,5 +354,127 @@ struct BookRowView: View {
 
     formatter.dateFormat = "yyyy-MM-dd"
     return formatter.string(from: date)
+  }
+}
+
+// Helper functions for SeriesDetailView
+extension SeriesDetailView {
+  private func statusDisplayName(_ status: String) -> String {
+    switch status.uppercased() {
+    case "ONGOING":
+      return "Ongoing"
+    case "ENDED":
+      return "Ended"
+    case "ABANDONED":
+      return "Abandoned"
+    case "HIATUS":
+      return "Hiatus"
+    default:
+      return status.capitalized
+    }
+  }
+
+  private func statusColor(_ status: String) -> Color {
+    switch status.uppercased() {
+    case "ENDED":
+      return Color.green.opacity(0.8)
+    case "ABANDONED":
+      return Color.red.opacity(0.8)
+    case "HIATUS":
+      return Color.orange.opacity(0.8)
+    default:
+      return Color.blue.opacity(0.8)
+    }
+  }
+
+  private func languageDisplayName(_ language: String) -> String {
+    // Simple language code to name mapping
+    let languageMap: [String: String] = [
+      "en": "English",
+      "ja": "Japanese",
+      "zh": "Chinese",
+      "ko": "Korean",
+      "fr": "French",
+      "de": "German",
+      "es": "Spanish",
+      "it": "Italian",
+      "pt": "Portuguese",
+      "ru": "Russian",
+      "ar": "Arabic",
+      "th": "Thai",
+      "vi": "Vietnamese",
+    ]
+
+    // Check if it's a full language code like "en-US" or "zh-CN"
+    if language.contains("-") {
+      let baseCode = String(language.prefix(2))
+      return languageMap[baseCode.lowercased()] ?? language
+    }
+
+    return languageMap[language.lowercased()] ?? language.uppercased()
+  }
+
+  private func readingDirectionDisplayName(_ direction: String) -> String {
+    switch direction.uppercased() {
+    case "LEFT_TO_RIGHT":
+      return "LTR"
+    case "RIGHT_TO_LEFT":
+      return "RTL"
+    case "VERTICAL":
+      return "Vertical"
+    case "WEBTOON":
+      return "Webtoon"
+    default:
+      return direction.capitalized
+    }
+  }
+
+  private func formatReleaseDate(_ dateString: String) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    formatter.timeZone = TimeZone(identifier: "UTC")
+
+    if let date = formatter.date(from: dateString) {
+      let yearFormatter = DateFormatter()
+      yearFormatter.dateFormat = "yyyy"
+      yearFormatter.timeZone = TimeZone(identifier: "UTC")
+      return yearFormatter.string(from: date)
+    }
+
+    return dateString
+  }
+
+  private func groupAuthorsByRole(_ authors: [Author]) -> [String: [String]] {
+    var grouped: [String: [String]] = [:]
+    for author in authors {
+      if grouped[author.role] == nil {
+        grouped[author.role] = []
+      }
+      grouped[author.role]?.append(author.name)
+    }
+    return grouped
+  }
+
+  private func roleDisplayName(_ role: String) -> String {
+    switch role.lowercased() {
+    case "writer", "author":
+      return "Writer"
+    case "penciller", "artist", "illustrator":
+      return "Artist"
+    case "colorist":
+      return "Colorist"
+    case "letterer":
+      return "Letterer"
+    case "cover":
+      return "Cover"
+    case "editor":
+      return "Editor"
+    case "translator":
+      return "Translator"
+    case "inker":
+      return "Inker"
+    default:
+      return role.capitalized
+    }
   }
 }

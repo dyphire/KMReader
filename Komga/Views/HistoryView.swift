@@ -80,7 +80,7 @@ struct HistoryView: View {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
             Picker(selection: $selectedLibraryId) {
-              Label("All", systemImage: "square.grid.2x2").tag("")
+              Label("All Libraries", systemImage: "square.grid.2x2").tag("")
               ForEach(libraries) { library in
                 Label(library.name, systemImage: "books.vertical").tag(library.id)
               }

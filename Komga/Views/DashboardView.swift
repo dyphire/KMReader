@@ -119,25 +119,33 @@ struct DashboardView: View {
       .animation(.default, value: selectedLibraryId)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
-          Menu {
-            Picker(selection: $selectedLibraryId) {
-              Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-              ForEach(libraries) { library in
-                Label(library.name, systemImage: "books.vertical").tag(library.id)
+          HStack(spacing: 16) {
+            Button {
+              Task {
+                await loadAll(showLoading: false)
               }
             } label: {
-              Label(
-                selectedLibrary?.name ?? "All Libraries",
-                systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+              Image(systemName: "arrow.clockwise.circle")
             }
-            .pickerStyle(.menu)
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+            .disabled(isLoading)
+
+            Menu {
+              Picker(selection: $selectedLibraryId) {
+                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
+                ForEach(libraries) { library in
+                  Label(library.name, systemImage: "books.vertical").tag(library.id)
+                }
+              } label: {
+                Label(
+                  selectedLibrary?.name ?? "All Libraries",
+                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
+              }
+              .pickerStyle(.menu)
+            } label: {
+              Image(systemName: "line.3.horizontal.decrease.circle")
+            }
           }
         }
-      }
-      .refreshable {
-        await loadAll(showLoading: false)
       }
       .onChange(of: selectedLibraryId) {
         Task {
