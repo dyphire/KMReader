@@ -82,7 +82,7 @@ struct SeriesDetailView: View {
                   .font(.caption)
                   .padding(.horizontal, 8)
                   .padding(.vertical, 4)
-                  .background(ageRating > 18 ? Color.red : Color.green)
+                  .background(ageRating > 16 ? Color.red : Color.green)
                   .foregroundColor(.white)
                   .cornerRadius(4)
               }
