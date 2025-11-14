@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SeriesListView: View {
-  @Bindable var browseOpts: BrowseOptions
+  @Binding var browseOpts: BrowseOptions
   let width: CGFloat
   let spacing: CGFloat = 16
   @State private var viewModel = SeriesViewModel()
@@ -38,7 +38,11 @@ struct SeriesListView: View {
   var body: some View {
     Group {
       if viewModel.isLoading && viewModel.series.isEmpty {
-        ProgressView()
+        VStack(spacing: 16) {
+          ProgressView()
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
       } else if let errorMessage = viewModel.errorMessage {
         VStack(spacing: 16) {
           Image(systemName: "exclamationmark.triangle")
@@ -81,9 +85,31 @@ struct SeriesListView: View {
     }
     .animation(.default, value: viewModel.series)
     .task {
-      await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      if viewModel.series.isEmpty {
+        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      }
     }
     .onChange(of: browseOpts.libraryId) {
+      Task {
+        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      }
+    }
+    .onChange(of: browseOpts.readStatusFilter) {
+      Task {
+        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      }
+    }
+    .onChange(of: browseOpts.seriesStatusFilter) {
+      Task {
+        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      }
+    }
+    .onChange(of: browseOpts.sortField) {
+      Task {
+        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
+      }
+    }
+    .onChange(of: browseOpts.sortDirection) {
       Task {
         await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
       }

@@ -10,7 +10,7 @@ import SwiftUI
 
 @MainActor
 @Observable
-class BrowseOptions {
+class BrowseOptions: Equatable {
   var libraryId: String = ""
   var readStatusFilter: ReadStatusFilter = .all
   var seriesStatusFilter: SeriesStatusFilter = .all
@@ -23,5 +23,13 @@ class BrowseOptions {
       return "random"
     }
     return "\(sortField.rawValue),\(sortDirection.rawValue)"
+  }
+
+  static func == (lhs: BrowseOptions, rhs: BrowseOptions) -> Bool {
+    return lhs.libraryId == rhs.libraryId
+      && lhs.readStatusFilter == rhs.readStatusFilter
+      && lhs.seriesStatusFilter == rhs.seriesStatusFilter
+      && lhs.sortField == rhs.sortField
+      && lhs.sortDirection == rhs.sortDirection
   }
 }

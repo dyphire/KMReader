@@ -12,53 +12,12 @@ struct HistoryView: View {
 
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+  @State private var showLibraryPickerSheet = false
 
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          // Library Picker at the top
-          HStack {
-            Menu {
-              Picker(selection: $selectedLibraryId) {
-                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-                ForEach(LibraryManager.shared.libraries) { library in
-                  Label(library.name, systemImage: "books.vertical").tag(library.id)
-                }
-              } label: {
-                Label(
-                  selectedLibrary?.name ?? "All Libraries",
-                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-              }
-              .pickerStyle(.inline)
-            } label: {
-              HStack {
-                Image(systemName: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-                Text(selectedLibrary?.name ?? "All Libraries")
-                  .font(.body)
-                Image(systemName: "chevron.down")
-                  .font(.caption)
-              }
-              .padding(.horizontal, 12)
-              .padding(.vertical, 8)
-              .background(Color(.systemGray6))
-              .cornerRadius(8)
-            }
-            Spacer()
-            Button {
-              Task {
-                await bookViewModel.loadRecentlyReadBooks(
-                  libraryId: selectedLibraryId, refresh: true)
-              }
-            } label: {
-              Image(systemName: "arrow.clockwise.circle")
-                .font(.title2)
-                .symbolEffect(.rotate, value: bookViewModel.isLoading)
-            }
-            .disabled(bookViewModel.isLoading)
-          }
-          .padding(.horizontal)
-
           if bookViewModel.isLoading && bookViewModel.books.isEmpty {
             ProgressView()
               .frame(maxWidth: .infinity)
@@ -117,6 +76,29 @@ struct HistoryView: View {
       }
       .navigationTitle("History")
       .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+          Button {
+            showLibraryPickerSheet = true
+          } label: {
+            Image(systemName: "books.vertical")
+          }
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Button {
+            Task {
+              await bookViewModel.loadRecentlyReadBooks(
+                libraryId: selectedLibraryId, refresh: true)
+            }
+          } label: {
+            Image(systemName: "arrow.clockwise.circle")
+          }
+          .disabled(bookViewModel.isLoading)
+        }
+      }
+      .sheet(isPresented: $showLibraryPickerSheet) {
+        LibraryPickerSheet()
+      }
       .animation(.default, value: selectedLibraryId)
       .onChange(of: selectedLibraryId) {
         Task {

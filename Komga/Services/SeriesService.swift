@@ -21,25 +21,54 @@ class SeriesService {
     readStatus: ReadStatusFilter? = nil,
     seriesStatus: SeriesStatusFilter? = nil
   ) async throws -> Page<Series> {
-    var queryItems = [
+    let queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
       URLQueryItem(name: "size", value: "\(size)"),
       URLQueryItem(name: "sort", value: sort),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
-    }
+    // Check if we have any filters - if so, use /api/v1/series/list with POST
+    let hasLibraryFilter = !libraryId.isEmpty
+    let hasReadStatusFilter = readStatus != nil && readStatus != .all
+    let hasSeriesStatusFilter = seriesStatus != nil && seriesStatus != .all
 
-    if let readStatus = readStatus, readStatus != .all {
-      queryItems.append(URLQueryItem(name: "read_status", value: readStatus.rawValue))
-    }
+    if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
+      // Build the search condition using allOf for flexibility
+      var conditions: [SeriesSearch.Condition] = []
 
-    if let seriesStatus = seriesStatus, seriesStatus != .all {
-      queryItems.append(URLQueryItem(name: "metadata.status", value: seriesStatus.rawValue))
-    }
+      if hasLibraryFilter {
+        conditions.append(.libraryId(libraryId))
+      }
 
-    return try await apiClient.request(path: "/api/v1/series", queryItems: queryItems)
+      if hasReadStatusFilter, let readStatusValue = readStatus!.toReadStatus() {
+        conditions.append(.readStatus(readStatusValue))
+      }
+
+      if hasSeriesStatusFilter {
+        conditions.append(.seriesStatus(seriesStatus!.rawValue))
+      }
+
+      let condition: SeriesSearch.Condition
+      if conditions.count == 1 {
+        condition = conditions[0]
+      } else {
+        condition = .allOf(conditions)
+      }
+
+      let search = SeriesSearch(condition: condition)
+      let encoder = JSONEncoder()
+      let jsonData = try encoder.encode(search)
+
+      return try await apiClient.request(
+        path: "/api/v1/series/list",
+        method: "POST",
+        body: jsonData,
+        queryItems: queryItems
+      )
+    } else {
+      // No filters - use the simple GET endpoint
+      return try await apiClient.request(path: "/api/v1/series", queryItems: queryItems)
+    }
   }
 
   func getOneSeries(id: String) async throws -> Series {

@@ -21,53 +21,12 @@ struct DashboardView: View {
 
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
-  @State private var showLibraryPicker = false
+  @State private var showLibraryPickerSheet = false
 
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          // Library Picker at the top
-          HStack {
-            Menu {
-              Picker(selection: $selectedLibraryId) {
-                Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-                ForEach(LibraryManager.shared.libraries) { library in
-                  Label(library.name, systemImage: "books.vertical").tag(library.id)
-                }
-              } label: {
-                Label(
-                  selectedLibrary?.name ?? "All Libraries",
-                  systemImage: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-              }
-              .pickerStyle(.inline)
-            } label: {
-              HStack {
-                Image(systemName: selectedLibraryId.isEmpty ? "square.grid.2x2" : "books.vertical")
-                Text(selectedLibrary?.name ?? "All Libraries")
-                  .font(.body)
-                Image(systemName: "chevron.down")
-                  .font(.caption)
-              }
-              .padding(.horizontal, 12)
-              .padding(.vertical, 8)
-              .background(Color(.systemGray6))
-              .cornerRadius(8)
-            }
-            Spacer()
-            Button {
-              Task {
-                await loadAll()
-              }
-            } label: {
-              Image(systemName: "arrow.clockwise.circle")
-                .font(.title2)
-                .symbolEffect(.rotate, value: isLoading)
-            }
-            .disabled(isLoading)
-          }
-          .padding(.horizontal)
-
           if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty
             && recentlyAddedBooks.isEmpty
           {
@@ -165,6 +124,28 @@ struct DashboardView: View {
       }
       .navigationTitle("Dashboard")
       .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+          Button {
+            showLibraryPickerSheet = true
+          } label: {
+            Image(systemName: "books.vertical")
+          }
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+          Button {
+            Task {
+              await loadAll()
+            }
+          } label: {
+            Image(systemName: "arrow.clockwise.circle")
+          }
+          .disabled(isLoading)
+        }
+      }
+      .sheet(isPresented: $showLibraryPickerSheet) {
+        LibraryPickerSheet()
+      }
       .animation(.default, value: selectedLibraryId)
       .onChange(of: selectedLibraryId) {
         Task {
