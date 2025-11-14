@@ -299,87 +299,11 @@ struct BookReaderView: View {
   private var endPageView: some View {
     ZStack {
       Color.black.ignoresSafeArea()
-
-      VStack(spacing: 12) {
-        HStack(spacing: 16) {
-          // Dismiss button
-          Button {
-            dismiss()
-          } label: {
-            HStack(spacing: 8) {
-              Image(systemName: "xmark")
-                .font(.system(size: 16, weight: .semibold))
-              Text("Close")
-                .font(.system(size: 16, weight: .medium))
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-              RoundedRectangle(cornerRadius: 25)
-                .fill(Color.black.opacity(0.75))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 25)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-            )
-          }
-
-          // Next book button
-          if let nextBook = nextBook {
-            Button {
-              openNextBook(nextBookId: nextBook.id)
-            } label: {
-              HStack(spacing: 8) {
-                Text("Next")
-                  .font(.system(size: 16, weight: .medium))
-                Image(systemName: "arrow.right")
-                  .font(.system(size: 16, weight: .semibold))
-              }
-              .foregroundColor(.white)
-              .padding(.horizontal, 20)
-              .padding(.vertical, 12)
-              .background(
-                RoundedRectangle(cornerRadius: 25)
-                  .fill(Color.blue.opacity(0.85))
-                  .overlay(
-                    RoundedRectangle(cornerRadius: 25)
-                      .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                  )
-              )
-            }
-          }
-        }
-
-        // Next book info or last book message
-        if let nextBook = nextBook {
-          VStack {
-            Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
-            Text(nextBook.metadata.title)
-          }
-          .foregroundColor(.white.opacity(0.9))
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
-          .background(
-            RoundedRectangle(cornerRadius: 12)
-              .fill(Color.black.opacity(0.6))
-          )
-        } else {
-          HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle")
-              .font(.system(size: 14))
-            Text("You're all caught up!")
-              .font(.system(size: 14, weight: .medium))
-          }
-          .foregroundColor(.white.opacity(0.7))
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
-          .background(
-            RoundedRectangle(cornerRadius: 12)
-              .fill(Color.black.opacity(0.6))
-          )
-        }
-      }
+      EndPageView(
+        nextBook: nextBook,
+        onDismiss: { dismiss() },
+        onNextBook: { openNextBook(nextBookId: $0) }
+      )
     }
   }
 
@@ -502,90 +426,11 @@ struct BookReaderView: View {
       if isAtBottom {
         VStack {
           Spacer()
-          VStack(spacing: 12) {
-            HStack(spacing: 16) {
-              // Dismiss button
-              Button {
-                dismiss()
-              } label: {
-                HStack(spacing: 8) {
-                  Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                  Text("Close")
-                    .font(.system(size: 16, weight: .medium))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                  RoundedRectangle(cornerRadius: 25)
-                    .fill(Color.black.opacity(0.75))
-                    .overlay(
-                      RoundedRectangle(cornerRadius: 25)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                    )
-                )
-              }
-
-              // Next book button
-              if let nextBook = nextBook {
-                Button {
-                  openNextBook(nextBookId: nextBook.id)
-                } label: {
-                  HStack(spacing: 8) {
-                    Text("Next")
-                      .font(.system(size: 16, weight: .medium))
-                    Image(systemName: "arrow.right")
-                      .font(.system(size: 16, weight: .semibold))
-                  }
-                  .foregroundColor(.white)
-                  .padding(.horizontal, 20)
-                  .padding(.vertical, 12)
-                  .background(
-                    RoundedRectangle(cornerRadius: 25)
-                      .fill(Color.blue.opacity(0.85))
-                      .overlay(
-                        RoundedRectangle(cornerRadius: 25)
-                          .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                      )
-                  )
-                }
-              }
-            }
-
-            // Next book info or last book message
-            if let nextBook = nextBook {
-              VStack {
-                HStack {
-                  Image(systemName: "arrow.right.circle")
-                    .font(.system(size: 14))
-                  Text("Next book: #\(Int(nextBook.number))")
-                }
-                Text(nextBook.metadata.title)
-              }
-              .foregroundColor(.white.opacity(0.9))
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-              .background(
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(Color.black.opacity(0.6))
-              )
-            } else {
-              HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle")
-                  .font(.system(size: 14))
-                Text("This is the last book")
-                  .font(.system(size: 14, weight: .medium))
-              }
-              .foregroundColor(.white.opacity(0.7))
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-              .background(
-                RoundedRectangle(cornerRadius: 12)
-                  .fill(Color.black.opacity(0.6))
-              )
-            }
-          }
+          EndPageView(
+            nextBook: nextBook,
+            onDismiss: { dismiss() },
+            onNextBook: { openNextBook(nextBookId: $0) }
+          )
           .padding(.bottom, 120)
         }
         .transition(.opacity)
@@ -826,6 +671,101 @@ struct PageImageView: View {
 
       // Load new page image
       image = await viewModel.loadPageImage(pageIndex: pageIndex)
+    }
+  }
+}
+
+struct EndPageView: View {
+  let nextBook: Book?
+  let onDismiss: () -> Void
+  let onNextBook: (String) -> Void
+
+  var body: some View {
+    VStack(spacing: 12) {
+      HStack(spacing: 16) {
+        // Dismiss button
+        Button {
+          onDismiss()
+        } label: {
+          HStack(spacing: 8) {
+            Image(systemName: "xmark")
+              .font(.system(size: 16, weight: .semibold))
+            Text("Close")
+              .font(.system(size: 16, weight: .medium))
+          }
+          .foregroundColor(.white)
+          .padding(.horizontal, 20)
+          .padding(.vertical, 12)
+          .background(
+            RoundedRectangle(cornerRadius: 25)
+              .fill(Color.black.opacity(0.75))
+              .overlay(
+                RoundedRectangle(cornerRadius: 25)
+                  .stroke(Color.white.opacity(0.2), lineWidth: 1)
+              )
+          )
+        }
+
+        // Next book button
+        if let nextBook = nextBook {
+          Button {
+            onNextBook(nextBook.id)
+          } label: {
+            HStack(spacing: 8) {
+              Text("Next")
+                .font(.system(size: 16, weight: .medium))
+              Image(systemName: "arrow.right")
+                .font(.system(size: 16, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+              RoundedRectangle(cornerRadius: 25)
+                .fill(Color.blue.opacity(0.85))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 25)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+            )
+          }
+        }
+      }
+      NextBookInfoView(nextBook: nextBook)
+    }
+  }
+}
+
+struct NextBookInfoView: View {
+  let nextBook: Book?
+
+  var body: some View {
+    if let nextBook = nextBook {
+      VStack {
+        Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
+        Text(nextBook.metadata.title)
+      }
+      .foregroundColor(.white.opacity(0.9))
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+      .background(
+        RoundedRectangle(cornerRadius: 12)
+          .fill(Color.black.opacity(0.6))
+      )
+    } else {
+      HStack(spacing: 8) {
+        Image(systemName: "checkmark.circle")
+          .font(.system(size: 14))
+        Text("You're all caught up!")
+          .font(.system(size: 14, weight: .medium))
+      }
+      .foregroundColor(.white.opacity(0.7))
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+      .background(
+        RoundedRectangle(cornerRadius: 12)
+          .fill(Color.black.opacity(0.6))
+      )
     }
   }
 }
