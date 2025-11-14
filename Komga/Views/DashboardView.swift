@@ -10,6 +10,7 @@ import SwiftUI
 struct DashboardView: View {
   @State private var keepReadingBooks: [Book] = []
   @State private var onDeckBooks: [Book] = []
+  @State private var recentlyAddedBooks: [Book] = []
   @State private var recentlyAddedSeries: [Series] = []
   @State private var recentlyUpdatedSeries: [Series] = []
   @State private var isLoading = false
@@ -31,7 +32,7 @@ struct DashboardView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: 20) {
-          if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty {
+          if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty && recentlyAddedBooks.isEmpty {
             ProgressView()
               .frame(maxWidth: .infinity)
               .padding()
@@ -72,6 +73,16 @@ struct DashboardView: View {
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
+            // Recently Added Books
+            if !recentlyAddedBooks.isEmpty {
+              DashboardSection(
+                title: "Recently Added Books",
+                books: recentlyAddedBooks,
+                bookViewModel: bookViewModel
+              )
+              .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             // Recently Updated Series
             if !recentlyUpdatedSeries.isEmpty {
               DashboardSeriesSection(
@@ -92,8 +103,8 @@ struct DashboardView: View {
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            if keepReadingBooks.isEmpty && onDeckBooks.isEmpty && recentlyAddedSeries.isEmpty
-              && recentlyUpdatedSeries.isEmpty
+            if keepReadingBooks.isEmpty && onDeckBooks.isEmpty && recentlyAddedBooks.isEmpty
+              && recentlyAddedSeries.isEmpty && recentlyUpdatedSeries.isEmpty
             {
               VStack(spacing: 16) {
                 Image(systemName: "book")
@@ -181,6 +192,7 @@ struct DashboardView: View {
     await withTaskGroup(of: Void.self) { group in
       group.addTask { await self.loadKeepReading() }
       group.addTask { await self.loadOnDeck() }
+      group.addTask { await self.loadRecentlyAddedBooks() }
       group.addTask { await self.loadRecentlyAddedSeries() }
       group.addTask { await self.loadRecentlyUpdatedSeries() }
     }
@@ -220,6 +232,16 @@ struct DashboardView: View {
       let page = try await BookService.shared.getBooksOnDeck(
         libraryId: selectedLibraryIdOptional, size: 20)
       onDeckBooks = page.content
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+
+  private func loadRecentlyAddedBooks() async {
+    do {
+      let page = try await BookService.shared.getRecentlyAddedBooks(
+        libraryId: selectedLibraryIdOptional, size: 20)
+      recentlyAddedBooks = page.content
     } catch {
       errorMessage = error.localizedDescription
     }

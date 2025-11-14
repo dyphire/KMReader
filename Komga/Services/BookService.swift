@@ -166,4 +166,30 @@ class BookService {
       sort: "readProgress.readDate,desc"
     )
   }
+
+  func getRecentlyAddedBooks(
+    libraryId: String? = nil,
+    page: Int = 0,
+    size: Int = 20
+  ) async throws -> Page<Book> {
+    // Get books sorted by created date (most recent first)
+    // Use allOf with empty array to match all books, or with libraryId condition if specified
+    let condition: BookSearch.Condition
+    if let libraryId = libraryId {
+      // Filter by libraryId using allOf
+      condition = .allOf([.libraryId(libraryId)])
+    } else {
+      // Empty allOf array means match all books
+      condition = .allOf([])
+    }
+
+    let search = BookSearch(condition: condition)
+
+    return try await getBooksList(
+      search: search,
+      page: page,
+      size: size,
+      sort: "createdDate,desc"
+    )
+  }
 }

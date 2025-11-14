@@ -20,6 +20,15 @@ struct BookCardView: View {
     return Double(readProgress.page) / Double(book.media.pagesCount)
   }
 
+  private var isCompleted: Bool {
+    book.readProgress?.completed ?? false
+  }
+
+  private var isInProgress: Bool {
+    guard let readProgress = book.readProgress else { return false }
+    return !readProgress.completed
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       // Thumbnail
@@ -48,7 +57,7 @@ struct BookCardView: View {
         }
       }
       .overlay(alignment: .bottom) {
-        if book.readProgress != nil {
+        if isInProgress {
           GeometryReader { geometry in
             ZStack(alignment: .leading) {
               Rectangle()
