@@ -57,83 +57,14 @@ struct BookReaderView: View {
         // Controls overlay (always show when at end page or webtoon at bottom)
         if showingControls || isAtEndPage || (viewModel.readingDirection == .webtoon && isAtBottom)
         {
-          VStack {
-            // Top bar
-            VStack(spacing: 8) {
-              HStack {
-                Button {
-                  dismiss()
-                } label: {
-                  Image(systemName: "xmark")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(themeColorOption.color.opacity(0.8))
-                    .clipShape(Circle())
-                }
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
-
-                Spacer()
-
-                // Page count in the middle
-                Text("\(viewModel.currentPage + 1) / \(viewModel.pages.count)")
-                  .foregroundColor(.white)
-                  .padding(.horizontal, 16)
-                  .padding(.vertical, 8)
-                  .background(themeColorOption.color.opacity(0.8))
-                  .cornerRadius(20)
-
-                Spacer()
-
-                // Display mode toggle button
-                Button {
-                  showingReadingDirectionPicker = true
-                } label: {
-                  Image(systemName: viewModel.readingDirection.icon)
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(themeColorOption.color.opacity(0.8))
-                    .clipShape(Circle())
-                }
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
-              }
-              .padding(.horizontal)
-            }
-            .padding(.top)
-            .allowsHitTesting(true)
-
-            // Series and book title
-            if let book = currentBook {
-              VStack(spacing: 4) {
-                Text(book.seriesTitle)
-                  .font(.headline)
-                  .foregroundColor(.white)
-                Text("#\(Int(book.number)) - \(book.metadata.title)")
-                  .font(.subheadline)
-                  .foregroundColor(.white.opacity(0.9))
-              }
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-              .background(themeColorOption.color.opacity(0.8))
-              .cornerRadius(12)
-            }
-
-            Spacer()
-
-            // Bottom slider
-            VStack {
-              ProgressView(
-                value: Double(min(viewModel.currentPage + 1, viewModel.pages.count)),
-                total: Double(viewModel.pages.count)
-              )
-            }
-            .padding()
-          }
-          .allowsHitTesting(true)
-          .transition(.opacity)
+          ReaderControlsView(
+            showingControls: $showingControls,
+            showingReadingDirectionPicker: $showingReadingDirectionPicker,
+            viewModel: viewModel,
+            currentBook: currentBook,
+            themeColorOption: themeColorOption,
+            onDismiss: { dismiss() }
+          )
         }
       }
     }
@@ -309,87 +240,89 @@ struct BookReaderView: View {
 
   // Vertical page view (VERTICAL)
   private var verticalPageView: some View {
-    ScrollViewReader { proxy in
-      ScrollView(.vertical) {
-        LazyVStack(spacing: 0) {
-          ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-            GeometryReader { geometry in
-              ZStack {
-                PageImageView(
-                  viewModel: viewModel,
-                  pageIndex: pageIndex
-                )
+    GeometryReader { screenGeometry in
+      ScrollViewReader { proxy in
+        ScrollView(.vertical) {
+          LazyVStack(spacing: 0) {
+            ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
+              GeometryReader { geometry in
+                ZStack {
+                  PageImageView(
+                    viewModel: viewModel,
+                    pageIndex: pageIndex
+                  )
 
-                // Tap zones overlay
-                VStack(spacing: 0) {
-                  // Top tap zone
-                  Color.clear
-                    .frame(height: geometry.size.height * 0.3)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                      TapGesture()
-                        .onEnded { _ in
-                          goToPreviousPage()
-                        }
-                    )
+                  // Tap zones overlay
+                  VStack(spacing: 0) {
+                    // Top tap zone
+                    Color.clear
+                      .frame(height: geometry.size.height * 0.3)
+                      .contentShape(Rectangle())
+                      .simultaneousGesture(
+                        TapGesture()
+                          .onEnded { _ in
+                            goToPreviousPage()
+                          }
+                      )
 
-                  // Center tap zone (toggle controls)
-                  Color.clear
-                    .frame(height: geometry.size.height * 0.4)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                      TapGesture()
-                        .onEnded { _ in
-                          toggleControls()
-                        }
-                    )
+                    // Center tap zone (toggle controls)
+                    Color.clear
+                      .frame(height: geometry.size.height * 0.4)
+                      .contentShape(Rectangle())
+                      .simultaneousGesture(
+                        TapGesture()
+                          .onEnded { _ in
+                            toggleControls()
+                          }
+                      )
 
-                  // Bottom tap zone
-                  Color.clear
-                    .frame(height: geometry.size.height * 0.3)
-                    .contentShape(Rectangle())
-                    .simultaneousGesture(
-                      TapGesture()
-                        .onEnded { _ in
-                          goToNextPage()
-                        }
-                    )
+                    // Bottom tap zone
+                    Color.clear
+                      .frame(height: geometry.size.height * 0.3)
+                      .contentShape(Rectangle())
+                      .simultaneousGesture(
+                        TapGesture()
+                          .onEnded { _ in
+                            goToNextPage()
+                          }
+                      )
+                  }
+                }
+              }
+              .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
+              .id(pageIndex)
+              .onAppear {
+                // Update current page when page appears
+                if pageIndex != viewModel.currentPage && !isAtEndPage {
+                  viewModel.currentPage = pageIndex
                 }
               }
             }
-            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-            .id(pageIndex)
-            .onAppear {
-              // Update current page when page appears
-              if pageIndex != viewModel.currentPage && !isAtEndPage {
-                viewModel.currentPage = pageIndex
-              }
-            }
-          }
 
-          // End page after last page
-          endPageView
-            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-            .id("endPage")
-            .onAppear {
-              isAtEndPage = true
-              showingControls = true  // Show controls when end page appears
-            }
-        }
-      }
-      .scrollTargetBehavior(.paging)
-      .onChange(of: viewModel.currentPage) { _, newPage in
-        // Scroll to current page when changed externally (e.g., from slider)
-        if !isAtEndPage {
-          withAnimation {
-            proxy.scrollTo(newPage, anchor: .top)
+            // End page after last page
+            endPageView
+              .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
+              .id("endPage")
+              .onAppear {
+                isAtEndPage = true
+                showingControls = true  // Show controls when end page appears
+              }
           }
         }
-      }
-      .onChange(of: isAtEndPage) { _, isEnd in
-        if isEnd {
-          withAnimation {
-            proxy.scrollTo("endPage", anchor: .top)
+        .scrollTargetBehavior(.paging)
+        .onChange(of: viewModel.currentPage) { _, newPage in
+          // Scroll to current page when changed externally (e.g., from slider)
+          if !isAtEndPage {
+            withAnimation {
+              proxy.scrollTo(newPage, anchor: .top)
+            }
+          }
+        }
+        .onChange(of: isAtEndPage) { _, isEnd in
+          if isEnd {
+            withAnimation {
+              proxy.scrollTo("endPage", anchor: .top)
+            }
           }
         }
       }
@@ -580,192 +513,5 @@ struct BookReaderView: View {
     viewModel = ReaderViewModel()
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
-  }
-}
-
-struct PageImageView: View {
-  var viewModel: ReaderViewModel
-  let pageIndex: Int
-
-  @State private var image: UIImage?
-  @State private var scale: CGFloat = 1.0
-  @State private var lastScale: CGFloat = 1.0
-  @State private var offset: CGSize = .zero
-  @State private var lastOffset: CGSize = .zero
-
-  var body: some View {
-    GeometryReader { geometry in
-      ZStack {
-        if let image = image {
-          Image(uiImage: image)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .scaleEffect(scale)
-            .offset(offset)
-            .gesture(
-              MagnificationGesture()
-                .onChanged { value in
-                  let delta = value / lastScale
-                  lastScale = value
-                  scale *= delta
-                }
-                .onEnded { _ in
-                  lastScale = 1.0
-                  if scale < 1.0 {
-                    withAnimation {
-                      scale = 1.0
-                      offset = .zero
-                    }
-                  } else if scale > 4.0 {
-                    withAnimation {
-                      scale = 4.0
-                    }
-                  }
-                }
-            )
-            .simultaneousGesture(
-              DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                  // Only handle drag when zoomed in
-                  if scale > 1.0 {
-                    offset = CGSize(
-                      width: lastOffset.width + value.translation.width,
-                      height: lastOffset.height + value.translation.height
-                    )
-                  }
-                }
-                .onEnded { _ in
-                  if scale > 1.0 {
-                    lastOffset = offset
-                  }
-                }
-            )
-            .onTapGesture(count: 2) {
-              // Double tap to zoom in/out
-              if scale > 1.0 {
-                withAnimation {
-                  scale = 1.0
-                  offset = .zero
-                  lastOffset = .zero
-                }
-              } else {
-                withAnimation {
-                  scale = 2.0
-                }
-              }
-            }
-        } else {
-          ProgressView()
-            .tint(.white)
-        }
-      }
-      .frame(width: geometry.size.width, height: geometry.size.height)
-    }
-    .task(id: pageIndex) {
-      // Reset image and zoom state when page changes
-      image = nil
-      scale = 1.0
-      lastScale = 1.0
-      offset = .zero
-      lastOffset = .zero
-
-      // Load new page image
-      image = await viewModel.loadPageImage(pageIndex: pageIndex)
-    }
-  }
-}
-
-struct EndPageView: View {
-  let nextBook: Book?
-  let onDismiss: () -> Void
-  let onNextBook: (String) -> Void
-
-  var body: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 16) {
-        // Dismiss button
-        Button {
-          onDismiss()
-        } label: {
-          HStack(spacing: 8) {
-            Image(systemName: "xmark")
-              .font(.system(size: 16, weight: .semibold))
-            Text("Close")
-              .font(.system(size: 16, weight: .medium))
-          }
-          .foregroundColor(.white)
-          .padding(.horizontal, 20)
-          .padding(.vertical, 12)
-          .background(
-            RoundedRectangle(cornerRadius: 25)
-              .fill(Color.black.opacity(0.75))
-              .overlay(
-                RoundedRectangle(cornerRadius: 25)
-                  .stroke(Color.white.opacity(0.2), lineWidth: 1)
-              )
-          )
-        }
-
-        // Next book button
-        if let nextBook = nextBook {
-          Button {
-            onNextBook(nextBook.id)
-          } label: {
-            HStack(spacing: 8) {
-              Text("Next")
-                .font(.system(size: 16, weight: .medium))
-              Image(systemName: "arrow.right")
-                .font(.system(size: 16, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(
-              RoundedRectangle(cornerRadius: 25)
-                .fill(Color.blue.opacity(0.85))
-                .overlay(
-                  RoundedRectangle(cornerRadius: 25)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-            )
-          }
-        }
-      }
-      NextBookInfoView(nextBook: nextBook)
-    }
-  }
-}
-
-struct NextBookInfoView: View {
-  let nextBook: Book?
-
-  var body: some View {
-    if let nextBook = nextBook {
-      VStack {
-        Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
-        Text(nextBook.metadata.title)
-      }
-      .foregroundColor(.white.opacity(0.9))
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(Color.black.opacity(0.6))
-      )
-    } else {
-      HStack(spacing: 8) {
-        Image(systemName: "checkmark.circle")
-          .font(.system(size: 14))
-        Text("You're all caught up!")
-          .font(.system(size: 14, weight: .medium))
-      }
-      .foregroundColor(.white.opacity(0.7))
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(Color.black.opacity(0.6))
-      )
-    }
   }
 }
