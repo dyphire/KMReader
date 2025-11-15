@@ -9,7 +9,7 @@ import SwiftUI
 
 struct BrowseView: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
-  @State private var browseOpts = BrowseOptions()
+  @AppStorage("browseOptions") private var browseOpts: BrowseOptions = BrowseOptions()
   @State private var showBrowseOptionsSheet = false
   @State private var showLibraryPickerSheet = false
 
@@ -71,15 +71,7 @@ struct BrowseOptionsSheet: View {
 
   init(browseOpts: Binding<BrowseOptions>) {
     self._browseOpts = browseOpts
-    // Create a temporary copy with current values
-    let original = browseOpts.wrappedValue
-    let temp = BrowseOptions()
-    temp.libraryId = original.libraryId
-    temp.readStatusFilter = original.readStatusFilter
-    temp.seriesStatusFilter = original.seriesStatusFilter
-    temp.sortField = original.sortField
-    temp.sortDirection = original.sortDirection
-    self._tempOpts = State(initialValue: temp)
+    self._tempOpts = State(initialValue: browseOpts.wrappedValue)
   }
 
   var body: some View {
@@ -136,11 +128,7 @@ struct BrowseOptionsSheet: View {
           Button {
             // Only assign if there are changes
             if tempOpts != browseOpts {
-              browseOpts.libraryId = tempOpts.libraryId
-              browseOpts.readStatusFilter = tempOpts.readStatusFilter
-              browseOpts.seriesStatusFilter = tempOpts.seriesStatusFilter
-              browseOpts.sortField = tempOpts.sortField
-              browseOpts.sortDirection = tempOpts.sortDirection
+              browseOpts = tempOpts
             }
             dismiss()
           } label: {

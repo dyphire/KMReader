@@ -89,27 +89,7 @@ struct SeriesListView: View {
         await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
       }
     }
-    .onChange(of: browseOpts.libraryId) {
-      Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
-      }
-    }
-    .onChange(of: browseOpts.readStatusFilter) {
-      Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
-      }
-    }
-    .onChange(of: browseOpts.seriesStatusFilter) {
-      Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
-      }
-    }
-    .onChange(of: browseOpts.sortField) {
-      Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
-      }
-    }
-    .onChange(of: browseOpts.sortDirection) {
+    .onChange(of: browseOpts) {
       Task {
         await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)
       }

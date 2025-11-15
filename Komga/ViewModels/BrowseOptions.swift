@@ -8,16 +8,15 @@
 import Foundation
 import SwiftUI
 
-@MainActor
-@Observable
-class BrowseOptions: Equatable {
+struct BrowseOptions: Equatable, RawRepresentable {
+  typealias RawValue = String
+
   var libraryId: String = ""
   var readStatusFilter: ReadStatusFilter = .all
   var seriesStatusFilter: SeriesStatusFilter = .all
   var sortField: SeriesSortField = .name
   var sortDirection: SortDirection = .ascending
 
-  // Computed property to generate sort string for API
   var sortString: String {
     if sortField == .random {
       return "random"
@@ -25,11 +24,37 @@ class BrowseOptions: Equatable {
     return "\(sortField.rawValue),\(sortDirection.rawValue)"
   }
 
-  static func == (lhs: BrowseOptions, rhs: BrowseOptions) -> Bool {
-    return lhs.libraryId == rhs.libraryId
-      && lhs.readStatusFilter == rhs.readStatusFilter
-      && lhs.seriesStatusFilter == rhs.seriesStatusFilter
-      && lhs.sortField == rhs.sortField
-      && lhs.sortDirection == rhs.sortDirection
+  var rawValue: String {
+    let dict: [String: String] = [
+      "libraryId": libraryId,
+      "readStatusFilter": readStatusFilter.rawValue,
+      "seriesStatusFilter": seriesStatusFilter.rawValue,
+      "sortField": sortField.rawValue,
+      "sortDirection": sortDirection.rawValue,
+    ]
+    if let data = try? JSONSerialization.data(withJSONObject: dict),
+      let json = String(data: data, encoding: .utf8)
+    {
+      return json
+    }
+    return "{}"
   }
+
+  init?(rawValue: String) {
+    guard !rawValue.isEmpty else {
+      return nil
+    }
+    guard let data = rawValue.data(using: .utf8),
+      let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String]
+    else {
+      return nil
+    }
+    self.libraryId = dict["libraryId"] ?? ""
+    self.readStatusFilter = ReadStatusFilter(rawValue: dict["readStatusFilter"] ?? "") ?? .all
+    self.seriesStatusFilter = SeriesStatusFilter(rawValue: dict["seriesStatusFilter"] ?? "") ?? .all
+    self.sortField = SeriesSortField(rawValue: dict["sortField"] ?? "") ?? .name
+    self.sortDirection = SortDirection(rawValue: dict["sortDirection"] ?? "") ?? .ascending
+  }
+
+  init() {}
 }
