@@ -88,6 +88,7 @@ struct ReaderControlsView: View {
           value: Double(min(viewModel.currentPage + 1, viewModel.pages.count)),
           total: Double(viewModel.pages.count)
         )
+        .scaleEffect(x: viewModel.readingDirection == .rtl ? -1 : 1, y: 1)
       }
       .padding()
     }
