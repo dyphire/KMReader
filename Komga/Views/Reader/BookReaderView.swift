@@ -94,29 +94,21 @@ struct BookReaderView: View {
     .sheet(isPresented: $showingReadingDirectionPicker) {
       NavigationStack {
         Form {
-          Section(header: Text("Reading Direction")) {
-            Picker("", selection: $viewModel.readingDirection) {
-              ForEach(ReadingDirection.allCases, id: \.self) { direction in
-                Label(direction.displayName, systemImage: direction.icon)
-                  .tag(direction)
-              }
+          Picker("Reading Direction", selection: $viewModel.readingDirection) {
+            ForEach(ReadingDirection.allCases, id: \.self) { direction in
+              Label(direction.displayName, systemImage: direction.icon)
+                .tag(direction)
             }
-            .pickerStyle(.inline)
           }
+          .pickerStyle(.inline)
         }
         .navigationTitle("Reading Mode")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-          ToolbarItem(placement: .topBarTrailing) {
-            Button {
-              showingReadingDirectionPicker = false
-            } label: {
-              Label("Done", systemImage: "checkmark")
-            }
-          }
-        }
       }
       .presentationDetents([.medium])
+      .onChange(of: viewModel.readingDirection) {
+        showingReadingDirectionPicker = false
+      }
     }
     .task(id: currentBookId) {
       // Reset isAtBottom and isAtEndPage when switching to a new book
