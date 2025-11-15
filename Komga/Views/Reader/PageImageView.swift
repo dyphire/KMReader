@@ -87,15 +87,32 @@ struct PageImageView: View {
       .frame(width: geometry.size.width, height: geometry.size.height)
     }
     .task(id: pageIndex) {
-      // Reset image and zoom state when page changes
-      image = nil
-      scale = 1.0
-      lastScale = 1.0
-      offset = .zero
-      lastOffset = .zero
+      // Check if image is already cached to avoid unnecessary reset and loading
+      if let cachedImage = viewModel.pageImageCache[pageIndex] {
+        // Image is cached, update immediately - this provides instant display when preloaded
+        // Reset zoom state when switching pages for better UX
+        image = cachedImage
+        scale = 1.0
+        lastScale = 1.0
+        offset = .zero
+        lastOffset = .zero
+      } else {
+        // Image not cached, reset state first
+        scale = 1.0
+        lastScale = 1.0
+        offset = .zero
+        lastOffset = .zero
 
-      // Load new page image
-      image = await viewModel.loadPageImage(pageIndex: pageIndex)
+        // Start loading immediately without blocking UI
+        // Don't set image to nil if it's already showing something (smoother transition)
+        let loadedImage = await viewModel.loadPageImage(pageIndex: pageIndex)
+        if let loadedImage = loadedImage {
+          image = loadedImage
+        } else {
+          // Only show nil if loading failed
+          image = nil
+        }
+      }
     }
   }
 }

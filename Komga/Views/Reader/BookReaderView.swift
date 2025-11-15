@@ -41,15 +41,36 @@ struct BookReaderView: View {
         Group {
           switch viewModel.readingDirection {
           case .ltr, .rtl:
-            horizontalPageView
+            HorizontalPageView(
+              viewModel: viewModel,
+              isAtEndPage: $isAtEndPage,
+              showingControls: $showingControls,
+              nextBook: nextBook,
+              onDismiss: { dismiss() },
+              onNextBook: { openNextBook(nextBookId: $0) },
+              goToNextPage: goToNextPage,
+              goToPreviousPage: goToPreviousPage,
+              toggleControls: toggleControls
+            )
           case .vertical:
-            verticalPageView
+            VerticalPageView(
+              viewModel: viewModel,
+              isAtEndPage: $isAtEndPage,
+              showingControls: $showingControls,
+              nextBook: nextBook,
+              onDismiss: { dismiss() },
+              onNextBook: { openNextBook(nextBookId: $0) },
+              goToNextPage: goToNextPage,
+              goToPreviousPage: goToPreviousPage,
+              toggleControls: toggleControls
+            )
           case .webtoon:
             webtoonPageView
           }
         }
         .onChange(of: viewModel.currentPage) { _, _ in
-          Task {
+          // Update progress and preload pages in background without blocking UI
+          Task(priority: .userInitiated) {
             await viewModel.updateProgress()
             await viewModel.preloadPages()
           }
@@ -136,199 +157,6 @@ struct BookReaderView: View {
     }
     .onDisappear {
       controlsTimer?.invalidate()
-    }
-  }
-
-  // Horizontal page view (LTR/RTL)
-  private var horizontalPageView: some View {
-    TabView(
-      selection: Binding(
-        get: {
-          if isAtEndPage {
-            // For LTR, end page is at pages.count; for RTL, end page is at -1
-            return viewModel.readingDirection == .rtl ? -1 : viewModel.pages.count
-          }
-          return viewModel.pageIndexToDisplayIndex(viewModel.currentPage)
-        },
-        set: { displayIndex in
-          withAnimation {
-            // Check if it's the end page
-            let endPageIndex = viewModel.readingDirection == .rtl ? -1 : viewModel.pages.count
-            if displayIndex == endPageIndex {
-              isAtEndPage = true
-              showingControls = true  // Show controls when reaching end page
-            } else {
-              isAtEndPage = false
-              viewModel.currentPage = viewModel.displayIndexToPageIndex(displayIndex)
-            }
-          }
-        }
-      )
-    ) {
-      // For RTL, show end page first
-      if viewModel.readingDirection == .rtl {
-        endPageView
-          .tag(-1)
-      }
-
-      ForEach(0..<viewModel.pages.count, id: \.self) { displayIndex in
-        GeometryReader { geometry in
-          ZStack {
-            PageImageView(
-              viewModel: viewModel,
-              pageIndex: viewModel.displayIndexToPageIndex(displayIndex)
-            )
-
-            // Tap zones overlay
-            HStack(spacing: 0) {
-              // Left tap zone
-              Color.clear
-                .frame(width: geometry.size.width * 0.3)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      goToPreviousPage()
-                    }
-                )
-
-              // Center tap zone (toggle controls)
-              Color.clear
-                .frame(width: geometry.size.width * 0.4)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      toggleControls()
-                    }
-                )
-
-              // Right tap zone
-              Color.clear
-                .frame(width: geometry.size.width * 0.3)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      goToNextPage()
-                    }
-                )
-            }
-          }
-        }
-        .tag(displayIndex)
-      }
-
-      // For LTR, show end page last
-      if viewModel.readingDirection == .ltr {
-        endPageView
-          .tag(viewModel.pages.count)
-      }
-    }
-    .tabViewStyle(.page(indexDisplayMode: .never))
-    .indexViewStyle(.page(backgroundDisplayMode: .never))
-  }
-
-  // End page view with buttons and info
-  private var endPageView: some View {
-    ZStack {
-      Color.black.ignoresSafeArea()
-      EndPageView(
-        nextBook: nextBook,
-        onDismiss: { dismiss() },
-        onNextBook: { openNextBook(nextBookId: $0) }
-      )
-    }
-  }
-
-  // Vertical page view (VERTICAL)
-  private var verticalPageView: some View {
-    GeometryReader { screenGeometry in
-      ScrollViewReader { proxy in
-        ScrollView(.vertical) {
-          LazyVStack(spacing: 0) {
-            ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-              GeometryReader { geometry in
-                ZStack {
-                  PageImageView(
-                    viewModel: viewModel,
-                    pageIndex: pageIndex
-                  )
-
-                  // Tap zones overlay
-                  VStack(spacing: 0) {
-                    // Top tap zone
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.3)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            goToPreviousPage()
-                          }
-                      )
-
-                    // Center tap zone (toggle controls)
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.4)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            toggleControls()
-                          }
-                      )
-
-                    // Bottom tap zone
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.3)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            goToNextPage()
-                          }
-                      )
-                  }
-                }
-              }
-              .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
-              .id(pageIndex)
-              .onAppear {
-                // Update current page when page appears
-                if pageIndex != viewModel.currentPage && !isAtEndPage {
-                  viewModel.currentPage = pageIndex
-                }
-              }
-            }
-
-            // End page after last page
-            endPageView
-              .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
-              .id("endPage")
-              .onAppear {
-                isAtEndPage = true
-                showingControls = true  // Show controls when end page appears
-              }
-          }
-        }
-        .scrollTargetBehavior(.paging)
-        .onChange(of: viewModel.currentPage) { _, newPage in
-          // Scroll to current page when changed externally (e.g., from slider)
-          if !isAtEndPage {
-            withAnimation {
-              proxy.scrollTo(newPage, anchor: .top)
-            }
-          }
-        }
-        .onChange(of: isAtEndPage) { _, isEnd in
-          if isEnd {
-            withAnimation {
-              proxy.scrollTo("endPage", anchor: .top)
-            }
-          }
-        }
-      }
     }
   }
 

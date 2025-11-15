@@ -121,7 +121,21 @@ class ReaderViewModel {
       // Use the page number from the API response (1-based)
       let apiPageNumber = pages[pageIndex].number
       let data = try await bookService.getBookPage(bookId: bookId, page: apiPageNumber)
-      if let image = UIImage(data: data) {
+
+      // Decode image on background thread to avoid blocking UI
+      let image = await Task.detached(priority: .userInitiated) {
+        // Decode image in background
+        guard let image = UIImage(data: data) else { return nil as UIImage? }
+        // Pre-render the image to ensure it's decoded and ready for display
+        // This prevents stuttering when the image is first displayed
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(at: .zero)
+        let decodedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return decodedImage ?? image
+      }.value
+
+      if let image = image {
         pageImageCache[pageIndex] = image
         return image
       }
@@ -133,12 +147,39 @@ class ReaderViewModel {
   }
 
   func preloadPages() async {
-    // Preload current page and next few pages
-    let pagesToPreload = Array(currentPage..<min(currentPage + 3, pages.count))
+    // Preload current page, previous pages, and next pages for smoother scrolling
+    // More aggressive preloading: 2 pages before and 5 pages after
+    let preloadBefore = max(0, currentPage - 2)
+    let preloadAfter = min(currentPage + 5, pages.count)
+    let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
-    for pageIndex in pagesToPreload {
-      if pageImageCache[pageIndex] == nil {
-        _ = await loadPageImage(pageIndex: pageIndex)
+    // Load pages concurrently for better performance
+    await withTaskGroup(of: Void.self) { group in
+      for pageIndex in pagesToPreload {
+        if pageImageCache[pageIndex] == nil {
+          group.addTask {
+            _ = await self.loadPageImage(pageIndex: pageIndex)
+          }
+        }
+      }
+    }
+  }
+
+  // Preload pages around a specific page index (for when pages appear in TabView)
+  func preloadPagesAround(pageIndex: Int) async {
+    // Preload 2 pages before and 5 pages after the given page
+    let preloadBefore = max(0, pageIndex - 2)
+    let preloadAfter = min(pageIndex + 5, pages.count)
+    let pagesToPreload = Array(preloadBefore..<preloadAfter)
+
+    // Load pages concurrently for better performance
+    await withTaskGroup(of: Void.self) { group in
+      for index in pagesToPreload {
+        if pageImageCache[index] == nil {
+          group.addTask {
+            _ = await self.loadPageImage(pageIndex: index)
+          }
+        }
       }
     }
   }
