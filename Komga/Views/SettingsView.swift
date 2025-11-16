@@ -11,6 +11,10 @@ struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
+  @State private var showClearCacheConfirmation = false
+  @State private var diskCacheSize: Int64 = 0
+  @State private var diskCacheCount: Int = 0
+  @State private var isLoadingCacheSize = false
 
   var body: some View {
     NavigationStack {
@@ -98,6 +102,42 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text("Cache")) {
+          HStack {
+            Text("Disk Cache Size")
+            Spacer()
+            if isLoadingCacheSize {
+              ProgressView()
+                .scaleEffect(0.8)
+            } else {
+              Text(formatCacheSize(diskCacheSize))
+                .foregroundColor(.secondary)
+            }
+          }
+
+          HStack {
+            Text("Cached Images")
+            Spacer()
+            if isLoadingCacheSize {
+              ProgressView()
+                .scaleEffect(0.8)
+            } else {
+              Text(formatCacheCount(diskCacheCount))
+                .foregroundColor(.secondary)
+            }
+          }
+
+          Button(role: .destructive) {
+            showClearCacheConfirmation = true
+          } label: {
+            HStack {
+              Spacer()
+              Text("Clear Disk Cache")
+              Spacer()
+            }
+          }
+        }
+
         Section {
           Button(role: .destructive) {
             authViewModel.logout()
@@ -112,6 +152,44 @@ struct SettingsView: View {
       }
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)
+      .alert("Clear Disk Cache", isPresented: $showClearCacheConfirmation) {
+        Button("Clear Cache", role: .destructive) {
+          Task {
+            await ImageCache.clearAllDiskCache()
+            await loadCacheSize()
+          }
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text(
+          "This will remove all cached images from disk. Images will be re-downloaded when needed.")
+      }
+      .task {
+        await loadCacheSize()
+      }
     }
+  }
+
+  private func loadCacheSize() async {
+    isLoadingCacheSize = true
+    async let size = ImageCache.getDiskCacheSize()
+    async let count = ImageCache.getDiskCacheCount()
+    diskCacheSize = await size
+    diskCacheCount = await count
+    isLoadingCacheSize = false
+  }
+
+  private func formatCacheSize(_ bytes: Int64) -> String {
+    let formatter = ByteCountFormatter()
+    formatter.allowedUnits = [.useMB, .useGB]
+    formatter.countStyle = .file
+    return formatter.string(fromByteCount: bytes)
+  }
+
+  private func formatCacheCount(_ count: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.groupingSeparator = ","
+    return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
   }
 }
