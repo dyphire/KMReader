@@ -229,31 +229,10 @@ class ReaderViewModel {
   }
 
   /// Preload pages around the current page for smoother scrolling
-  /// Preloads 1 page before and 3 pages after the current page
+  /// Preloads 2 pages before and 4 pages after the current page
   func preloadPages() async {
-    let preloadBefore = max(0, currentPage - 1)
-    let preloadAfter = min(currentPage + 3, pages.count)
-    let pagesToPreload = Array(preloadBefore..<preloadAfter)
-
-    // Load pages concurrently for better performance
-    await withTaskGroup(of: Void.self) { group in
-      for pageIndex in pagesToPreload {
-        // Only preload if not already cached
-        if !pageImageCache.hasImage(forKey: pageIndex, bookId: bookId) {
-          group.addTask {
-            _ = await self.getPageImageFileURL(pageIndex: pageIndex)
-          }
-        }
-      }
-    }
-  }
-
-  /// Preload pages around a specific page index
-  /// Used when pages appear in TabView or other paginated views
-  /// Preloads 1 page before and 3 pages after the specified page
-  func preloadPagesAround(pageIndex: Int) async {
-    let preloadBefore = max(0, pageIndex - 1)
-    let preloadAfter = min(pageIndex + 3, pages.count)
+    let preloadBefore = max(0, currentPage - 2)
+    let preloadAfter = min(currentPage + 4, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     // Load pages concurrently for better performance

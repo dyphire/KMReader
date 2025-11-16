@@ -82,9 +82,8 @@ struct HorizontalPageView: View {
         .onAppear {
           // When a page appears in TabView, preload adjacent pages immediately
           // This ensures images are ready before user swipes to them
-          let pageIndex = viewModel.displayIndexToPageIndex(displayIndex)
           Task(priority: .userInitiated) {
-            await viewModel.preloadPagesAround(pageIndex: pageIndex)
+            await viewModel.preloadPages()
           }
         }
       }
@@ -125,8 +124,6 @@ struct HorizontalPageView: View {
         // This ensures images are ready before user swipes to them
         Task(priority: .userInitiated) {
           await viewModel.preloadPages()
-          // Also preload pages around the new current page for extra safety
-          await viewModel.preloadPagesAround(pageIndex: newPageIndex)
         }
       }
     }
