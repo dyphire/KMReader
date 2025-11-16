@@ -175,27 +175,18 @@ struct ReadHistorySection: View {
 struct ReadHistoryBookRow: View {
   let book: Book
   var viewModel: BookViewModel
-  @State private var thumbnail: UIImage?
+
+  private var thumbnailURL: URL? {
+    BookService.shared.getBookThumbnailURL(id: book.id)
+  }
 
   var body: some View {
     HStack(spacing: 12) {
       // Thumbnail
-      ZStack {
-        if let thumbnail = thumbnail {
-          Image(uiImage: thumbnail)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-        } else {
-          Rectangle()
-            .fill(Color.gray.opacity(0.3))
-            .overlay {
-              ProgressView()
-            }
-        }
-      }
-      .frame(width: 80, height: 100)
-      .clipped()
-      .cornerRadius(6)
+      ThumbnailImage(url: thumbnailURL)
+        .frame(width: 80, height: 100)
+        .clipped()
+        .cornerRadius(6)
 
       // Book info
       VStack(alignment: .leading, spacing: 6) {
@@ -226,10 +217,6 @@ struct ReadHistoryBookRow: View {
       Image(systemName: "chevron.right")
         .font(.caption)
         .foregroundColor(.secondary)
-    }
-    .animation(.default, value: thumbnail)
-    .task {
-      thumbnail = await viewModel.loadThumbnail(for: book.id)
     }
   }
 

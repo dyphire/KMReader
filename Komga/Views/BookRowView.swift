@@ -10,7 +10,10 @@ import SwiftUI
 struct BookRowView: View {
   let book: Book
   var viewModel: BookViewModel
-  @State private var thumbnail: UIImage?
+
+  private var thumbnailURL: URL? {
+    BookService.shared.getBookThumbnailURL(id: book.id)
+  }
 
   var completed: Bool {
     guard let readProgress = book.readProgress else { return false }
@@ -24,19 +27,10 @@ struct BookRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      if let thumbnail = thumbnail {
-        Image(uiImage: thumbnail)
-          .resizable()
-          .aspectRatio(contentMode: .fill)
-          .frame(width: 60, height: 80)
-          .clipped()
-          .cornerRadius(4)
-      } else {
-        Rectangle()
-          .fill(Color.gray.opacity(0.3))
-          .frame(width: 60, height: 80)
-          .cornerRadius(4)
-      }
+      ThumbnailImage(url: thumbnailURL, showPlaceholder: false)
+        .frame(width: 60, height: 80)
+        .clipped()
+        .cornerRadius(4)
 
       VStack(alignment: .leading, spacing: 4) {
         Text("#\(formatNumber(book.number)) - \(book.metadata.title)")
@@ -74,11 +68,7 @@ struct BookRowView: View {
       Image(systemName: "chevron.right")
         .foregroundColor(.secondary)
     }
-    .animation(.default, value: thumbnail)
     .bookContextMenu(book: book, viewModel: viewModel)
-    .task {
-      thumbnail = await viewModel.loadThumbnail(for: book.id)
-    }
   }
 
   private func formatNumber(_ number: Double) -> String {

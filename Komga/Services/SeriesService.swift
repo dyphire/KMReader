@@ -109,8 +109,11 @@ class SeriesService {
     return try await apiClient.request(path: "/api/v1/series/updated", queryItems: queryItems)
   }
 
-  func getSeriesThumbnail(id: String) async throws -> Data {
-    return try await apiClient.requestData(path: "/api/v1/series/\(id)/thumbnail")
+  /// Get thumbnail URL for a series
+  func getSeriesThumbnailURL(id: String) -> URL? {
+    let baseURL = UserDefaults.standard.string(forKey: "serverURL") ?? ""
+    guard !baseURL.isEmpty else { return nil }
+    return URL(string: baseURL + "/api/v1/series/\(id)/thumbnail")
   }
 
   func markAsRead(seriesId: String) async throws {
@@ -118,7 +121,7 @@ class SeriesService {
     // For series, we don't need page number, just mark as completed
     let body = ["completed": true] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body)
-    
+
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/read-progress",
       method: "PATCH",

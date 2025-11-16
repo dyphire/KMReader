@@ -15,7 +15,6 @@ class BookViewModel {
   var currentBook: Book?
   var isLoading = false
   var errorMessage: String?
-  var thumbnailCache: [String: UIImage] = [:]
 
   private let bookService = BookService.shared
   private var currentPage = 0
@@ -88,24 +87,6 @@ class BookViewModel {
     }
 
     isLoading = false
-  }
-
-  func loadThumbnail(for bookId: String) async -> UIImage? {
-    if let cached = thumbnailCache[bookId] {
-      return cached
-    }
-
-    do {
-      let data = try await bookService.getBookThumbnail(id: bookId)
-      if let image = UIImage(data: data) {
-        thumbnailCache[bookId] = image
-        return image
-      }
-    } catch {
-      // Silently fail for thumbnails
-    }
-
-    return nil
   }
 
   func updateReadProgress(bookId: String, page: Int, completed: Bool = false) async {

@@ -12,9 +12,13 @@ struct SeriesDetailView: View {
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var series: Series?
-  @State private var thumbnail: UIImage?
   @State private var selectedBookId: String?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
+  private var thumbnailURL: URL? {
+    guard let series = series else { return nil }
+    return SeriesService.shared.getSeriesThumbnailURL(id: series.id)
+  }
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
@@ -29,37 +33,23 @@ struct SeriesDetailView: View {
         if let series = series {
           // Header with thumbnail and info
           HStack(alignment: .top, spacing: 16) {
-            ZStack {
-              if let thumbnail = thumbnail {
-                Image(uiImage: thumbnail)
-                  .resizable()
-                  .aspectRatio(contentMode: .fill)
-                  .frame(width: 120, height: 180)
-                  .clipped()
-                  .cornerRadius(8)
-              } else {
-                Rectangle()
-                  .fill(Color.gray.opacity(0.3))
-                  .frame(width: 120, height: 180)
-                  .cornerRadius(8)
+            ThumbnailImage(url: thumbnailURL, showPlaceholder: false)
+              .frame(width: 120, height: 180)
+              .clipped()
+              .cornerRadius(8)
+              .overlay(alignment: .topTrailing) {
+                if series.booksUnreadCount > 0 {
+                  Text("\(series.booksUnreadCount)")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(themeColorOption.color)
+                    .clipShape(Capsule())
+                    .padding(4)
+                }
               }
-            }
-            .frame(width: 120, height: 180)
-            .clipped()
-            .cornerRadius(8)
-            .overlay(alignment: .topTrailing) {
-              if series.booksUnreadCount > 0 {
-                Text("\(series.booksUnreadCount)")
-                  .font(.caption)
-                  .fontWeight(.bold)
-                  .foregroundColor(.white)
-                  .padding(.horizontal, 8)
-                  .padding(.vertical, 4)
-                  .background(themeColorOption.color)
-                  .clipShape(Capsule())
-                  .padding(4)
-              }
-            }
 
             VStack(alignment: .leading, spacing: 8) {
               Text(series.metadata.title)
@@ -223,7 +213,6 @@ struct SeriesDetailView: View {
       // Load series details
       do {
         series = try await SeriesService.shared.getOneSeries(id: seriesId)
-        thumbnail = await seriesViewModel.loadThumbnail(for: seriesId)
       } catch {
       }
     }

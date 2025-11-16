@@ -11,25 +11,16 @@ struct SeriesCardView: View {
   let series: Series
   var viewModel: SeriesViewModel
   let cardWidth: CGFloat
-  @State private var thumbnail: UIImage?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
+  private var thumbnailURL: URL? {
+    SeriesService.shared.getSeriesThumbnailURL(id: series.id)
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       // Thumbnail
-      ZStack {
-        if let thumbnail = thumbnail {
-          Image(uiImage: thumbnail)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-        } else {
-          Rectangle()
-            .fill(Color.gray.opacity(0.3))
-            .overlay {
-              ProgressView()
-            }
-        }
-      }
+      ThumbnailImage(url: thumbnailURL)
       .frame(width: cardWidth, height: cardWidth * 1.3)
       .clipped()
       .cornerRadius(8)
@@ -59,10 +50,6 @@ struct SeriesCardView: View {
           .foregroundColor(.secondary)
       }
       .frame(width: cardWidth, alignment: .leading)
-    }
-    .animation(.default, value: thumbnail)
-    .task {
-      thumbnail = await viewModel.loadThumbnail(for: series.id)
     }
   }
 }

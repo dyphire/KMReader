@@ -14,7 +14,6 @@ class SeriesViewModel {
   var series: [Series] = []
   var isLoading = false
   var errorMessage: String?
-  var thumbnailCache: [String: UIImage] = [:]
 
   private let seriesService = SeriesService.shared
   private var currentPage = 0
@@ -87,24 +86,6 @@ class SeriesViewModel {
     }
 
     isLoading = false
-  }
-
-  func loadThumbnail(for seriesId: String) async -> UIImage? {
-    if let cached = thumbnailCache[seriesId] {
-      return cached
-    }
-
-    do {
-      let data = try await seriesService.getSeriesThumbnail(id: seriesId)
-      if let image = UIImage(data: data) {
-        thumbnailCache[seriesId] = image
-        return image
-      }
-    } catch {
-      // Silently fail for thumbnails
-    }
-
-    return nil
   }
 
   func markAsRead(seriesId: String, browseOpts: BrowseOptions) async {

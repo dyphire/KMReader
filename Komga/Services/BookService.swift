@@ -88,8 +88,11 @@ class BookService {
     return try await apiClient.request(path: "/api/v1/books/ondeck", queryItems: queryItems)
   }
 
-  func getBookThumbnail(id: String) async throws -> Data {
-    return try await apiClient.requestData(path: "/api/v1/books/\(id)/thumbnail")
+  /// Get thumbnail URL for a book
+  func getBookThumbnailURL(id: String) -> URL? {
+    let baseURL = UserDefaults.standard.string(forKey: "serverURL") ?? ""
+    guard !baseURL.isEmpty else { return nil }
+    return URL(string: baseURL + "/api/v1/books/\(id)/thumbnail")
   }
 
   func getBookPage(bookId: String, page: Int) async throws -> Data {

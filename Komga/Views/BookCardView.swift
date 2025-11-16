@@ -87,8 +87,11 @@ struct BookCardView: View {
   var viewModel: BookViewModel
   let cardWidth: CGFloat
   var onNavigateToSeries: ((String) -> Void)? = nil
-  @State private var thumbnail: UIImage?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
+  private var thumbnailURL: URL? {
+    BookService.shared.getBookThumbnailURL(id: book.id)
+  }
 
   private var progress: Double {
     guard let readProgress = book.readProgress else { return 0 }
@@ -108,50 +111,38 @@ struct BookCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       // Thumbnail
-      ZStack {
-        if let thumbnail = thumbnail {
-          Image(uiImage: thumbnail)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-        } else {
-          Rectangle()
-            .fill(Color.gray.opacity(0.3))
-            .overlay {
-              ProgressView()
-            }
-        }
-      }
-      .frame(width: cardWidth, height: cardWidth * 1.3)
-      .clipped()
-      .cornerRadius(8)
-      .overlay(alignment: .topTrailing) {
-        if book.readProgress == nil {
-          Circle()
-            .fill(themeColorOption.color)
-            .frame(width: 12, height: 12)
-            .padding(4)
-        }
-      }
-      .overlay(alignment: .bottom) {
-        if isInProgress {
-          GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-              Rectangle()
-                .fill(Color.gray.opacity(0.2))
-                .frame(height: 4)
-                .cornerRadius(2)
-
-              Rectangle()
-                .fill(themeColorOption.color)
-                .frame(width: geometry.size.width * progress, height: 4)
-                .cornerRadius(2)
-            }
+      ThumbnailImage(url: thumbnailURL)
+        .frame(width: cardWidth, height: cardWidth * 1.3)
+        .clipped()
+        .cornerRadius(8)
+        .overlay(alignment: .topTrailing) {
+          if book.readProgress == nil {
+            Circle()
+              .fill(themeColorOption.color)
+              .frame(width: 12, height: 12)
+              .padding(4)
           }
-          .frame(height: 4)
-          .padding(.horizontal, 4)
-          .padding(.bottom, 4)
         }
-      }
+        .overlay(alignment: .bottom) {
+          if isInProgress {
+            GeometryReader { geometry in
+              ZStack(alignment: .leading) {
+                Rectangle()
+                  .fill(Color.gray.opacity(0.2))
+                  .frame(height: 4)
+                  .cornerRadius(2)
+
+                Rectangle()
+                  .fill(themeColorOption.color)
+                  .frame(width: geometry.size.width * progress, height: 4)
+                  .cornerRadius(2)
+              }
+            }
+            .frame(height: 4)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 4)
+          }
+        }
 
       // Book info
       VStack(alignment: .leading, spacing: 2) {
@@ -175,14 +166,10 @@ struct BookCardView: View {
       }
       .frame(width: cardWidth, alignment: .leading)
     }
-    .animation(.default, value: thumbnail)
     .bookContextMenu(
       book: book,
       viewModel: viewModel,
       onNavigateToSeries: onNavigateToSeries
     )
-    .task {
-      thumbnail = await viewModel.loadThumbnail(for: book.id)
-    }
   }
 }
