@@ -125,11 +125,19 @@ struct ReadHistorySection: View {
   var isLoading: Bool = false
 
   @State private var selectedBookId: String?
+  @State private var selectedSeriesId: String?
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
       get: { selectedBookId != nil },
       set: { if !$0 { selectedBookId = nil } }
+    )
+  }
+
+  private var isSeriesDetailPresented: Binding<Bool> {
+    Binding(
+      get: { selectedSeriesId != nil },
+      set: { if !$0 { selectedSeriesId = nil } }
     )
   }
 
@@ -145,7 +153,13 @@ struct ReadHistorySection: View {
           Button {
             selectedBookId = book.id
           } label: {
-            ReadHistoryBookRow(book: book, viewModel: bookViewModel)
+            ReadHistoryBookRow(
+              book: book,
+              viewModel: bookViewModel,
+              onNavigateToSeries: { seriesId in
+                selectedSeriesId = seriesId
+              }
+            )
           }
           .buttonStyle(PlainButtonStyle())
           .onAppear {
@@ -169,12 +183,18 @@ struct ReadHistorySection: View {
         BookReaderView(bookId: bookId)
       }
     }
+    .navigationDestination(isPresented: isSeriesDetailPresented) {
+      if let seriesId = selectedSeriesId {
+        SeriesDetailView(seriesId: seriesId)
+      }
+    }
   }
 }
 
 struct ReadHistoryBookRow: View {
   let book: Book
   var viewModel: BookViewModel
+  var onNavigateToSeries: ((String) -> Void)? = nil
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -218,6 +238,7 @@ struct ReadHistoryBookRow: View {
         .font(.caption)
         .foregroundColor(.secondary)
     }
+    .bookContextMenu(book: book, viewModel: viewModel, onNavigateToSeries: onNavigateToSeries)
   }
 
   private func formatRelativeDate(_ date: Date) -> String {
