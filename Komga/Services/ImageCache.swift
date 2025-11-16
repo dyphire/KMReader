@@ -27,6 +27,15 @@ class ImageCache {
   private let fileManager = FileManager.default
   private let maxDiskCacheSizeMB: Int
 
+  // Get max disk cache size from UserDefaults (with fallback to default)
+  private static func getMaxDiskCacheSizeMB() -> Int {
+    let userDefaults = UserDefaults.standard
+    if userDefaults.object(forKey: "maxDiskCacheSizeMB") != nil {
+      return userDefaults.integer(forKey: "maxDiskCacheSizeMB")
+    }
+    return 2048  // Default value
+  }
+
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
 
@@ -114,7 +123,7 @@ class ImageCache {
   func getImage(forKey key: Int, bookId: String) async -> Image? {
     // Try memory cache first
     if let entry = memoryCache[key] {
-      // Update access order
+      // Update access order and timestamp
       updateAccessOrder(key: key)
       memoryCache[key] = CacheEntry(image: entry.image, lastAccessed: Date())
       return entry.image
@@ -123,8 +132,7 @@ class ImageCache {
     // Try disk cache
     if let image = await loadFromDisk(key: key, bookId: bookId) {
       // Load into memory cache
-      let entry = CacheEntry(image: image, lastAccessed: Date())
-      addToMemoryCache(key: key, entry: entry)
+      addToMemoryCache(key: key, entry: CacheEntry(image: image, lastAccessed: Date()))
       return image
     }
 
@@ -170,22 +178,52 @@ class ImageCache {
       oldFileSize = nil
     }
 
+    // Check cache size before storing and trigger cleanup if needed
+    let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
+    let maxCacheSizeMB = Self.getMaxDiskCacheSizeMB()
+    let maxSize = Int64(maxCacheSizeMB) * 1024 * 1024
+    let newFileSize = Int64(data.count)
+
+    // Helper to trigger cleanup asynchronously
+    func triggerCleanupIfNeeded() {
+      Task.detached(priority: .utility) {
+        await Self.cleanupDiskCacheIfNeeded()
+      }
+    }
+
+    // If cache size info is invalid or exceeds limit, trigger cleanup
+    if !isValid {
+      triggerCleanupIfNeeded()
+    } else if let size = currentSize {
+      // Check if current size (before adding new file) would exceed limit
+      let sizeAfterAdd = size - (oldFileSize ?? 0) + newFileSize
+      // Trigger cleanup if cache size exceeds 90% of max size to be more proactive
+      if sizeAfterAdd > maxSize * 90 / 100 {
+        triggerCleanupIfNeeded()
+      }
+    }
+
     let fileExisted = fileManager.fileExists(atPath: fileURL.path)
     try? data.write(to: fileURL)
 
     // Update cached size and count (only if cache is valid, otherwise it will be recalculated on next get)
-    let newFileSize = Int64(data.count)
     await Self.cacheSizeActor.updateSize(delta: newFileSize - (oldFileSize ?? 0))
     if !fileExisted {
       // New file added
       await Self.cacheSizeActor.updateCount(delta: 1)
     }
+
+    // Check again after storing to ensure we're within limits
+    let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get()
+    if isValidAfter, let size = sizeAfterStore, size > maxSize {
+      // Cache exceeded limit after storing, trigger immediate cleanup
+      triggerCleanupIfNeeded()
+    }
   }
 
   /// Store decoded image to memory cache
   func storeImage(_ image: Image, forKey key: Int) {
-    let entry = CacheEntry(image: image, lastAccessed: Date())
-    addToMemoryCache(key: key, entry: entry)
+    addToMemoryCache(key: key, entry: CacheEntry(image: image, lastAccessed: Date()))
   }
 
   func remove(_ key: Int) {
@@ -220,8 +258,7 @@ class ImageCache {
   /// Clear all disk cache (static method for use from anywhere)
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default
-    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    let diskCacheURL = cacheDir.appendingPathComponent("KomgaImageCache", isDirectory: true)
+    let diskCacheURL = getDiskCacheURL()
 
     await Task.detached(priority: .userInitiated) {
       try? fileManager.removeItem(at: diskCacheURL)
@@ -247,6 +284,22 @@ class ImageCache {
     return count
   }
 
+  /// Cleanup disk cache if needed (static method for use from anywhere)
+  /// Checks current cache size against configured max size and cleans up if needed
+  static func cleanupDiskCacheIfNeeded() async {
+    let fileManager = FileManager.default
+    let diskCacheURL = getDiskCacheURL()
+    let maxCacheSizeMB = getMaxDiskCacheSizeMB()
+
+    await Task.detached(priority: .utility) {
+      await performDiskCacheCleanup(
+        diskCacheURL: diskCacheURL,
+        fileManager: fileManager,
+        maxCacheSizeMB: maxCacheSizeMB
+      )
+    }.value
+  }
+
   /// Get disk cache info (size and count) - internal method
   private static func getDiskCacheInfo() async -> (size: Int64, count: Int, isValid: Bool) {
     // Check cache first
@@ -258,53 +311,20 @@ class ImageCache {
 
     // Cache miss or invalid, calculate size and count
     let fileManager = FileManager.default
-    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    let diskCacheURL = cacheDir.appendingPathComponent("KomgaImageCache", isDirectory: true)
+    let diskCacheURL = getDiskCacheURL()
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {
         return (0, 0)
       }
 
-      // Recursively collect all files
-      func collectFiles(at url: URL) -> [URL] {
-        var files: [URL] = []
-        guard
-          let contents = try? fileManager.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
-            options: [.skipsHiddenFiles]
-          )
-        else {
-          return files
-        }
+      let (_, fileInfo, totalSize) = collectFileInfo(
+        at: diskCacheURL,
+        fileManager: fileManager,
+        includeDate: false
+      )
 
-        for item in contents {
-          if let isDirectory = try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory,
-            isDirectory == true
-          {
-            files.append(contentsOf: collectFiles(at: item))
-          } else {
-            files.append(item)
-          }
-        }
-        return files
-      }
-
-      let allFiles = collectFiles(at: diskCacheURL)
-      var totalSize: Int64 = 0
-      var fileCount = 0
-
-      for fileURL in allFiles {
-        if let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey]),
-          let size = resourceValues.fileSize
-        {
-          totalSize += Int64(size)
-          fileCount += 1
-        }
-      }
-
-      return (totalSize, fileCount)
+      return (totalSize, fileInfo.count)
     }.value
 
     // Update cache
@@ -314,6 +334,100 @@ class ImageCache {
   }
 
   // MARK: - Private Methods
+
+  /// Get the disk cache directory URL (static helper)
+  nonisolated private static func getDiskCacheURL() -> URL {
+    let fileManager = FileManager.default
+    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
+    return cacheDir.appendingPathComponent("KomgaImageCache", isDirectory: true)
+  }
+
+  /// Recursively collect all files in a directory
+  nonisolated private static func collectFiles(at url: URL, fileManager: FileManager) -> [URL] {
+    var files: [URL] = []
+    guard
+      let contents = try? fileManager.contentsOfDirectory(
+        at: url,
+        includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return files
+    }
+
+    for item in contents {
+      if let isDirectory = try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory,
+        isDirectory == true
+      {
+        files.append(contentsOf: collectFiles(at: item, fileManager: fileManager))
+      } else {
+        files.append(item)
+      }
+    }
+    return files
+  }
+
+  /// Collect file information (size and modification date) for all files
+  nonisolated private static func collectFileInfo(
+    at diskCacheURL: URL,
+    fileManager: FileManager,
+    includeDate: Bool = false
+  ) -> (files: [URL], fileInfo: [(url: URL, size: Int64, date: Date?)], totalSize: Int64) {
+    let allFiles = collectFiles(at: diskCacheURL, fileManager: fileManager)
+    var totalSize: Int64 = 0
+    var fileInfo: [(url: URL, size: Int64, date: Date?)] = []
+
+    let keys: Set<URLResourceKey> =
+      includeDate
+      ? [.fileSizeKey, .contentModificationDateKey]
+      : [.fileSizeKey]
+
+    for fileURL in allFiles {
+      if let resourceValues = try? fileURL.resourceValues(forKeys: keys),
+        let size = resourceValues.fileSize
+      {
+        totalSize += Int64(size)
+        fileInfo.append(
+          (url: fileURL, size: Int64(size), date: resourceValues.contentModificationDate))
+      }
+    }
+
+    return (allFiles, fileInfo, totalSize)
+  }
+
+  /// Perform disk cache cleanup
+  nonisolated private static func performDiskCacheCleanup(
+    diskCacheURL: URL,
+    fileManager: FileManager,
+    maxCacheSizeMB: Int
+  ) async {
+    let maxSize = Int64(maxCacheSizeMB) * 1024 * 1024
+    let (_, fileInfo, totalSize) = collectFileInfo(
+      at: diskCacheURL,
+      fileManager: fileManager,
+      includeDate: true
+    )
+
+    if totalSize > maxSize {
+      // Sort by date (oldest first) and remove until under limit
+      let sortedFiles = fileInfo.sorted {
+        ($0.date ?? Date.distantPast) < ($1.date ?? Date.distantPast)
+      }
+      var currentSize = totalSize
+      for fileInfo in sortedFiles {
+        if currentSize <= maxSize {
+          break
+        }
+        try? fileManager.removeItem(at: fileInfo.url)
+        currentSize -= fileInfo.size
+      }
+      // Invalidate cache after cleanup
+      await cacheSizeActor.invalidate()
+    } else {
+      // Update cache with calculated size and count
+      await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+    }
+  }
 
   private func diskCacheFileURL(key: Int, bookId: String) -> URL {
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
@@ -468,67 +582,13 @@ class ImageCache {
 
   private func cleanupDiskCache() async {
     // Calculate total disk cache size and clean up in background task
-    await Task.detached(priority: .utility) { [diskCacheURL, maxDiskCacheSizeMB, fileManager] in
-      // Recursively collect all files
-      func collectFiles(at url: URL) -> [URL] {
-        var files: [URL] = []
-        guard
-          let contents = try? fileManager.contentsOfDirectory(
-            at: url,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-          )
-        else {
-          return files
-        }
-
-        for item in contents {
-          if let isDirectory = try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory,
-            isDirectory == true
-          {
-            files.append(contentsOf: collectFiles(at: item))
-          } else {
-            files.append(item)
-          }
-        }
-        return files
-      }
-
-      let allFiles = collectFiles(at: diskCacheURL)
-      var totalSize: Int64 = 0
-      var fileURLs: [(url: URL, size: Int64, date: Date)] = []
-
-      for fileURL in allFiles {
-        if let resourceValues = try? fileURL.resourceValues(forKeys: [
-          .fileSizeKey, .contentModificationDateKey,
-        ]),
-          let size = resourceValues.fileSize,
-          let date = resourceValues.contentModificationDate
-        {
-          totalSize += Int64(size)
-          fileURLs.append((url: fileURL, size: Int64(size), date: date))
-        }
-      }
-
-      // If over limit, remove oldest files
-      let maxSize = Int64(maxDiskCacheSizeMB) * 1024 * 1024
-      if totalSize > maxSize {
-        fileURLs.sort { $0.date < $1.date }
-        var currentSize = totalSize
-        for fileInfo in fileURLs {
-          if currentSize <= maxSize {
-            break
-          }
-          try? fileManager.removeItem(at: fileInfo.url)
-          currentSize -= fileInfo.size
-        }
-        // Invalidate cache after cleanup
-        await Self.cacheSizeActor.invalidate()
-      } else {
-        // Update cache with calculated size and count
-        let fileCount = fileURLs.count
-        await Self.cacheSizeActor.set(size: totalSize, count: fileCount)
-      }
+    let maxCacheSizeMB = Self.getMaxDiskCacheSizeMB()
+    await Task.detached(priority: .utility) { [diskCacheURL, fileManager, maxCacheSizeMB] in
+      await Self.performDiskCacheCleanup(
+        diskCacheURL: diskCacheURL,
+        fileManager: fileManager,
+        maxCacheSizeMB: maxCacheSizeMB
+      )
     }.value
   }
 

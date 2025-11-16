@@ -11,6 +11,7 @@ struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
+  @AppStorage("maxDiskCacheSizeMB") private var maxDiskCacheSizeMB: Int = 2048
   @State private var showClearCacheConfirmation = false
   @State private var diskCacheSize: Int64 = 0
   @State private var diskCacheCount: Int = 0
@@ -103,6 +104,28 @@ struct SettingsView: View {
         }
 
         Section(header: Text("Cache")) {
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("Max Cache Size")
+              Spacer()
+              Text("\(maxDiskCacheSizeMB) MB")
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: Binding(
+                get: { Double(maxDiskCacheSizeMB) },
+                set: { maxDiskCacheSizeMB = Int($0) }
+              ),
+              in: 512...8192,
+              step: 256
+            )
+            Text(
+              "Adjust the maximum disk cache size. Cache will be cleaned automatically when exceeded."
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
+          }
+
           HStack {
             Text("Disk Cache Size")
             Spacer()
@@ -166,6 +189,13 @@ struct SettingsView: View {
       }
       .task {
         await loadCacheSize()
+      }
+      .onChange(of: maxDiskCacheSizeMB) { oldValue, newValue in
+        // Trigger cache cleanup when max cache size changes
+        Task {
+          await ImageCache.cleanupDiskCacheIfNeeded()
+          await loadCacheSize()
+        }
       }
     }
   }
