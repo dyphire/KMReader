@@ -12,6 +12,8 @@ struct EndPageView: View {
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
 
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
   var body: some View {
     VStack(spacing: 12) {
       HStack(spacing: 16) {
@@ -30,7 +32,7 @@ struct EndPageView: View {
           .padding(.vertical, 12)
           .background(
             RoundedRectangle(cornerRadius: 25)
-              .fill(Color.black.opacity(0.75))
+              .fill(Color.black.opacity(0.85))
               .overlay(
                 RoundedRectangle(cornerRadius: 25)
                   .stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -54,7 +56,7 @@ struct EndPageView: View {
             .padding(.vertical, 12)
             .background(
               RoundedRectangle(cornerRadius: 25)
-                .fill(Color.blue.opacity(0.85))
+                .fill(themeColorOption.color.opacity(0.85))
                 .overlay(
                   RoundedRectangle(cornerRadius: 25)
                     .stroke(Color.white.opacity(0.2), lineWidth: 1)
@@ -67,7 +69,6 @@ struct EndPageView: View {
     }
   }
 }
-
 
 struct NextBookInfoView: View {
   let nextBook: Book?
@@ -102,4 +103,3 @@ struct NextBookInfoView: View {
     }
   }
 }
-

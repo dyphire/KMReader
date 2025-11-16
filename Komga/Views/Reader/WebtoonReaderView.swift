@@ -19,8 +19,8 @@ private enum Constants {
   static let preloadThrottleInterval: TimeInterval = 0.3
   static let scrollPositionThreshold: CGFloat = 50
   static let heightChangeThreshold: CGFloat = 100
-  static let bottomThreshold: CGFloat = 120
-  static let footerHeight: CGFloat = 320
+  static let bottomThreshold: CGFloat = 80
+  static let footerHeight: CGFloat = 360
   static let estimatedAspectRatio: CGFloat = 1.5
   static let scrollAmountMultiplier: CGFloat = 0.8
   static let topAreaThreshold: CGFloat = 0.3
@@ -439,9 +439,21 @@ struct WebtoonReaderView: UIViewRepresentable {
     }
 
     private func checkIfAtBottom(_ scrollView: UIScrollView) {
+      // Don't check if at bottom until initial scroll is complete
+      // This prevents showing end page when view first opens
+      guard hasScrolledToInitialPage else {
+        return
+      }
+
       let contentHeight = scrollView.contentSize.height
       let scrollOffset = scrollView.contentOffset.y
       let scrollViewHeight = scrollView.bounds.height
+
+      // Also check that content size is valid (not zero or too small)
+      guard contentHeight > scrollViewHeight else {
+        return
+      }
+
       let isAtBottomNow =
         scrollOffset + scrollViewHeight >= contentHeight - Constants.bottomThreshold
 

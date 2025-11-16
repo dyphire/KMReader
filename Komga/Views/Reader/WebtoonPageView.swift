@@ -48,7 +48,7 @@ struct WebtoonPageView: View {
               onDismiss: onDismiss,
               onNextBook: onNextBook
             )
-            .padding(.bottom, 120)
+            .padding(.bottom, 160)
           }
           .transition(.opacity)
         }
