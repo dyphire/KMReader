@@ -53,7 +53,6 @@ struct WebtoonPageView: View {
           .transition(.opacity)
         }
       }
-      .ignoresSafeArea()
     }
   }
 }

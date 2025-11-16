@@ -50,7 +50,7 @@ struct BookReaderView: View {
               goToNextPage: goToNextPage,
               goToPreviousPage: goToPreviousPage,
               toggleControls: toggleControls
-            )
+            ).ignoresSafeArea()
           case .vertical:
             VerticalPageView(
               viewModel: viewModel,
@@ -62,7 +62,7 @@ struct BookReaderView: View {
               goToNextPage: goToNextPage,
               goToPreviousPage: goToPreviousPage,
               toggleControls: toggleControls
-            )
+            ).ignoresSafeArea()
           case .webtoon:
             WebtoonPageView(
               viewModel: viewModel,
@@ -72,7 +72,7 @@ struct BookReaderView: View {
               onDismiss: { dismiss() },
               onNextBook: { openNextBook(nextBookId: $0) },
               toggleControls: toggleControls
-            )
+            ).ignoresSafeArea()
           }
         }
         .onChange(of: viewModel.currentPage) { _, _ in
