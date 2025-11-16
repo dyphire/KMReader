@@ -255,6 +255,20 @@ class ImageCache {
     }
   }
 
+  /// Clear disk cache for a specific book (static method for use from anywhere)
+  static func clearDiskCache(forBookId bookId: String) async {
+    let fileManager = FileManager.default
+    let diskCacheURL = getDiskCacheURL()
+    let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
+
+    await Task.detached(priority: .userInitiated) {
+      try? fileManager.removeItem(at: bookCacheDir)
+    }.value
+
+    // Invalidate cache size
+    await cacheSizeActor.invalidate()
+  }
+
   /// Clear all disk cache (static method for use from anywhere)
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default

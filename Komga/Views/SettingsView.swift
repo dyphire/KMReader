@@ -17,6 +17,13 @@ struct SettingsView: View {
   @State private var diskCacheCount: Int = 0
   @State private var isLoadingCacheSize = false
 
+  private var maxCacheSizeBinding: Binding<Double> {
+    Binding(
+      get: { Double(maxDiskCacheSizeMB) },
+      set: { maxDiskCacheSizeMB = Int($0) }
+    )
+  }
+
   var body: some View {
     NavigationStack {
       Form {
@@ -112,10 +119,7 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
             }
             Slider(
-              value: Binding(
-                get: { Double(maxDiskCacheSizeMB) },
-                set: { maxDiskCacheSizeMB = Int($0) }
-              ),
+              value: maxCacheSizeBinding,
               in: 512...8192,
               step: 256
             )

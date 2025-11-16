@@ -152,6 +152,17 @@ struct BookReaderView: View {
     }
   }
 
+  private var currentPageBinding: Binding<Int> {
+    Binding(
+      get: { viewModel.currentPage },
+      set: { newPage in
+        if newPage != viewModel.currentPage {
+          viewModel.currentPage = newPage
+        }
+      }
+    )
+  }
+
   // Webtoon page view (WEBTOON - continuous vertical scroll)
   private var webtoonPageView: some View {
     let vm = viewModel
@@ -162,14 +173,7 @@ struct BookReaderView: View {
       ZStack {
         WebtoonReaderView(
           pages: vm.pages,
-          currentPage: Binding(
-            get: { vm.currentPage },
-            set: { newPage in
-              if newPage != vm.currentPage {
-                vm.currentPage = newPage
-              }
-            }
-          ),
+          currentPage: currentPageBinding,
           viewModel: vm,
           pageWidth: pageWidth,
           onPageChange: { pageIndex in

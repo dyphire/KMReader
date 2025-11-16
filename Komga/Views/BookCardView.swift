@@ -7,10 +7,86 @@
 
 import SwiftUI
 
+// MARK: - Book Context Menu
+
+struct BookContextMenuModifier: ViewModifier {
+  let book: Book
+  let viewModel: BookViewModel
+  var onNavigateToSeries: ((String) -> Void)? = nil
+
+  private var isCompleted: Bool {
+    book.readProgress?.completed ?? false
+  }
+
+  func body(content: Content) -> some View {
+    content.contextMenu {
+      // Mark as read
+      if !isCompleted {
+        Button {
+          Task {
+            await viewModel.markAsRead(bookId: book.id)
+          }
+        } label: {
+          Label("Mark as Read", systemImage: "checkmark.circle")
+        }
+      }
+
+      // Mark as unread
+      if book.readProgress != nil {
+        Button {
+          Task {
+            await viewModel.markAsUnread(bookId: book.id)
+          }
+        } label: {
+          Label("Mark as Unread", systemImage: "circle")
+        }
+      }
+
+      Divider()
+
+      // Clear cache
+      Button(role: .destructive) {
+        Task {
+          await ImageCache.clearDiskCache(forBookId: book.id)
+        }
+      } label: {
+        Label("Clear Cache", systemImage: "trash")
+      }
+
+      // Navigate to series
+      if let onNavigateToSeries = onNavigateToSeries {
+        Divider()
+        Button {
+          onNavigateToSeries(book.seriesId)
+        } label: {
+          Label("Go to Series", systemImage: "book.fill")
+        }
+      }
+    }
+  }
+}
+
+extension View {
+  func bookContextMenu(
+    book: Book,
+    viewModel: BookViewModel,
+    onNavigateToSeries: ((String) -> Void)? = nil
+  ) -> some View {
+    modifier(
+      BookContextMenuModifier(
+        book: book,
+        viewModel: viewModel,
+        onNavigateToSeries: onNavigateToSeries
+      )
+    )
+  }
+}
+
 struct BookCardView: View {
   let book: Book
   var viewModel: BookViewModel
   let cardWidth: CGFloat
+  var onNavigateToSeries: ((String) -> Void)? = nil
   @State private var thumbnail: UIImage?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
 
@@ -100,6 +176,11 @@ struct BookCardView: View {
       .frame(width: cardWidth, alignment: .leading)
     }
     .animation(.default, value: thumbnail)
+    .bookContextMenu(
+      book: book,
+      viewModel: viewModel,
+      onNavigateToSeries: onNavigateToSeries
+    )
     .task {
       thumbnail = await viewModel.loadThumbnail(for: book.id)
     }

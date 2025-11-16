@@ -240,11 +240,19 @@ struct DashboardSection: View {
   var bookViewModel: BookViewModel
 
   @State private var selectedBookId: String?
+  @State private var selectedSeriesId: String?
 
   private var isBookReaderPresented: Binding<Bool> {
     Binding(
       get: { selectedBookId != nil },
       set: { if !$0 { selectedBookId = nil } }
+    )
+  }
+
+  private var isSeriesDetailPresented: Binding<Bool> {
+    Binding(
+      get: { selectedSeriesId != nil },
+      set: { if !$0 { selectedSeriesId = nil } }
     )
   }
 
@@ -261,7 +269,14 @@ struct DashboardSection: View {
             Button {
               selectedBookId = book.id
             } label: {
-              BookCardView(book: book, viewModel: bookViewModel, cardWidth: 120)
+              BookCardView(
+                book: book,
+                viewModel: bookViewModel,
+                cardWidth: 120,
+                onNavigateToSeries: { seriesId in
+                  selectedSeriesId = seriesId
+                }
+              )
             }
             .buttonStyle(PlainButtonStyle())
           }
@@ -273,6 +288,11 @@ struct DashboardSection: View {
     .fullScreenCover(isPresented: isBookReaderPresented) {
       if let bookId = selectedBookId {
         BookReaderView(bookId: bookId)
+      }
+    }
+    .navigationDestination(isPresented: isSeriesDetailPresented) {
+      if let seriesId = selectedSeriesId {
+        SeriesDetailView(seriesId: seriesId)
       }
     }
   }

@@ -263,6 +263,11 @@ struct BookRowView: View {
     return readProgress.completed
   }
 
+  private var isInProgress: Bool {
+    guard let readProgress = book.readProgress else { return false }
+    return !readProgress.completed
+  }
+
   var body: some View {
     HStack(spacing: 12) {
       if let thumbnail = thumbnail {
@@ -327,6 +332,7 @@ struct BookRowView: View {
         .foregroundColor(.secondary)
     }
     .animation(.default, value: thumbnail)
+    .bookContextMenu(book: book, viewModel: viewModel)
     .task {
       thumbnail = await viewModel.loadThumbnail(for: book.id)
     }

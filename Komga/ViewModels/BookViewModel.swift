@@ -96,7 +96,12 @@ class BookViewModel {
     do {
       try await bookService.markAsRead(bookId: bookId)
       // Update the book in the list
-      if books.firstIndex(where: { $0.id == bookId }) != nil {
+      if let index = books.firstIndex(where: { $0.id == bookId }) {
+        let updatedBook = try await bookService.getBook(id: bookId)
+        books[index] = updatedBook
+      }
+      // Also update currentBook if it matches
+      if currentBook?.id == bookId {
         await loadBook(id: bookId)
       }
     } catch {
@@ -108,7 +113,12 @@ class BookViewModel {
     do {
       try await bookService.markAsUnread(bookId: bookId)
       // Update the book in the list
-      if books.firstIndex(where: { $0.id == bookId }) != nil {
+      if let index = books.firstIndex(where: { $0.id == bookId }) {
+        let updatedBook = try await bookService.getBook(id: bookId)
+        books[index] = updatedBook
+      }
+      // Also update currentBook if it matches
+      if currentBook?.id == bookId {
         await loadBook(id: bookId)
       }
     } catch {

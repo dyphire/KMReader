@@ -18,13 +18,15 @@ struct HorizontalPageView: View {
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
 
+  private var tabViewSelection: Binding<Int> {
+    Binding(
+      get: getSelectedDisplayIndex,
+      set: setSelectedDisplayIndex
+    )
+  }
+
   var body: some View {
-    TabView(
-      selection: Binding(
-        get: getSelectedDisplayIndex,
-        set: setSelectedDisplayIndex
-      )
-    ) {
+    TabView(selection: tabViewSelection) {
       // For RTL, show end page first
       if viewModel.readingDirection == .rtl {
         endPageView

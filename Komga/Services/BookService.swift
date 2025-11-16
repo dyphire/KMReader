@@ -131,9 +131,18 @@ class BookService {
   }
 
   func markAsRead(bookId: String) async throws {
+    // Fetch the book to get the total page count
+    let book = try await getBook(id: bookId)
+    let lastPage = book.media.pagesCount
+
+    // Use PATCH with completed: true and the last page number
+    let body = ["page": lastPage, "completed": true] as [String: Any]
+    let jsonData = try JSONSerialization.data(withJSONObject: body)
+
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
-      method: "POST"
+      method: "PATCH",
+      body: jsonData
     )
   }
 
