@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 struct Book: Codable, Identifiable, Equatable {
   let id: String
@@ -87,4 +88,17 @@ struct BookPage: Codable, Identifiable {
   let size: String
 
   var id: Int { number }
+
+  /// Best-effort UTType detection using file extension first, then MIME type.
+  var detectedUTType: UTType? {
+    let fileExtension = (fileName as NSString).pathExtension.lowercased()
+    if !fileExtension.isEmpty, let type = UTType(filenameExtension: fileExtension) {
+      return type
+    }
+
+    let mimeType =
+      mediaType.split(separator: ";").first?.trimmingCharacters(in: .whitespaces)
+      ?? mediaType
+    return UTType(mimeType: mimeType)
+  }
 }

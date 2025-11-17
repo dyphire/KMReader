@@ -120,7 +120,11 @@ struct PageImageView: View {
             Button("Retry") {
               Task {
                 loadError = nil
-                imageURL = await viewModel.getPageImageFileURL(pageIndex: pageIndex)
+                if let page = viewModel.currentPage {
+                  imageURL = await viewModel.getPageImageFileURL(page: page)
+                } else {
+                  imageURL = nil
+                }
                 if imageURL == nil {
                   loadError = "Please check your network connection"
                 }
@@ -154,7 +158,11 @@ struct PageImageView: View {
 
       // Download to cache if needed, then get file URL
       // SDWebImage will handle decoding and display
-      imageURL = await viewModel.getPageImageFileURL(pageIndex: pageIndex)
+      if let page = viewModel.currentPage {
+        imageURL = await viewModel.getPageImageFileURL(page: page)
+      } else {
+        imageURL = nil
+      }
 
       // If download failed, show error
       if imageURL == nil {
@@ -192,7 +200,14 @@ struct PageImageView: View {
       saveImageStatus = .saving
     }
 
-    let result = await viewModel.savePageImageToPhotos(pageIndex: pageIndex)
+    guard let page = viewModel.currentPage else {
+      await MainActor.run {
+        saveImageStatus = .failed("Invalid page")
+      }
+      return
+    }
+
+    let result = await viewModel.savePageImageToPhotos(page: page)
 
     await MainActor.run {
       switch result {

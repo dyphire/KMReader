@@ -30,7 +30,7 @@ struct WebtoonPageView: View {
           viewModel: viewModel,
           pageWidth: pageWidth,
           onPageChange: { pageIndex in
-            viewModel.currentPage = pageIndex
+            viewModel.currentPageIndex = pageIndex
           },
           onCenterTap: {
             toggleControls()

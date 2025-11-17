@@ -72,8 +72,8 @@ struct VerticalPageView: View {
               .id(pageIndex)
               .onAppear {
                 // Update current page when page appears
-                if pageIndex != viewModel.currentPage && !isAtEndPage {
-                  viewModel.currentPage = pageIndex
+                if pageIndex != viewModel.currentPageIndex && !isAtEndPage {
+                  viewModel.currentPageIndex = pageIndex
                 }
               }
             }
@@ -89,7 +89,7 @@ struct VerticalPageView: View {
           }
         }
         .scrollTargetBehavior(.paging)
-        .onChange(of: viewModel.currentPage) { _, newPage in
+        .onChange(of: viewModel.currentPageIndex) { _, newPage in
           // Scroll to current page when changed externally (e.g., from slider)
           if !isAtEndPage {
             withAnimation {

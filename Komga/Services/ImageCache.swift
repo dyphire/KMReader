@@ -89,31 +89,23 @@ class ImageCache {
   // MARK: - Public API
 
   /// Check if image exists in disk cache
-  func hasImage(forKey key: Int, bookId: String) -> Bool {
-    let fileURL = diskCacheFileURL(key: key, bookId: bookId)
+  func hasImage(bookId: String, page: BookPage) -> Bool {
+    guard !bookId.isEmpty else { return false }
+    let fileURL = imageFileURL(bookId: bookId, page: page)
     return fileManager.fileExists(atPath: fileURL.path)
   }
 
-  /// Get cached content type for an image
-  func getContentType(forKey key: Int, bookId: String) -> String? {
-    let contentTypeURL = contentTypeFileURL(key: key, bookId: bookId)
-    guard fileManager.fileExists(atPath: contentTypeURL.path) else {
-      return nil
-    }
-    return try? String(contentsOf: contentTypeURL, encoding: .utf8)
+  /// Get cached image URL (creates no directories, may not exist on disk)
+  func imageFileURL(bookId: String, page: BookPage) -> URL {
+    diskCacheFileURL(bookId: bookId, page: page, ensureDirectory: false)
   }
 
   /// Store image data to disk cache
-  func storeImageData(_ data: Data, forKey key: Int, bookId: String, contentType: String? = nil)
-    async
-  {
-    let fileURL = diskCacheFileURL(key: key, bookId: bookId)
+  func storeImageData(_ data: Data, bookId: String, page: BookPage) async {
+    guard !bookId.isEmpty else { return }
 
-    // Store content type if provided
-    if let contentType = contentType {
-      let contentTypeURL = contentTypeFileURL(key: key, bookId: bookId)
-      try? contentType.write(to: contentTypeURL, atomically: true, encoding: .utf8)
-    }
+    let fileURL = diskCacheFileURL(bookId: bookId, page: page, ensureDirectory: true)
+
     let oldFileSize: Int64?
     if fileManager.fileExists(atPath: fileURL.path),
       let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path),
@@ -159,7 +151,7 @@ class ImageCache {
       let dataSize = ByteCountFormatter.string(
         fromByteCount: Int64(data.count), countStyle: .binary)
       logger.error(
-        "❌ Failed to write image cache: page_\(key) for bookId \(bookId) (\(dataSize)): \(error.localizedDescription)"
+        "❌ Failed to write image cache for bookId \(bookId) page \(page.number) (\(page.fileName)) (\(dataSize)): \(error.localizedDescription)"
       )
       // If write fails, don't update cache size/count
       // This ensures cache state remains consistent
@@ -377,16 +369,25 @@ class ImageCache {
     }
   }
 
-  private func diskCacheFileURL(key: Int, bookId: String) -> URL {
+  private func diskCacheFileURL(
+    bookId: String,
+    page: BookPage,
+    ensureDirectory: Bool
+  ) -> URL {
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
-    try? fileManager.createDirectory(at: bookCacheDir, withIntermediateDirectories: true)
-    return bookCacheDir.appendingPathComponent("page_\(key).data")
-  }
+    let pageDirectory =
+      bookCacheDir
+      .appendingPathComponent("page", isDirectory: true)
+      .appendingPathComponent("\(page.number)", isDirectory: true)
 
-  private func contentTypeFileURL(key: Int, bookId: String) -> URL {
-    let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
-    try? fileManager.createDirectory(at: bookCacheDir, withIntermediateDirectories: true)
-    return bookCacheDir.appendingPathComponent("page_\(key).type")
+    if ensureDirectory {
+      try? fileManager.createDirectory(at: pageDirectory, withIntermediateDirectories: true)
+    }
+
+    let sanitizedFileName = (page.fileName as NSString).lastPathComponent
+    let resolvedFileName =
+      sanitizedFileName.isEmpty ? "page-\(page.number)" : sanitizedFileName
+    return pageDirectory.appendingPathComponent(resolvedFileName)
   }
 
   private func cleanupDiskCache() async {

@@ -17,7 +17,7 @@ enum SaveImageStatus: Equatable {
 // Save image button for context menu
 struct SaveImageButton: View {
   let viewModel: ReaderViewModel
-  let pageIndex: Int
+  let page: BookPage
   @State private var saveImageStatus: SaveImageStatus = .idle
   @State private var showSaveAlert = false
 
@@ -56,7 +56,7 @@ struct SaveImageButton: View {
       saveImageStatus = .saving
     }
 
-    let result = await viewModel.savePageImageToPhotos(pageIndex: pageIndex)
+    let result = await viewModel.savePageImageToPhotos(page: page)
 
     await MainActor.run {
       switch result {

@@ -104,7 +104,7 @@ struct HorizontalPageView: View {
       // For LTR, end page is at pages.count; for RTL, end page is at -1
       return viewModel.readingDirection == .rtl ? -1 : viewModel.pages.count
     }
-    return viewModel.pageIndexToDisplayIndex(viewModel.currentPage)
+    return viewModel.pageIndexToDisplayIndex(viewModel.currentPageIndex)
   }
 
   // Handle display index change
@@ -118,8 +118,8 @@ struct HorizontalPageView: View {
     } else {
       isAtEndPage = false
       let newPageIndex = viewModel.displayIndexToPageIndex(displayIndex)
-      if newPageIndex != viewModel.currentPage {
-        viewModel.currentPage = newPageIndex
+      if newPageIndex != viewModel.currentPageIndex {
+        viewModel.currentPageIndex = newPageIndex
         // Immediately trigger aggressive preload for next pages
         // This ensures images are ready before user swipes to them
         Task(priority: .userInitiated) {

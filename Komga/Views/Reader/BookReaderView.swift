@@ -77,7 +77,7 @@ struct BookReaderView: View {
             ).ignoresSafeArea()
           }
         }
-        .onChange(of: viewModel.currentPage) {
+        .onChange(of: viewModel.currentPageIndex) {
           // Update progress and preload pages in background without blocking UI
           Task(priority: .userInitiated) {
             await viewModel.updateProgress()
@@ -136,12 +136,12 @@ struct BookReaderView: View {
       isAtEndPage = false
 
       // Load book info to get read progress page and series reading direction
-      var initialPage: Int? = nil
+      var initialPageNumber: Int? = nil
       do {
         let book = try await BookService.shared.getBook(id: currentBookId)
         currentBook = book
         seriesId = book.seriesId
-        initialPage = book.readProgress?.page
+        initialPageNumber = book.readProgress?.page
 
         // Get series reading direction
         let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
@@ -159,7 +159,7 @@ struct BookReaderView: View {
         // Silently fail, will start from first page
       }
 
-      await viewModel.loadPages(bookId: currentBookId, initialPage: initialPage)
+      await viewModel.loadPages(bookId: currentBookId, initialPageNumber: initialPageNumber)
 
       // Only preload pages if pages are available
       if !viewModel.pages.isEmpty {
@@ -178,10 +178,10 @@ struct BookReaderView: View {
 
   private var currentPageBinding: Binding<Int> {
     Binding(
-      get: { viewModel.currentPage },
+      get: { viewModel.currentPageIndex },
       set: { newPage in
-        if newPage != viewModel.currentPage {
-          viewModel.currentPage = newPage
+        if newPage != viewModel.currentPageIndex {
+          viewModel.currentPageIndex = newPage
         }
       }
     )
@@ -190,9 +190,9 @@ struct BookReaderView: View {
   private func goToNextPage() {
     switch viewModel.readingDirection {
     case .ltr:
-      if viewModel.currentPage < viewModel.pages.count - 1 {
+      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
         withAnimation {
-          viewModel.currentPage += 1
+          viewModel.currentPageIndex += 1
           isAtEndPage = false
         }
       } else {
@@ -203,9 +203,9 @@ struct BookReaderView: View {
         }
       }
     case .rtl:
-      if viewModel.currentPage > 0 {
+      if viewModel.currentPageIndex > 0 {
         withAnimation {
-          viewModel.currentPage -= 1
+          viewModel.currentPageIndex -= 1
           isAtEndPage = false
         }
       } else {
@@ -216,9 +216,9 @@ struct BookReaderView: View {
         }
       }
     case .vertical:
-      if viewModel.currentPage < viewModel.pages.count - 1 {
+      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
         withAnimation {
-          viewModel.currentPage += 1
+          viewModel.currentPageIndex += 1
           isAtEndPage = false
         }
       } else {
@@ -230,9 +230,9 @@ struct BookReaderView: View {
       }
     case .webtoon:
       // Webtoon mode uses scroll, so we scroll to next page
-      if viewModel.currentPage < viewModel.pages.count - 1 {
+      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
         withAnimation {
-          viewModel.currentPage += 1
+          viewModel.currentPageIndex += 1
         }
       }
     }
@@ -245,11 +245,11 @@ struct BookReaderView: View {
         // Go back from end page to last page
         withAnimation {
           isAtEndPage = false
-          viewModel.currentPage = viewModel.pages.count - 1
+          viewModel.currentPageIndex = viewModel.pages.count - 1
         }
-      } else if viewModel.currentPage > 0 {
+      } else if viewModel.currentPageIndex > 0 {
         withAnimation {
-          viewModel.currentPage -= 1
+          viewModel.currentPageIndex -= 1
         }
       }
     case .rtl:
@@ -257,11 +257,11 @@ struct BookReaderView: View {
         // Go back from end page to first page
         withAnimation {
           isAtEndPage = false
-          viewModel.currentPage = 0
+          viewModel.currentPageIndex = 0
         }
-      } else if viewModel.currentPage < viewModel.pages.count - 1 {
+      } else if viewModel.currentPageIndex < viewModel.pages.count - 1 {
         withAnimation {
-          viewModel.currentPage += 1
+          viewModel.currentPageIndex += 1
         }
       }
     case .vertical:
@@ -269,18 +269,18 @@ struct BookReaderView: View {
         // Go back from end page to last page
         withAnimation {
           isAtEndPage = false
-          viewModel.currentPage = viewModel.pages.count - 1
+          viewModel.currentPageIndex = viewModel.pages.count - 1
         }
-      } else if viewModel.currentPage > 0 {
+      } else if viewModel.currentPageIndex > 0 {
         withAnimation {
-          viewModel.currentPage -= 1
+          viewModel.currentPageIndex -= 1
         }
       }
     case .webtoon:
       // Webtoon mode uses scroll, so we scroll to previous page
-      if viewModel.currentPage > 0 {
+      if viewModel.currentPageIndex > 0 {
         withAnimation {
-          viewModel.currentPage -= 1
+          viewModel.currentPageIndex -= 1
         }
       }
     }
@@ -290,7 +290,7 @@ struct BookReaderView: View {
     // Toggle direction
     viewModel.readingDirection = viewModel.readingDirection == .ltr ? .rtl : .ltr
 
-    // The currentPage remains the same (actual page index)
+    // The currentPageIndex remains the same (actual page index)
     // The display will update automatically through the TabView binding
   }
 

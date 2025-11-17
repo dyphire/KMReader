@@ -106,7 +106,7 @@ struct ReaderControlsView: View {
           Spacer()
 
           // Page count
-          Text("\(viewModel.currentPage + 1) / \(viewModel.pages.count)")
+          Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
             .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
@@ -134,7 +134,7 @@ struct ReaderControlsView: View {
         }
 
         ProgressView(
-          value: Double(min(viewModel.currentPage + 1, viewModel.pages.count)),
+          value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
           total: Double(viewModel.pages.count)
         )
         .scaleEffect(x: viewModel.readingDirection == .rtl ? -1 : 1, y: 1)
@@ -178,25 +178,28 @@ struct ReaderControlsView: View {
 
   // Prepare file for saving to Files app
   private func prepareSaveToFile() async {
+    guard let page = viewModel.currentPage else {
+      await MainActor.run {
+        saveImageResult = .failure("Invalid page")
+      }
+      return
+    }
+
     // Get page image info
-    guard
-      let (cachedFileURL, contentType) = viewModel.getPageImageInfo(
-        pageIndex: viewModel.currentPage)
-    else {
+    guard let cachedFileURL = viewModel.getCachedImageFileURL(page: page) else {
       await MainActor.run {
         saveImageResult = .failure("Image not available")
       }
       return
     }
 
-    let fileExtension = fileExtensionFromContentType(contentType)
-
-    // Create a temporary file with proper extension in a location accessible to document picker
+    // Create a temporary file in a location accessible to document picker
     let tempDir = FileManager.default.temporaryDirectory
     let timestamp = ISO8601DateFormatter().string(from: Date())
       .replacingOccurrences(of: ":", with: "-")
       .replacingOccurrences(of: ".", with: "-")
-    let fileName = "page_\(viewModel.currentPage + 1)_\(timestamp).\(fileExtension)"
+    let originalName = page.fileName.isEmpty ? "page-\(page.number)" : page.fileName
+    let fileName = "\(timestamp)_\(originalName)"
     let tempFileURL = tempDir.appendingPathComponent(fileName)
 
     // Copy file to temp location with proper extension
@@ -217,25 +220,15 @@ struct ReaderControlsView: View {
     }
   }
 
-  // Get file extension from content type using UTType
-  private func fileExtensionFromContentType(_ contentType: String) -> String {
-    let mimeType = ReaderViewModel.parseMimeType(from: contentType)
-
-    // Try to create UTType from MIME type
-    if let utType = UTType(mimeType: mimeType) {
-      // Get preferred file extension from UTType
-      if let preferredExtension = utType.preferredFilenameExtension {
-        return preferredExtension
-      }
-    }
-
-    // Default to png if unknown
-    return "png"
-  }
-
   // Save current page image to Photos
   private func saveCurrentPageToPhotos() async {
-    let result = await viewModel.savePageImageToPhotos(pageIndex: viewModel.currentPage)
+    guard let page = viewModel.currentPage else {
+      await MainActor.run {
+        saveImageResult = .failure("Invalid page")
+      }
+      return
+    }
+    let result = await viewModel.savePageImageToPhotos(page: page)
 
     await MainActor.run {
       switch result {

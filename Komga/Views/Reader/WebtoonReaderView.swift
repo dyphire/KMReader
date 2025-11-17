@@ -564,13 +564,16 @@ struct WebtoonReaderView: UIViewRepresentable {
         return
       }
 
-      guard let imageURL = await viewModel.getPageImageFileURL(pageIndex: pageIndex) else {
+      let page = pages[pageIndex]
+      guard let imageURL = await viewModel.getPageImageFileURL(page: page) else {
         showImageError(for: pageIndex)
         return
       }
 
       let isFromCache = viewModel.pageImageCache.hasImage(
-        forKey: pageIndex, bookId: viewModel.bookId)
+        bookId: viewModel.bookId,
+        page: page
+      )
 
       let imageSize = await getImageSize(from: imageURL)
 
@@ -719,7 +722,8 @@ struct WebtoonReaderView: UIViewRepresentable {
         else { return }
 
         for i in max(0, minVisible - 2)...min(self.pages.count - 1, maxVisible + 2) {
-          if !viewModel.pageImageCache.hasImage(forKey: i, bookId: viewModel.bookId) {
+          let page = self.pages[i]
+          if !viewModel.pageImageCache.hasImage(bookId: viewModel.bookId, page: page) {
             await self.loadImageForPage(i)
           }
         }
