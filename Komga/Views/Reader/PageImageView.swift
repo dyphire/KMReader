@@ -22,6 +22,13 @@ struct PageImageView: View {
   @State private var saveImageStatus: SaveImageStatus = .idle
   @State private var showSaveAlert = false
 
+  private var currentPage: BookPage? {
+    guard pageIndex >= 0 && pageIndex < viewModel.pages.count else {
+      return nil
+    }
+    return viewModel.pages[pageIndex]
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ZStack {
@@ -120,7 +127,7 @@ struct PageImageView: View {
             Button("Retry") {
               Task {
                 loadError = nil
-                if let page = viewModel.currentPage {
+                if let page = currentPage {
                   imageURL = await viewModel.getPageImageFileURL(page: page)
                 } else {
                   imageURL = nil
@@ -158,14 +165,15 @@ struct PageImageView: View {
 
       // Download to cache if needed, then get file URL
       // SDWebImage will handle decoding and display
-      if let page = viewModel.currentPage {
+      if let page = currentPage {
         imageURL = await viewModel.getPageImageFileURL(page: page)
       } else {
         imageURL = nil
+        loadError = "Invalid page index."
       }
 
       // If download failed, show error
-      if imageURL == nil {
+      if imageURL == nil && loadError == nil {
         loadError = "Failed to load page image. Please check your network connection."
       }
     }
@@ -200,7 +208,7 @@ struct PageImageView: View {
       saveImageStatus = .saving
     }
 
-    guard let page = viewModel.currentPage else {
+    guard let page = currentPage else {
       await MainActor.run {
         saveImageStatus = .failed("Invalid page")
       }
