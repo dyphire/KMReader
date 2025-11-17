@@ -12,7 +12,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
-  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = false
+  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -129,9 +129,9 @@ struct SettingsAppearanceView: View {
 
         VStack(alignment: .leading, spacing: 8) {
           Toggle(isOn: $thumbnailPreserveAspectRatio) {
-            Text("Preserve Cover Aspect Ratio")
+            Text("Keep Cover Proportions")
           }
-          Text("Preserve the original aspect ratio of cover images instead of forcing a fixed size")
+          Text("Keep cover images in their original proportions")
             .font(.caption)
             .foregroundColor(.secondary)
         }
