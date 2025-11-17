@@ -148,7 +148,7 @@ struct ReadHistorySection: View {
         .fontWeight(.bold)
         .padding(.horizontal)
 
-      LazyVStack(spacing: 8) {
+      LazyVStack(spacing: 0) {
         ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
           Button {
             selectedBookId = book.id
@@ -156,10 +156,14 @@ struct ReadHistorySection: View {
             ReadHistoryBookRow(
               book: book,
               viewModel: bookViewModel,
+            )
+            .padding(8)
+            .contentShape(Rectangle())
+            .bookContextMenu(
+              book: book, viewModel: bookViewModel,
               onNavigateToSeries: { seriesId in
                 selectedSeriesId = seriesId
-              }
-            )
+              })
           }
           .buttonStyle(PlainButtonStyle())
           .onAppear {
@@ -176,7 +180,7 @@ struct ReadHistorySection: View {
             .padding()
         }
       }
-      .padding(.horizontal)
+      .padding(.horizontal, 8)
     }
     .fullScreenCover(isPresented: isBookReaderPresented) {
       if let bookId = selectedBookId {
@@ -194,7 +198,6 @@ struct ReadHistorySection: View {
 struct ReadHistoryBookRow: View {
   let book: Book
   var viewModel: BookViewModel
-  var onNavigateToSeries: ((String) -> Void)? = nil
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -238,7 +241,6 @@ struct ReadHistoryBookRow: View {
         .font(.caption)
         .foregroundColor(.secondary)
     }
-    .bookContextMenu(book: book, viewModel: viewModel, onNavigateToSeries: onNavigateToSeries)
   }
 
   private func formatRelativeDate(_ date: Date) -> String {
