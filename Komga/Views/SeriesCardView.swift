@@ -20,10 +20,7 @@ struct SeriesCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       // Thumbnail
-      ThumbnailImage(url: thumbnailURL)
-        .frame(width: cardWidth, height: cardWidth * 1.3)
-        .clipped()
-        .cornerRadius(8)
+      ThumbnailImage(url: thumbnailURL, width: cardWidth)
         .overlay(alignment: .topTrailing) {
           if series.booksUnreadCount > 0 {
             Text("\(series.booksUnreadCount)")

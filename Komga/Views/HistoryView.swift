@@ -206,10 +206,7 @@ struct ReadHistoryBookRow: View {
   var body: some View {
     HStack(spacing: 12) {
       // Thumbnail
-      ThumbnailImage(url: thumbnailURL)
-        .frame(width: 80, height: 100)
-        .clipped()
-        .cornerRadius(6)
+      ThumbnailImage(url: thumbnailURL, width: 80, cornerRadius: 6)
 
       // Book info
       VStack(alignment: .leading, spacing: 6) {

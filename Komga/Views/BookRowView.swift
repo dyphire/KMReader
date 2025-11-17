@@ -27,10 +27,7 @@ struct BookRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      ThumbnailImage(url: thumbnailURL, showPlaceholder: false)
-        .frame(width: 60, height: 80)
-        .clipped()
-        .cornerRadius(4)
+      ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 60, cornerRadius: 4)
 
       VStack(alignment: .leading, spacing: 4) {
         Text("#\(formatNumber(book.number)) - \(book.metadata.title)")

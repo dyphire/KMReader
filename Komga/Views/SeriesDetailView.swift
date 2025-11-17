@@ -33,10 +33,7 @@ struct SeriesDetailView: View {
         if let series = series {
           // Header with thumbnail and info
           HStack(alignment: .top, spacing: 16) {
-            ThumbnailImage(url: thumbnailURL, showPlaceholder: false)
-              .frame(width: 120, height: 180)
-              .clipped()
-              .cornerRadius(8)
+            ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
               .overlay(alignment: .topTrailing) {
                 if series.booksUnreadCount > 0 {
                   Text("\(series.booksUnreadCount)")

@@ -26,7 +26,7 @@ struct DashboardView: View {
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading) {
           if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty
             && recentlyAddedBooks.isEmpty
           {
@@ -52,7 +52,7 @@ struct DashboardView: View {
           } else {
             // Keep Reading Section
             if !keepReadingBooks.isEmpty {
-              DashboardSection(
+              DashboardBooksSection(
                 title: "Keep Reading",
                 books: keepReadingBooks,
                 bookViewModel: bookViewModel
@@ -62,7 +62,7 @@ struct DashboardView: View {
 
             // On Deck Section
             if !onDeckBooks.isEmpty {
-              DashboardSection(
+              DashboardBooksSection(
                 title: "On Deck",
                 books: onDeckBooks,
                 bookViewModel: bookViewModel
@@ -72,7 +72,7 @@ struct DashboardView: View {
 
             // Recently Added Books
             if !recentlyAddedBooks.isEmpty {
-              DashboardSection(
+              DashboardBooksSection(
                 title: "Recently Added Books",
                 books: recentlyAddedBooks,
                 bookViewModel: bookViewModel
@@ -234,7 +234,7 @@ struct DashboardView: View {
   }
 }
 
-struct DashboardSection: View {
+struct DashboardBooksSection: View {
   let title: String
   let books: [Book]
   var bookViewModel: BookViewModel
@@ -257,7 +257,7 @@ struct DashboardSection: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 4) {
       Text(title)
         .font(.title2)
         .fontWeight(.bold)
@@ -280,8 +280,7 @@ struct DashboardSection: View {
             }
             .buttonStyle(PlainButtonStyle())
           }
-        }
-        .padding(.horizontal)
+        }.padding()
       }
     }
     .animation(.default, value: books)
@@ -304,7 +303,7 @@ struct DashboardSeriesSection: View {
   var seriesViewModel: SeriesViewModel
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 4) {
       Text(title)
         .font(.title2)
         .fontWeight(.bold)
@@ -318,8 +317,7 @@ struct DashboardSeriesSection: View {
             }
             .buttonStyle(PlainButtonStyle())
           }
-        }
-        .padding(.horizontal)
+        }.padding()
       }
     }
     .animation(.default, value: series)

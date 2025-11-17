@@ -12,6 +12,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
+  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = false
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -122,6 +123,15 @@ struct SettingsAppearanceView: View {
             Text("Show Card Titles")
           }
           Text("Show titles for series and books in the library view card")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+          Toggle(isOn: $thumbnailPreserveAspectRatio) {
+            Text("Preserve Cover Aspect Ratio")
+          }
+          Text("Preserve the original aspect ratio of cover images instead of forcing a fixed size")
             .font(.caption)
             .foregroundColor(.secondary)
         }

@@ -13,44 +13,72 @@ struct ThumbnailImage: View {
   let url: URL?
   let contentMode: ContentMode
   let showPlaceholder: Bool
+  let width: CGFloat
+  let cornerRadius: CGFloat
+  @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = false
 
   init(
     url: URL?,
     contentMode: ContentMode = .fill,
-    showPlaceholder: Bool = true
+    showPlaceholder: Bool = true,
+    width: CGFloat,
+    cornerRadius: CGFloat = 8
   ) {
     self.url = url
     self.contentMode = contentMode
     self.showPlaceholder = showPlaceholder
+    self.width = width
+    self.cornerRadius = cornerRadius
+  }
+
+  private var effectiveContentMode: ContentMode {
+    if thumbnailPreserveAspectRatio {
+      return .fit
+    }
+    return contentMode
   }
 
   var body: some View {
-    if let url = url {
-      WebImage(url: url)
-        .resizable()
-        .placeholder {
-          if showPlaceholder {
-            Rectangle()
-              .fill(Color.gray.opacity(0.3))
-              .overlay {
+    ZStack {
+      // Background container with rounded corners
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .fill(Color.clear)
+        .frame(width: width, height: width * 1.3)
+
+      // Image content
+      Group {
+        if let url = url {
+          WebImage(url: url)
+            .resizable()
+            .placeholder {
+              if showPlaceholder {
+                Rectangle()
+                  .fill(Color.gray.opacity(0.3))
+                  .overlay {
+                    ProgressView()
+                  }
+              } else {
+                Rectangle()
+                  .fill(Color.gray.opacity(0.3))
+              }
+            }
+            .indicator(.activity)
+            .transition(.fade(duration: 0.2))
+            .aspectRatio(contentMode: effectiveContentMode)
+        } else {
+          Rectangle()
+            .fill(Color.gray.opacity(0.3))
+            .overlay {
+              if showPlaceholder {
                 ProgressView()
               }
-          } else {
-            Rectangle()
-              .fill(Color.gray.opacity(0.3))
-          }
+            }
         }
-        .indicator(.activity)
-        .transition(.fade(duration: 0.2))
-        .aspectRatio(contentMode: contentMode)
-    } else {
-      Rectangle()
-        .fill(Color.gray.opacity(0.3))
-        .overlay {
-          if showPlaceholder {
-            ProgressView()
-          }
-        }
+      }
+      .frame(width: width, height: width * 1.3, alignment: .center)
+      .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
+    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    .shadow(color: Color.black.opacity(0.5), radius: 4)
   }
 }
