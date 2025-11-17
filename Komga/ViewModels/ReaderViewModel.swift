@@ -10,6 +10,7 @@ import OSLog
 import Photos
 import SDWebImage
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 enum ReadingDirection: CaseIterable, Hashable {
@@ -364,25 +365,99 @@ class ReaderViewModel {
     // Check if format is supported by Photos library using UTType
     // Photos library supports: JPEG, PNG, HEIF, but not WebP
     let mimeType = Self.parseMimeType(from: contentType)
-    guard let utType = UTType(mimeType: mimeType) else {
-      return .failure(.unsupportedImageFormat)
-    }
+    let utType = UTType(mimeType: mimeType)
 
     // Check if the UTType conforms to any of the supported image types
     let supportedTypes: [UTType] = [.jpeg, .png, .heic, .heif]
-    let isSupported = supportedTypes.contains { utType.conforms(to: $0) }
-    if !isSupported {
-      return .failure(.unsupportedImageFormat)
+    let isSupported = utType != nil && supportedTypes.contains { utType!.conforms(to: $0) }
+
+    let finalImageData: Data
+    let fileExtension: String
+
+    if isSupported, let utType = utType, let ext = utType.preferredFilenameExtension {
+      // Format is supported, use original data
+      guard let imageData = try? Data(contentsOf: imageURL) else {
+        return .failure(.failedToLoadImageData)
+      }
+      finalImageData = imageData
+      fileExtension = ext
+    } else {
+      // Format is not supported (e.g., WebP), convert to PNG using SDWebImage
+      // Load image using SDWebImage which can decode WebP and other formats
+      // Note: SDImageCodersManager decoding is lossless, only format conversion
+      guard let image = await loadImageWithSDWebImage(from: imageURL) else {
+        return .failure(.failedToLoadImageData)
+      }
+
+      // Convert UIImage to PNG data (PNG is lossless, no compression)
+      // pngData() uses lossless encoding, preserving original quality
+      guard let pngData = image.pngData() else {
+        return .failure(.failedToLoadImageData)
+      }
+      finalImageData = pngData
+      fileExtension = "png"
     }
 
-    // Save to photo library directly from file URL (more efficient)
+    // Create a temporary file with correct extension in a location accessible to Photos
+    let tempDir = FileManager.default.temporaryDirectory
+    let timestamp = ISO8601DateFormatter().string(from: Date())
+      .replacingOccurrences(of: ":", with: "-")
+      .replacingOccurrences(of: ".", with: "-")
+    let tempFileName = "komga_page_\(pageIndex)_\(timestamp).\(fileExtension)"
+    let tempFileURL = tempDir.appendingPathComponent(tempFileName)
+
+    // Write image data to temporary file with correct extension
+    do {
+      try finalImageData.write(to: tempFileURL)
+    } catch {
+      return .failure(.saveError("Failed to create temporary file: \(error.localizedDescription)"))
+    }
+
+    // Clean up temporary file after saving
+    defer {
+      try? FileManager.default.removeItem(at: tempFileURL)
+    }
+
+    // Save to photo library using temporary file URL with correct extension
     do {
       try await PHPhotoLibrary.shared().performChanges {
-        PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: imageURL)
+        PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: tempFileURL)
       }
       return .success(())
     } catch {
       return .failure(.saveError(error.localizedDescription))
+    }
+  }
+
+  /// Load image using SDWebImage (supports WebP and other formats)
+  /// - Parameter fileURL: Local file URL
+  /// - Returns: UIImage if successfully loaded, nil otherwise
+  /// - Note: Decoding is lossless, only converts encoded format to bitmap
+  private func loadImageWithSDWebImage(from fileURL: URL) async -> UIImage? {
+    return await withCheckedContinuation { continuation in
+      // Use SDWebImage to load and decode the image
+      // SDWebImage can handle WebP and other formats
+      // Decoding is lossless - only converts encoded format (WebP, etc.) to bitmap
+      SDImageCache.shared.queryImage(
+        forKey: fileURL.absoluteString,
+        options: [],
+        context: nil
+      ) { image, data, cacheType in
+        if let image = image {
+          continuation.resume(returning: image)
+        } else {
+          // If not in cache, load directly from file
+          // SDImageCodersManager decoding is lossless - preserves original image quality
+          // Options: nil means use default (lossless) decoding
+          if let imageData = try? Data(contentsOf: fileURL),
+            let image = SDImageCodersManager.shared.decodedImage(with: imageData, options: nil)
+          {
+            continuation.resume(returning: image)
+          } else {
+            continuation.resume(returning: nil)
+          }
+        }
+      }
     }
   }
 
