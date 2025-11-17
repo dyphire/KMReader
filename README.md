@@ -52,6 +52,9 @@ A native iOS client for Komga - a media server for comics/mangas/BDs/magazines.
   - Progress slider for quick navigation
   - End page view with next book navigation
   - Next book auto-detection and navigation
+  - Save current page to Photos (JPEG, PNG, HEIF formats supported)
+  - Save current page to Files app (via document picker)
+  - Context menu on page images for quick save to Photos
 - **Progress Tracking**:
   - Automatic progress sync to server
   - Resume from last read page on book open
@@ -187,9 +190,10 @@ The app is built using modern SwiftUI and follows the MVVM pattern:
 - `HorizontalPageView` - LTR/RTL horizontal page navigation
 - `VerticalPageView` - Vertical page scrolling
 - `WebtoonReaderView` - Webtoon-style continuous vertical scroll reader
-- `PageImageView` - Individual page display with zoom and pan
-- `ReaderControlsView` - Reader controls overlay (navigation, progress, settings)
+- `PageImageView` - Individual page display with zoom and pan, context menu for saving images
+- `ReaderControlsView` - Reader controls overlay (navigation, progress, settings, save to Photos/Files)
 - `EndPageView` - End of book view with next book navigation
+- `SaveImageButton` - Reusable component for saving images to Photos
 - `HistoryView` - Reading history with infinite scroll
 - `SettingsView` - User settings and preferences
 - `BookCardView` - Book card component with thumbnail
