@@ -306,7 +306,7 @@ This helps quickly identify API compatibility issues between different Komga ver
 
 ### Series & Book Features
 - [ ] Importing the summary of a series from the first book like the webui (See mangabox)
-- [ ] Ability to view summaries of each book in a series (See mangabox)
+- [x] Ability to view summaries of each book in a series (See mangabox)
 
 ### Reader Features
 - [ ] Two page spread function when the screen is turned landscape

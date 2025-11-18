@@ -7,6 +7,134 @@
 
 import SwiftUI
 
+// MARK: - Book Preview Card
+
+struct BookPreviewCard: View {
+  let book: Book
+
+  var body: some View {
+    VStack(alignment: .leading) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(book.metadata.title)
+          .font(.headline)
+          .fixedSize(horizontal: false, vertical: true)
+        Text(book.seriesTitle)
+          .font(.subheadline)
+          .foregroundColor(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        Text("#\(book.metadata.number) · \(book.media.pagesCount) pages")
+          .font(.footnote)
+          .foregroundColor(.secondary)
+      }
+
+      Divider()
+
+      VStack(alignment: .leading, spacing: 8) {
+        InfoRow(
+          label: "SIZE",
+          value: book.size,
+          icon: "internaldrive"
+        )
+
+        InfoRow(
+          label: "FORMAT",
+          value: book.media.mediaType.uppercased(),
+          icon: "doc.text"
+        )
+
+        InfoRow(
+          label: "CREATED",
+          value: formatDate(book.created),
+          icon: "calendar.badge.plus"
+        )
+
+        InfoRow(
+          label: "LAST MODIFIED",
+          value: formatDate(book.lastModified),
+          icon: "calendar.badge.clock"
+        )
+
+        if let authors = book.metadata.authors, !authors.isEmpty {
+          InfoRow(
+            label: "AUTHORS",
+            value: authors.map { $0.name }.joined(separator: ", "),
+            icon: "person"
+          )
+        }
+
+        if let releaseDate = book.metadata.releaseDate {
+          InfoRow(
+            label: "RELEASE DATE",
+            value: releaseDate,
+            icon: "calendar"
+          )
+        }
+
+        if let isbn = book.metadata.isbn, !isbn.isEmpty {
+          InfoRow(
+            label: "ISBN",
+            value: isbn,
+            icon: "barcode"
+          )
+        }
+      }
+
+      if let summary = book.metadata.summary, !summary.isEmpty {
+        Divider()
+        VStack(alignment: .leading, spacing: 4) {
+          Label("SUMMARY", systemImage: "text.alignleft")
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundColor(.secondary)
+          Text(summary)
+            .font(.footnote)
+            .foregroundColor(.primary)
+            .lineLimit(5)
+        }
+      }
+    }.frame(idealWidth: 320)
+  }
+
+  private func formatDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .short
+    return formatter.string(from: date)
+  }
+}
+
+// MARK: - Info Row
+
+struct InfoRow: View {
+  let label: String
+  let value: String
+  let icon: String
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 8) {
+      Label {
+        Text(label)
+          .font(.caption)
+          .fontWeight(.semibold)
+          .foregroundColor(.secondary)
+      } icon: {
+        Image(systemName: icon)
+          .font(.caption)
+          .foregroundColor(.secondary)
+          .frame(width: 16)
+      }
+
+      Spacer()
+
+      Text(value)
+        .font(.caption)
+        .foregroundColor(.primary)
+        .multilineTextAlignment(.trailing)
+        .lineLimit(2)
+    }
+  }
+}
+
 // MARK: - Book Context Menu
 
 struct BookContextMenuModifier: ViewModifier {
@@ -62,6 +190,8 @@ struct BookContextMenuModifier: ViewModifier {
           Label("Go to Series", systemImage: "book.fill")
         }
       }
+    } preview: {
+      BookPreviewCard(book: book).padding()
     }
   }
 }
