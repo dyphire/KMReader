@@ -65,7 +65,7 @@ struct SeriesListView: View {
       } else {
         LazyVGrid(columns: columns, spacing: spacing) {
           ForEach(Array(viewModel.series.enumerated()), id: \.element.id) { index, series in
-            NavigationLink(destination: SeriesDetailView(seriesId: series.id)) {
+            NavigationLink(value: NavDestination.seriesDetail(seriesId: series.id)) {
               SeriesCardView(series: series, cardWidth: cardWidth, showTitle: browseShowCardTitles)
             }
             .buttonStyle(PlainButtonStyle())

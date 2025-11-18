@@ -30,6 +30,7 @@ struct BrowseView: View {
             )
           }
         }
+        .handleNavigation()
         .navigationTitle("Browse")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -54,7 +55,6 @@ struct BrowseView: View {
         .sheet(isPresented: $showLibraryPickerSheet) {
           LibraryPickerSheet()
         }
-        .handleNavigation()
         .onChange(of: selectedLibraryId) {
           browseOpts.libraryId = selectedLibraryId
         }

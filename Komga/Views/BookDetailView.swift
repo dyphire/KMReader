@@ -362,7 +362,7 @@ struct BookActionsSection: View {
 
       Spacer()
 
-      NavigationLink(value: NavigationDestination.seriesDetail(seriesId: book.seriesId)) {
+      NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
         Label("View Series", systemImage: "book.fill")
       }
       .buttonStyle(.bordered)

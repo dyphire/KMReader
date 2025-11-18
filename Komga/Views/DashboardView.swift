@@ -122,6 +122,7 @@ struct DashboardView: View {
         }
         .padding(.vertical)
       }
+      .handleNavigation()
       .navigationTitle("Dashboard")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
@@ -146,7 +147,6 @@ struct DashboardView: View {
       .sheet(isPresented: $showLibraryPickerSheet) {
         LibraryPickerSheet()
       }
-      .handleNavigation()
       .animation(.default, value: selectedLibraryId)
       .onChange(of: selectedLibraryId) {
         Task {
@@ -287,7 +287,7 @@ struct DashboardSeriesSection: View {
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 12) {
           ForEach(series) { s in
-            NavigationLink(value: NavigationDestination.seriesDetail(seriesId: s.id)) {
+            NavigationLink(value: NavDestination.seriesDetail(seriesId: s.id)) {
               SeriesCardView(series: s, cardWidth: 120, showTitle: true)
             }
             .buttonStyle(PlainButtonStyle())

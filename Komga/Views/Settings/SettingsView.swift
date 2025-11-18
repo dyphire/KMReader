@@ -34,10 +34,10 @@ struct SettingsView: View {
         }
 
         Section {
-          NavigationLink(destination: SettingsAppearanceView()) {
+          NavigationLink(value: NavDestination.settingsAppearance) {
             Text("Appearance")
           }
-          NavigationLink(destination: SettingsCacheView()) {
+          NavigationLink(value: NavDestination.settingsCache) {
             Text("Cache")
           }
         }
@@ -73,6 +73,7 @@ struct SettingsView: View {
           }
         }
       }
+      .handleNavigation()
       .navigationTitle("Settings")
       .navigationBarTitleDisplayMode(.inline)
     }

@@ -76,6 +76,7 @@ struct HistoryView: View {
         }
         .padding(.vertical)
       }
+      .handleNavigation()
       .navigationTitle("History")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
@@ -101,7 +102,6 @@ struct HistoryView: View {
       .sheet(isPresented: $showLibraryPickerSheet) {
         LibraryPickerSheet()
       }
-      .handleNavigation()
       .animation(.default, value: selectedLibraryId)
       .onChange(of: selectedLibraryId) {
         refreshRecentlyReadBooks()

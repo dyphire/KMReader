@@ -1,5 +1,5 @@
 //
-//  NavigationDestination.swift
+//  NavDestination.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,7 +7,10 @@
 
 import Foundation
 
-enum NavigationDestination: Hashable {
+enum NavDestination: Hashable {
   case seriesDetail(seriesId: String)
   case bookDetail(bookId: String)
+
+  case settingsAppearance
+  case settingsCache
 }

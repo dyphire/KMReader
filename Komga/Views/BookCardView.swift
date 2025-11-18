@@ -36,10 +36,10 @@ struct BookContextMenu: View {
 
       Divider()
 
-      NavigationLink(value: NavigationDestination.bookDetail(bookId: book.id)) {
+      NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
         Label("View Details", systemImage: "info.circle")
       }
-      NavigationLink(value: NavigationDestination.seriesDetail(seriesId: book.seriesId)) {
+      NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
         Label("Go to Series", systemImage: "book.fill")
       }
 

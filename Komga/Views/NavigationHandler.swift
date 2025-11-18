@@ -10,12 +10,17 @@ import SwiftUI
 extension View {
   func handleNavigation() -> some View {
     self
-      .navigationDestination(for: NavigationDestination.self) { destination in
+      .navigationDestination(for: NavDestination.self) { destination in
         switch destination {
         case .seriesDetail(let seriesId):
           SeriesDetailView(seriesId: seriesId)
         case .bookDetail(let bookId):
           BookDetailView(bookId: bookId)
+
+        case .settingsAppearance:
+          SettingsAppearanceView()
+        case .settingsCache:
+          SettingsCacheView()
         }
       }
   }
