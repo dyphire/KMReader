@@ -11,7 +11,8 @@ enum NavDestination: Hashable {
   case seriesDetail(seriesId: String)
   case bookDetail(bookId: String)
 
+  case settingsLibraries
   case settingsAppearance
   case settingsCache
-  case settingsLibraries
+  case settingsReader
 }

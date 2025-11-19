@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
-  @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
 
   var body: some View {
     NavigationStack {
@@ -46,25 +45,8 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsCache) {
             Text("Cache")
           }
-
-        }
-
-        Section(header: Text("Reader")) {
-          VStack(alignment: .leading, spacing: 8) {
-            HStack {
-              Text("Webtoon Page Width")
-              Spacer()
-              Text("\(Int(webtoonPageWidthPercentage))%")
-                .foregroundColor(.secondary)
-            }
-            Slider(
-              value: $webtoonPageWidthPercentage,
-              in: 50...100,
-              step: 5
-            )
-            Text("Adjust the width of webtoon pages as a percentage of screen width")
-              .font(.caption)
-              .foregroundColor(.secondary)
+          NavigationLink(value: NavDestination.settingsReader) {
+            Text("Reader")
           }
         }
 

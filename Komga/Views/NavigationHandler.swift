@@ -17,12 +17,14 @@ extension View {
         case .bookDetail(let bookId):
           BookDetailView(bookId: bookId)
 
+        case .settingsLibraries:
+          SettingsLibrariesView()
         case .settingsAppearance:
           SettingsAppearanceView()
         case .settingsCache:
           SettingsCacheView()
-        case .settingsLibraries:
-          SettingsLibrariesView()
+        case .settingsReader:
+          SettingsReaderView()
         }
       }
   }
