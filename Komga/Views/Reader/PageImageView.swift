@@ -34,7 +34,6 @@ struct PageImageView: View {
     GeometryReader { geometry in
       ZStack {
         if let imageURL = imageURL {
-          // Use SDWebImage to load and display (handles both static and animated images)
           AnimatedImage(
             url: imageURL,
             options: [.retryFailed, .scaleDownLargeImages],
@@ -65,28 +64,12 @@ struct PageImageView: View {
                   withAnimation {
                     scale = 1.0
                     offset = .zero
+                    lastOffset = .zero
                   }
                 } else if scale > 4.0 {
                   withAnimation {
                     scale = 4.0
                   }
-                }
-              }
-          )
-          .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-              .onChanged { value in
-                // Only handle drag when zoomed in
-                if scale > 1.0 {
-                  offset = CGSize(
-                    width: lastOffset.width + value.translation.width,
-                    height: lastOffset.height + value.translation.height
-                  )
-                }
-              }
-              .onEnded { _ in
-                if scale > 1.0 {
-                  lastOffset = offset
                 }
               }
           )
@@ -104,16 +87,26 @@ struct PageImageView: View {
               }
             }
           }
-          .contextMenu {
-            Button {
-              Task {
-                await saveImageToPhotos()
-              }
-            } label: {
-              Label("Save to Photos", systemImage: "square.and.arrow.down")
+          .simultaneousGesture(
+            DragGesture(
+              minimumDistance: scale > 1.0 ? 0 : CGFloat.greatestFiniteMagnitude
+            )
+            .onChanged { value in
+              guard scale > 1.0 else { return }
+              offset = CGSize(
+                width: lastOffset.width + value.translation.width,
+                height: lastOffset.height + value.translation.height
+              )
             }
-            .disabled(saveImageStatus == .saving)
-          }
+            .onEnded { _ in
+              if scale > 1.0 {
+                lastOffset = offset
+              } else {
+                lastOffset = .zero
+                offset = .zero
+              }
+            }
+          )
         } else if let error = loadError {
           // Show error message
           VStack(spacing: 16) {

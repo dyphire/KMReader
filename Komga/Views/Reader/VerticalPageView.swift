@@ -30,43 +30,9 @@ struct VerticalPageView: View {
                     viewModel: viewModel,
                     pageIndex: pageIndex
                   )
-
-                  // Tap zones overlay
-                  VStack(spacing: 0) {
-                    // Top tap zone
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.4)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            goToPreviousPage()
-                          }
-                      )
-
-                    // Center tap zone (toggle controls)
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.2)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            toggleControls()
-                          }
-                      )
-
-                    // Bottom tap zone
-                    Color.clear
-                      .frame(height: geometry.size.height * 0.4)
-                      .contentShape(Rectangle())
-                      .simultaneousGesture(
-                        TapGesture()
-                          .onEnded { _ in
-                            goToNextPage()
-                          }
-                      )
-                  }
                 }
+                .contentShape(Rectangle())
+                .simultaneousGesture(verticalTapGesture(height: geometry.size.height))
               }
               .frame(width: screenGeometry.size.width, height: screenGeometry.size.height)
               .id(pageIndex)
@@ -106,6 +72,21 @@ struct VerticalPageView: View {
         }
       }
     }
+  }
+
+  private func verticalTapGesture(height: CGFloat) -> some Gesture {
+    SpatialTapGesture()
+      .onEnded { value in
+        guard height > 0 else { return }
+        let normalizedY = max(0, min(1, value.location.y / height))
+        if normalizedY < 0.35 {
+          goToPreviousPage()
+        } else if normalizedY > 0.65 {
+          goToNextPage()
+        } else {
+          toggleControls()
+        }
+      }
   }
 
   // End page view with buttons and info

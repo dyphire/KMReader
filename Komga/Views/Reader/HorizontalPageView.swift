@@ -40,43 +40,9 @@ struct HorizontalPageView: View {
               viewModel: viewModel,
               pageIndex: viewModel.displayIndexToPageIndex(displayIndex)
             )
-
-            // Tap zones overlay
-            HStack(spacing: 0) {
-              // Left tap zone
-              Color.clear
-                .frame(width: geometry.size.width * 0.4)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      goToPreviousPage()
-                    }
-                )
-
-              // Center tap zone (toggle controls)
-              Color.clear
-                .frame(width: geometry.size.width * 0.2)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      toggleControls()
-                    }
-                )
-
-              // Right tap zone
-              Color.clear
-                .frame(width: geometry.size.width * 0.4)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  TapGesture()
-                    .onEnded { _ in
-                      goToNextPage()
-                    }
-                )
-            }
           }
+          .contentShape(Rectangle())
+          .simultaneousGesture(horizontalTapGesture(width: geometry.size.width))
         }
         .tag(displayIndex)
         .onAppear {
@@ -127,6 +93,21 @@ struct HorizontalPageView: View {
         }
       }
     }
+  }
+
+  private func horizontalTapGesture(width: CGFloat) -> some Gesture {
+    SpatialTapGesture()
+      .onEnded { value in
+        guard width > 0 else { return }
+        let normalizedX = max(0, min(1, value.location.x / width))
+        if normalizedX < 0.35 {
+          goToPreviousPage()
+        } else if normalizedX > 0.65 {
+          goToNextPage()
+        } else {
+          toggleControls()
+        }
+      }
   }
 
   // End page view with buttons and info
