@@ -12,7 +12,7 @@ struct SettingsLibrariesView: View {
   @State private var performingLibraryIds: Set<String> = []
   @State private var actionErrorMessage: String?
   @State private var libraryPendingDelete: Library?
-  @State private var swipeActionsLibrary: Library?
+  @State private var operatingLibrary: Library?
 
   private var isActionErrorPresented: Binding<Bool> {
     Binding(
@@ -101,7 +101,7 @@ struct SettingsLibrariesView: View {
     .task {
       await viewModel.loadLibraries()
     }
-    .sheet(item: $swipeActionsLibrary) { library in
+    .sheet(item: $operatingLibrary) { library in
       LibraryActionsSheet(
         library: library,
         isPerforming: performingLibraryIds.contains(library.id),
@@ -122,7 +122,7 @@ struct SettingsLibrariesView: View {
     librarySummary(library, isPerforming: isPerforming)
       .contentShape(Rectangle())
       .onTapGesture {
-        swipeActionsLibrary = library
+        operatingLibrary = library
       }
   }
 
@@ -311,8 +311,10 @@ private struct LibraryActionsSheet: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
-          Button("Done") {
+          Button {
             dismiss()
+          } label: {
+            Label("Close", systemImage: "xmark.circle")
           }
         }
       }
