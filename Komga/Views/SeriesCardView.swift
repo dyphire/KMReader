@@ -119,8 +119,10 @@ struct SeriesContextMenu: View {
 struct SeriesCardView: View {
   let series: Series
   let cardWidth: CGFloat
-  let showTitle: Bool
   var onActionCompleted: (() -> Void)? = nil
+
+  @AppStorage("showSeriesCardTitle") private var showTitle: Bool = true
+
   @State private var actionErrorMessage: String?
 
   private var isActionErrorPresented: Binding<Bool> {

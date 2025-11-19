@@ -149,7 +149,10 @@ struct BookCardView: View {
   var viewModel: BookViewModel
   let cardWidth: CGFloat
   var onBookUpdated: (() -> Void)? = nil
+
+  @AppStorage("showBookCardSeriesTitle") private var showSeriesTitle: Bool = true
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
   @State private var readerState: BookReaderState?
 
   private var thumbnailURL: URL? {
@@ -219,11 +222,12 @@ struct BookCardView: View {
         }
 
       VStack(alignment: .leading, spacing: 2) {
-        Text(book.seriesTitle)
-          .font(.caption)
-          .foregroundColor(.primary)
-          .lineLimit(1)
-
+        if showSeriesTitle {
+          Text(book.seriesTitle)
+            .font(.caption)
+            .foregroundColor(.primary)
+            .lineLimit(1)
+        }
         Text("\(book.metadata.number) - \(book.metadata.title)")
           .font(.caption)
           .foregroundColor(.primary)

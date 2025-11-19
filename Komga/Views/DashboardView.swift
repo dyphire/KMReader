@@ -53,34 +53,34 @@ struct DashboardView: View {
           } else {
             // Keep Reading Section
             if !keepReadingBooks.isEmpty {
-            DashboardBooksSection(
-              title: "Keep Reading",
-              books: keepReadingBooks,
-              bookViewModel: bookViewModel,
-              onBookUpdated: refreshDashboardData
-            )
+              DashboardBooksSection(
+                title: "Keep Reading",
+                books: keepReadingBooks,
+                bookViewModel: bookViewModel,
+                onBookUpdated: refreshDashboardData
+              )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             // On Deck Section
             if !onDeckBooks.isEmpty {
-            DashboardBooksSection(
-              title: "On Deck",
-              books: onDeckBooks,
-              bookViewModel: bookViewModel,
-              onBookUpdated: refreshDashboardData
-            )
+              DashboardBooksSection(
+                title: "On Deck",
+                books: onDeckBooks,
+                bookViewModel: bookViewModel,
+                onBookUpdated: refreshDashboardData
+              )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             // Recently Added Books
             if !recentlyAddedBooks.isEmpty {
-            DashboardBooksSection(
-              title: "Recently Added Books",
-              books: recentlyAddedBooks,
-              bookViewModel: bookViewModel,
-              onBookUpdated: refreshDashboardData
-            )
+              DashboardBooksSection(
+                title: "Recently Added Books",
+                books: recentlyAddedBooks,
+                bookViewModel: bookViewModel,
+                onBookUpdated: refreshDashboardData
+              )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
@@ -89,8 +89,8 @@ struct DashboardView: View {
               DashboardSeriesSection(
                 title: "Recently Updated Series",
                 series: recentlyUpdatedSeries,
-              seriesViewModel: seriesViewModel,
-              onSeriesUpdated: refreshDashboardData
+                seriesViewModel: seriesViewModel,
+                onSeriesUpdated: refreshDashboardData
               )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -100,8 +100,8 @@ struct DashboardView: View {
               DashboardSeriesSection(
                 title: "Recently Added Series",
                 series: recentlyAddedSeries,
-              seriesViewModel: seriesViewModel,
-              onSeriesUpdated: refreshDashboardData
+                seriesViewModel: seriesViewModel,
+                onSeriesUpdated: refreshDashboardData
               )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -306,7 +306,6 @@ struct DashboardSeriesSection: View {
               SeriesCardView(
                 series: s,
                 cardWidth: 120,
-                showTitle: true,
                 onActionCompleted: onSeriesUpdated
               )
             }

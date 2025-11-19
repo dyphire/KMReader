@@ -12,10 +12,11 @@ struct SeriesListView: View {
   let width: CGFloat
   let height: CGFloat
   let spacing: CGFloat = 16
-  @State private var viewModel = SeriesViewModel()
+
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
-  @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
+
+  @State private var viewModel = SeriesViewModel()
 
   var availableWidth: CGFloat {
     width - spacing * 2
@@ -69,7 +70,6 @@ struct SeriesListView: View {
               SeriesCardView(
                 series: series,
                 cardWidth: cardWidth,
-                showTitle: browseShowCardTitles,
                 onActionCompleted: {
                   Task {
                     await viewModel.loadSeries(browseOpts: browseOpts, refresh: true)

@@ -11,7 +11,8 @@ import SwiftUI
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorName") private var themeColor: ThemeColorOption = .orange
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
-  @AppStorage("browseShowCardTitles") private var browseShowCardTitles: Bool = true
+  @AppStorage("showSeriesCardTitle") private var showSeriesCardTitle: Bool = true
+  @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
 
   private var portraitColumnsBinding: Binding<Int> {
@@ -36,6 +37,10 @@ struct SettingsAppearanceView: View {
     )
   }
 
+  var colorColumns: [GridItem] {
+    Array(repeating: GridItem(.flexible(), spacing: 12), count: 6)
+  }
+
   var body: some View {
     Form {
       Section(header: Text("Theme")) {
@@ -47,9 +52,7 @@ struct SettingsAppearanceView: View {
               .foregroundColor(.secondary)
           }
 
-          LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 6), spacing: 12
-          ) {
+          LazyVGrid(columns: colorColumns, spacing: 12) {
             ForEach(ThemeColorOption.allCases, id: \.self) { option in
               Button {
                 themeColor = option
@@ -117,12 +120,23 @@ struct SettingsAppearanceView: View {
             .font(.caption)
             .foregroundColor(.secondary)
         }
+      }
+
+      Section(header: Text("Cards")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Toggle(isOn: $showSeriesCardTitle) {
+            Text("Show Series Card Titles")
+          }
+          Text("Show titles for series in view cards")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
 
         VStack(alignment: .leading, spacing: 8) {
-          Toggle(isOn: $browseShowCardTitles) {
-            Text("Show Card Titles")
+          Toggle(isOn: $showBookCardSeriesTitle) {
+            Text("Show Book Card Series Titles")
           }
-          Text("Show titles for series and books in the library view card")
+          Text("Show series titles for books in view cards")
             .font(.caption)
             .foregroundColor(.secondary)
         }
