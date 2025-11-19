@@ -205,7 +205,14 @@ struct BookDetailView: View {
     }
     .navigationTitle("Book Details")
     .navigationBarTitleDisplayMode(.inline)
-    .fullScreenCover(isPresented: isBookReaderPresented) {
+    .fullScreenCover(
+      isPresented: isBookReaderPresented,
+      onDismiss: {
+        Task {
+          await loadBook()
+        }
+      }
+    ) {
       if let state = readerState, let bookId = state.bookId {
         BookReaderView(bookId: bookId, incognito: state.incognito)
       }

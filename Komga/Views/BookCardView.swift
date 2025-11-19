@@ -14,6 +14,7 @@ struct BookContextMenu: View {
   let book: Book
   let viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
+  var onActionCompleted: (() -> Void)? = nil
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -49,6 +50,9 @@ struct BookContextMenu: View {
         Button {
           Task {
             await viewModel.markAsRead(bookId: book.id)
+            await MainActor.run {
+              onActionCompleted?()
+            }
           }
         } label: {
           Label("Mark as Read", systemImage: "checkmark.circle")
@@ -58,6 +62,9 @@ struct BookContextMenu: View {
         Button {
           Task {
             await viewModel.markAsUnread(bookId: book.id)
+            await MainActor.run {
+              onActionCompleted?()
+            }
           }
         } label: {
           Label("Mark as Unread", systemImage: "circle")
@@ -86,6 +93,7 @@ struct BookCardView: View {
   let book: Book
   var viewModel: BookViewModel
   let cardWidth: CGFloat
+  var onBookUpdated: (() -> Void)? = nil
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
   @State private var readerState: BookReaderState?
 
@@ -189,10 +197,16 @@ struct BookCardView: View {
         viewModel: viewModel,
         onReadBook: { incognito in
           readerState = BookReaderState(bookId: book.id, incognito: incognito)
-        }
+        },
+        onActionCompleted: onBookUpdated
       )
     }
-    .fullScreenCover(isPresented: isBookReaderPresented) {
+    .fullScreenCover(
+      isPresented: isBookReaderPresented,
+      onDismiss: {
+        onBookUpdated?()
+      }
+    ) {
       if let state = readerState, let bookId = state.bookId {
         BookReaderView(bookId: bookId, incognito: state.incognito)
       }

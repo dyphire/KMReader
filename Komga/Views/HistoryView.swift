@@ -53,7 +53,10 @@ struct HistoryView: View {
             ReadHistorySection(
               title: "Recently Read Books",
               bookViewModel: bookViewModel,
-              onLoadMore: loadMoreRecentlyReadBooks
+              onLoadMore: loadMoreRecentlyReadBooks,
+              onBookUpdated: {
+                refreshRecentlyReadBooks()
+              }
             )
             .animation(.default, value: bookViewModel.books)
             .transition(.move(edge: .top).combined(with: .opacity))
@@ -122,6 +125,7 @@ struct ReadHistorySection: View {
   let title: String
   var bookViewModel: BookViewModel
   var onLoadMore: (() -> Void)?
+  var onBookUpdated: (() -> Void)? = nil
 
   @State private var readerState: BookReaderState?
 
@@ -153,7 +157,8 @@ struct ReadHistorySection: View {
                   viewModel: bookViewModel,
                   onReadBook: { incognito in
                     readerState = BookReaderState(bookId: book.id, incognito: incognito)
-                  }
+                  },
+                  onActionCompleted: onBookUpdated
                 )
               }
           }
@@ -174,7 +179,12 @@ struct ReadHistorySection: View {
       }
       .padding(.horizontal, 8)
     }
-    .fullScreenCover(isPresented: isBookReaderPresented) {
+    .fullScreenCover(
+      isPresented: isBookReaderPresented,
+      onDismiss: {
+        onBookUpdated?()
+      }
+    ) {
       if let state = readerState, let bookId = state.bookId {
         BookReaderView(bookId: bookId, incognito: state.incognito)
       }

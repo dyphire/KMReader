@@ -92,7 +92,6 @@ class BookViewModel {
   func updateReadProgress(bookId: String, page: Int, completed: Bool = false) async {
     do {
       try await bookService.updateReadProgress(bookId: bookId, page: page, completed: completed)
-      // Reload the book to get updated progress
       if currentBook?.id == bookId {
         await loadBook(id: bookId)
       }
@@ -104,14 +103,12 @@ class BookViewModel {
   func markAsRead(bookId: String) async {
     do {
       try await bookService.markAsRead(bookId: bookId)
-      // Update the book in the list
+      let updatedBook = try await bookService.getBook(id: bookId)
       if let index = books.firstIndex(where: { $0.id == bookId }) {
-        let updatedBook = try await bookService.getBook(id: bookId)
         books[index] = updatedBook
       }
-      // Also update currentBook if it matches
       if currentBook?.id == bookId {
-        await loadBook(id: bookId)
+        currentBook = updatedBook
       }
     } catch {
       errorMessage = error.localizedDescription
@@ -121,14 +118,12 @@ class BookViewModel {
   func markAsUnread(bookId: String) async {
     do {
       try await bookService.markAsUnread(bookId: bookId)
-      // Update the book in the list
+      let updatedBook = try await bookService.getBook(id: bookId)
       if let index = books.firstIndex(where: { $0.id == bookId }) {
-        let updatedBook = try await bookService.getBook(id: bookId)
         books[index] = updatedBook
       }
-      // Also update currentBook if it matches
       if currentBook?.id == bookId {
-        await loadBook(id: bookId)
+        currentBook = updatedBook
       }
     } catch {
       errorMessage = error.localizedDescription

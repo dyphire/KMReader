@@ -11,6 +11,7 @@ struct BookRowView: View {
   let book: Book
   var viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
+  var onBookUpdated: (() -> Void)? = nil
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -79,7 +80,8 @@ struct BookRowView: View {
       BookContextMenu(
         book: book,
         viewModel: viewModel,
-        onReadBook: onReadBook
+        onReadBook: onReadBook,
+        onActionCompleted: onBookUpdated
       )
     }
   }

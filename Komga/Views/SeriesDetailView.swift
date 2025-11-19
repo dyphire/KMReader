@@ -17,6 +17,7 @@ struct SeriesDetailView: View {
   @State private var bookSummary: String?
   @State private var bookSummaryNumber: String?
   @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+  @AppStorage("bookListSortDirection") private var sortDirection: SortDirection = .ascending
 
   private var thumbnailURL: URL? {
     guard let series = series else { return nil }
@@ -225,17 +226,18 @@ struct SeriesDetailView: View {
       .padding(.horizontal)
     }
     .navigationBarTitleDisplayMode(.inline)
-    .fullScreenCover(isPresented: isBookReaderPresented) {
+    .fullScreenCover(
+      isPresented: isBookReaderPresented,
+      onDismiss: {
+        refreshAfterReading()
+      }
+    ) {
       if let state = readerState, let bookId = state.bookId {
         BookReaderView(bookId: bookId, incognito: state.incognito)
       }
     }
     .task {
-      // Load series details
-      do {
-        series = try await SeriesService.shared.getOneSeries(id: seriesId)
-      } catch {
-      }
+      await loadSeriesDetails()
     }
     .onChange(of: bookViewModel.books) {
       findBookSummary()
@@ -245,6 +247,20 @@ struct SeriesDetailView: View {
 
 // Helper functions for SeriesDetailView
 extension SeriesDetailView {
+  private func refreshAfterReading() {
+    Task {
+      await loadSeriesDetails()
+      await bookViewModel.loadBooks(seriesId: seriesId, sort: sortDirection.bookSortString)
+    }
+  }
+
+  private func loadSeriesDetails() async {
+    do {
+      series = try await SeriesService.shared.getOneSeries(id: seriesId)
+    } catch {
+    }
+  }
+
   private func findBookSummary() {
     if bookSummary != nil { return }
     guard let series = series else { return }

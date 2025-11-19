@@ -5,6 +5,7 @@
 //  Created by Komga iOS Client
 //
 
+import Combine
 import SwiftUI
 
 struct DashboardView: View {
@@ -52,31 +53,34 @@ struct DashboardView: View {
           } else {
             // Keep Reading Section
             if !keepReadingBooks.isEmpty {
-              DashboardBooksSection(
-                title: "Keep Reading",
-                books: keepReadingBooks,
-                bookViewModel: bookViewModel
-              )
+            DashboardBooksSection(
+              title: "Keep Reading",
+              books: keepReadingBooks,
+              bookViewModel: bookViewModel,
+              onBookUpdated: refreshDashboardData
+            )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             // On Deck Section
             if !onDeckBooks.isEmpty {
-              DashboardBooksSection(
-                title: "On Deck",
-                books: onDeckBooks,
-                bookViewModel: bookViewModel
-              )
+            DashboardBooksSection(
+              title: "On Deck",
+              books: onDeckBooks,
+              bookViewModel: bookViewModel,
+              onBookUpdated: refreshDashboardData
+            )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
             // Recently Added Books
             if !recentlyAddedBooks.isEmpty {
-              DashboardBooksSection(
-                title: "Recently Added Books",
-                books: recentlyAddedBooks,
-                bookViewModel: bookViewModel
-              )
+            DashboardBooksSection(
+              title: "Recently Added Books",
+              books: recentlyAddedBooks,
+              bookViewModel: bookViewModel,
+              onBookUpdated: refreshDashboardData
+            )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
 
@@ -243,12 +247,19 @@ struct DashboardView: View {
       recentlyUpdatedSeries = seriesViewModel.series
     }
   }
+
+  private func refreshDashboardData() {
+    Task {
+      await loadAll()
+    }
+  }
 }
 
 struct DashboardBooksSection: View {
   let title: String
   let books: [Book]
   var bookViewModel: BookViewModel
+  var onBookUpdated: (() -> Void)? = nil
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
@@ -263,7 +274,8 @@ struct DashboardBooksSection: View {
             BookCardView(
               book: book,
               viewModel: bookViewModel,
-              cardWidth: 120
+              cardWidth: 120,
+              onBookUpdated: onBookUpdated
             )
           }
         }.padding()

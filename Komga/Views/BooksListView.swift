@@ -55,6 +55,9 @@ struct BooksListView: View {
               viewModel: bookViewModel,
               onReadBook: { incognito in
                 onReadBook(book.id, incognito)
+              },
+              onBookUpdated: {
+                refreshBooks()
               }
             )
             .onAppear {
@@ -82,6 +85,14 @@ struct BooksListView: View {
       Task {
         await bookViewModel.loadBooks(seriesId: seriesId, sort: sortDirection.bookSortString)
       }
+    }
+  }
+}
+
+private extension BooksListView {
+  func refreshBooks() {
+    Task {
+      await bookViewModel.loadBooks(seriesId: seriesId, sort: sortDirection.bookSortString)
     }
   }
 }
