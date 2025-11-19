@@ -10,10 +10,12 @@ import SwiftUI
 struct BookDetailView: View {
   let bookId: String
 
+  @Environment(\.dismiss) private var dismiss
   @State private var book: Book?
   @State private var isLoading = true
   @State private var readerState: BookReaderState?
   @State private var actionErrorMessage: String?
+  @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {
     return BookService.shared.getBookThumbnailURL(id: bookId)
@@ -224,6 +226,20 @@ struct BookDetailView: View {
         Text(actionErrorMessage)
       }
     }
+    .confirmationDialog(
+      "Delete Book?",
+      isPresented: $showDeleteConfirmation,
+      titleVisibility: .visible
+    ) {
+      Button("Delete", role: .destructive) {
+        if let book {
+          deleteBook(book)
+        }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: {
+      Text("This will permanently delete \(book?.metadata.title ?? "this book") from Komga.")
+    }
     .toolbar {
       if let book = book {
         ToolbarItem(placement: .topBarTrailing) {
@@ -246,6 +262,26 @@ struct BookDetailView: View {
 
             Divider()
 
+            Button {
+              analyzeBook(book)
+            } label: {
+              Label("Analyze", systemImage: "waveform.path.ecg")
+            }
+
+            Button {
+              refreshMetadata(book)
+            } label: {
+              Label("Refresh Metadata", systemImage: "arrow.clockwise")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+              showDeleteConfirmation = true
+            } label: {
+              Label("Delete Book", systemImage: "trash")
+            }
+
             Button(role: .destructive) {
               clearCache(for: book)
             } label: {
@@ -259,6 +295,48 @@ struct BookDetailView: View {
     }
     .task {
       await loadBook()
+    }
+  }
+
+  private func analyzeBook(_ book: Book) {
+    Task {
+      do {
+        try await BookService.shared.analyzeBook(bookId: book.id)
+        await loadBook()
+      } catch {
+        await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func refreshMetadata(_ book: Book) {
+    Task {
+      do {
+        try await BookService.shared.refreshMetadata(bookId: book.id)
+        await loadBook()
+      } catch {
+        await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func deleteBook(_ book: Book) {
+    Task {
+      do {
+        try await BookService.shared.deleteBook(bookId: book.id)
+        await ImageCache.clearDiskCache(forBookId: book.id)
+        await MainActor.run {
+          dismiss()
+        }
+      } catch {
+        await MainActor.run {
+          actionErrorMessage = error.localizedDescription
+        }
+      }
     }
   }
 

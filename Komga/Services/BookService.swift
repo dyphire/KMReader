@@ -133,6 +133,27 @@ class BookService {
     }
   }
 
+  func analyzeBook(bookId: String) async throws {
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/books/\(bookId)/analyze",
+      method: "POST"
+    )
+  }
+
+  func refreshMetadata(bookId: String) async throws {
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/books/\(bookId)/metadata/refresh",
+      method: "POST"
+    )
+  }
+
+  func deleteBook(bookId: String) async throws {
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/books/\(bookId)/file",
+      method: "DELETE"
+    )
+  }
+
   func markAsRead(bookId: String) async throws {
     // Fetch the book to get the total page count
     let book = try await getBook(id: bookId)

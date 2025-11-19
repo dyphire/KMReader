@@ -73,12 +73,78 @@ struct BookContextMenu: View {
 
       Divider()
 
+      Button {
+        analyzeBook()
+      } label: {
+        Label("Analyze", systemImage: "waveform.path.ecg")
+      }
+
+      Button {
+        refreshMetadata()
+      } label: {
+        Label("Refresh Metadata", systemImage: "arrow.clockwise")
+      }
+
+      Divider()
+
+      Button(role: .destructive) {
+        deleteBook()
+      } label: {
+        Label("Delete Book", systemImage: "trash")
+      }
+
       Button(role: .destructive) {
         Task {
           await ImageCache.clearDiskCache(forBookId: book.id)
         }
       } label: {
         Label("Clear Cache", systemImage: "trash")
+      }
+    }
+  }
+
+  private func analyzeBook() {
+    Task {
+      do {
+        try await BookService.shared.analyzeBook(bookId: book.id)
+        await MainActor.run {
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          viewModel.errorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func refreshMetadata() {
+    Task {
+      do {
+        try await BookService.shared.refreshMetadata(bookId: book.id)
+        await MainActor.run {
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          viewModel.errorMessage = error.localizedDescription
+        }
+      }
+    }
+  }
+
+  private func deleteBook() {
+    Task {
+      do {
+        try await BookService.shared.deleteBook(bookId: book.id)
+        await ImageCache.clearDiskCache(forBookId: book.id)
+        await MainActor.run {
+          onActionCompleted?()
+        }
+      } catch {
+        await MainActor.run {
+          viewModel.errorMessage = error.localizedDescription
+        }
       }
     }
   }
