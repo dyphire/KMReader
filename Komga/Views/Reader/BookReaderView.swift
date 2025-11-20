@@ -120,10 +120,12 @@ struct BookReaderView: View {
         currentBook: currentBook,
         onDismiss: { dismiss() }
       )
+      .padding()
+      .ignoresSafeArea()
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
     }
-    // .statusBar(hidden: !showingControls && !viewModel.pages.isEmpty)
+    .statusBar(hidden: !showingControls && !viewModel.pages.isEmpty)
     .task(id: currentBookId) {
       // Mark that loading has started
       viewModel.isLoading = true
