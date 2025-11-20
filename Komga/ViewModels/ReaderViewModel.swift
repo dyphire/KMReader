@@ -93,10 +93,10 @@ class ReaderViewModel {
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
 
   var currentPage: BookPage? {
-    guard currentPageIndex >= 0 && currentPageIndex < pages.count else {
-      return nil
-    }
-    return pages[currentPageIndex]
+    guard currentPageIndex >= 0 else { return nil }
+    guard !pages.isEmpty else { return nil }
+    let clampedIndex = min(currentPageIndex, pages.count - 1)
+    return pages[clampedIndex]
   }
 
   init() {
@@ -241,15 +241,14 @@ class ReaderViewModel {
     // Skip progress updates in incognito mode
     guard !incognitoMode else { return }
     guard !bookId.isEmpty else { return }
-    guard currentPageIndex >= 0 && currentPageIndex < pages.count else { return }
+    guard let currentPage = currentPage else { return }
 
     let completed = currentPageIndex >= pages.count - 1
-    let apiPageNumber = pages[currentPageIndex].number
 
     do {
       try await bookService.updateReadProgress(
         bookId: bookId,
-        page: apiPageNumber,
+        page: currentPage.number,
         completed: completed
       )
     } catch {

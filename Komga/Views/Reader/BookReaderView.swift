@@ -23,7 +23,6 @@ struct BookReaderView: View {
   @State private var seriesId: String?
   @State private var nextBook: Book?
   @State private var isAtBottom = false
-  @State private var isAtEndPage = false
   @State private var showingReadingDirectionPicker = false
   @State private var readingDirection: ReadingDirection = .ltr
 
@@ -35,8 +34,13 @@ struct BookReaderView: View {
 
   var shouldShowControls: Bool {
     // Always show controls when no pages are loaded or when explicitly shown
-    viewModel.pages.isEmpty || showingControls || isAtEndPage
+    viewModel.pages.isEmpty || showingControls || isShowingEndPage
       || (readingDirection == .webtoon && isAtBottom)
+  }
+
+  private var isShowingEndPage: Bool {
+    guard !viewModel.pages.isEmpty else { return false }
+    return viewModel.currentPageIndex >= viewModel.pages.count
   }
 
   var body: some View {
@@ -50,8 +54,6 @@ struct BookReaderView: View {
           case .ltr:
             ComicPageView(
               viewModel: viewModel,
-              isAtEndPage: $isAtEndPage,
-              showingControls: $showingControls,
               nextBook: nextBook,
               onDismiss: { dismiss() },
               onNextBook: { openNextBook(nextBookId: $0) },
@@ -62,8 +64,6 @@ struct BookReaderView: View {
           case .rtl:
             MangaPageView(
               viewModel: viewModel,
-              isAtEndPage: $isAtEndPage,
-              showingControls: $showingControls,
               nextBook: nextBook,
               onDismiss: { dismiss() },
               onNextBook: { openNextBook(nextBookId: $0) },
@@ -74,8 +74,6 @@ struct BookReaderView: View {
           case .vertical:
             VerticalPageView(
               viewModel: viewModel,
-              isAtEndPage: $isAtEndPage,
-              showingControls: $showingControls,
               nextBook: nextBook,
               onDismiss: { dismiss() },
               onNextBook: { openNextBook(nextBookId: $0) },
@@ -129,63 +127,64 @@ struct BookReaderView: View {
       .opacity(shouldShowControls ? 1.0 : 0.0)
       .allowsHitTesting(shouldShowControls)
     }
-    .statusBar(hidden: !showingControls && !viewModel.pages.isEmpty)
+    .statusBar(hidden: !shouldShowControls)
     .task(id: currentBookId) {
-      // Mark that loading has started
-      viewModel.isLoading = true
-
-      // Set incognito mode
-      viewModel.incognitoMode = incognito
-
-      // Reset isAtBottom and isAtEndPage when switching to a new book
-      isAtBottom = false
-      isAtEndPage = false
-
-      // Load book info to get read progress page and series reading direction
-      var initialPageNumber: Int? = nil
-      do {
-        let book = try await BookService.shared.getBook(id: currentBookId)
-        currentBook = book
-        seriesId = book.seriesId
-        // In incognito mode, always start from the first page
-        initialPageNumber = incognito ? nil : book.readProgress?.page
-
-        // Get series reading direction
-        let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
-        if let readingDirectionString = series.metadata.readingDirection {
-          readingDirection = ReadingDirection.fromString(readingDirectionString)
-        }
-
-        // Load next book
-        if let nextBook = try await BookService.shared.getNextBook(bookId: currentBookId) {
-          self.nextBook = nextBook
-        } else {
-          nextBook = nil
-        }
-      } catch {
-        // Silently fail, will start from first page
-      }
-
-      let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
-
-      await viewModel.loadPages(
-        bookId: currentBookId,
-        initialPageNumber: resumePageNumber
-      )
-
-      // Only preload pages if pages are available
-      if !viewModel.pages.isEmpty {
-        await viewModel.preloadPages()
-        // Start timer to auto-hide controls after 3 seconds when entering reader
-        resetControlsTimer()
-      } else {
-        // Ensure controls are visible when no pages are available
-        showingControls = true
-      }
+      await loadBook(bookId: currentBookId)
     }
     .onDisappear {
       controlsTimer?.invalidate()
     }
+  }
+
+  private func loadBook(bookId: String) async {
+    // Mark that loading has started
+    viewModel.isLoading = true
+
+    // Set incognito mode
+    viewModel.incognitoMode = incognito
+
+    // Reset isAtBottom when switching to a new book
+    isAtBottom = false
+
+    // Load book info to get read progress page and series reading direction
+    var initialPageNumber: Int? = nil
+    do {
+      let book = try await BookService.shared.getBook(id: bookId)
+      currentBook = book
+      seriesId = book.seriesId
+      // In incognito mode, always start from the first page
+      initialPageNumber = incognito ? nil : book.readProgress?.page
+
+      // Get series reading direction
+      let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
+      if let readingDirectionString = series.metadata.readingDirection {
+        readingDirection = ReadingDirection.fromString(readingDirectionString)
+      }
+
+      // Load next book
+      if let nextBook = try await BookService.shared.getNextBook(bookId: bookId) {
+        self.nextBook = nextBook
+      } else {
+        nextBook = nil
+      }
+    } catch {
+      // Silently fail, will start from first page
+    }
+
+    let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
+
+    await viewModel.loadPages(
+      bookId: bookId,
+      initialPageNumber: resumePageNumber
+    )
+
+    // Only preload pages if pages are available
+    if viewModel.pages.isEmpty {
+      return
+    }
+    await viewModel.preloadPages()
+    // Start timer to auto-hide controls after 3 seconds when entering reader
+    resetControlsTimer()
   }
 
   private var currentPageBinding: Binding<Int> {
@@ -200,107 +199,42 @@ struct BookReaderView: View {
   }
 
   private func goToNextPage() {
+    guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
-    case .ltr:
-      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
-        withAnimation {
-          viewModel.currentPageIndex += 1
-          isAtEndPage = false
-        }
-      } else {
-        // Navigate to end page
-        withAnimation {
-          isAtEndPage = true
-          showingControls = true  // Show controls when reaching end page
-        }
-      }
-    case .rtl:
-      if viewModel.currentPageIndex > 0 {
-        withAnimation {
-          viewModel.currentPageIndex -= 1
-          isAtEndPage = false
-        }
-      } else {
-        // Navigate to end page (which is at -1 for RTL)
-        withAnimation {
-          isAtEndPage = true
-          showingControls = true  // Show controls when reaching end page
-        }
-      }
-    case .vertical:
-      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
-        withAnimation {
-          viewModel.currentPageIndex += 1
-          isAtEndPage = false
-        }
-      } else {
-        // Navigate to end page
-        withAnimation {
-          isAtEndPage = true
-          showingControls = true  // Show controls when reaching end page
-        }
+    case .ltr, .rtl, .vertical:
+      let next = max(0, min(viewModel.currentPageIndex + 1, viewModel.pages.count - 1))
+      withAnimation {
+        viewModel.currentPageIndex = next
       }
     case .webtoon:
-      // Webtoon mode uses scroll, so we scroll to next page
-      if viewModel.currentPageIndex < viewModel.pages.count - 1 {
-        withAnimation {
-          viewModel.currentPageIndex += 1
-        }
+      // webtoon do not have an end page
+      let next = max(0, min(viewModel.currentPageIndex + 1, viewModel.pages.count - 1))
+      withAnimation {
+        viewModel.currentPageIndex = next
       }
     }
   }
 
   private func goToPreviousPage() {
+    guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
-    case .ltr:
-      if isAtEndPage {
-        // Go back from end page to last page
-        withAnimation {
-          isAtEndPage = false
-          viewModel.currentPageIndex = viewModel.pages.count - 1
-        }
-      } else if viewModel.currentPageIndex > 0 {
-        withAnimation {
-          viewModel.currentPageIndex -= 1
-        }
-      }
-    case .rtl:
-      if isAtEndPage {
-        // Go back from end page to first page
-        withAnimation {
-          isAtEndPage = false
-          viewModel.currentPageIndex = 0
-        }
-      } else if viewModel.currentPageIndex < viewModel.pages.count - 1 {
-        withAnimation {
-          viewModel.currentPageIndex += 1
-        }
-      }
-    case .vertical:
-      if isAtEndPage {
-        // Go back from end page to last page
-        withAnimation {
-          isAtEndPage = false
-          viewModel.currentPageIndex = viewModel.pages.count - 1
-        }
-      } else if viewModel.currentPageIndex > 0 {
-        withAnimation {
-          viewModel.currentPageIndex -= 1
-        }
+    case .ltr, .rtl, .vertical:
+      guard viewModel.currentPageIndex > 0 else { return }
+      let current = min(viewModel.currentPageIndex, viewModel.pages.count)
+      withAnimation {
+        viewModel.currentPageIndex = current - 1
       }
     case .webtoon:
-      // Webtoon mode uses scroll, so we scroll to previous page
-      if viewModel.currentPageIndex > 0 {
-        withAnimation {
-          viewModel.currentPageIndex -= 1
-        }
+      guard viewModel.currentPageIndex > 0 else { return }
+      withAnimation {
+        viewModel.currentPageIndex -= 1
       }
     }
   }
 
   private func toggleControls() {
     // Don't hide controls when at end page or webtoon at bottom
-    if isAtEndPage || (readingDirection == .webtoon && isAtBottom) {
+    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
       return
     }
     withAnimation {
@@ -313,7 +247,7 @@ struct BookReaderView: View {
 
   private func resetControlsTimer() {
     // Don't start timer when at end page or webtoon at bottom
-    if isAtEndPage || (readingDirection == .webtoon && isAtBottom) {
+    if isShowingEndPage || (readingDirection == .webtoon && isAtBottom) {
       return
     }
     controlsTimer?.invalidate()
@@ -335,4 +269,5 @@ struct BookReaderView: View {
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false
   }
+
 }

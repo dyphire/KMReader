@@ -73,7 +73,7 @@ struct WebtoonPageView: View {
           triggerTapZoneDisplay()
         }
       }
-      .onChange(of: screenKey) { _, _ in
+      .onChange(of: screenKey) {
         // Show tap zone overlay when screen orientation changes
         triggerTapZoneDisplay()
       }

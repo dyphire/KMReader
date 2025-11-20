@@ -29,6 +29,15 @@ struct ReaderControlsView: View {
     case failure(String)
   }
 
+  private var displayedCurrentPage: String {
+    guard viewModel.pages.count > 0 else { return "0" }
+    if viewModel.currentPageIndex >= viewModel.pages.count {
+      return "END"
+    } else {
+      return String(viewModel.currentPageIndex + 1)
+    }
+  }
+
   var body: some View {
     VStack {
       // Top bar
@@ -54,7 +63,7 @@ struct ReaderControlsView: View {
             guard !viewModel.pages.isEmpty else { return }
             showingPageJumpSheet = true
           } label: {
-            Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
+            Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
               .foregroundColor(.white)
               .padding(.horizontal, 16)
               .padding(.vertical, 8)
@@ -191,7 +200,7 @@ struct ReaderControlsView: View {
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
         totalPages: viewModel.pages.count,
-        currentPage: viewModel.currentPageIndex + 1,
+        currentPage: min(viewModel.currentPageIndex + 1, viewModel.pages.count),
         onJump: jumpToPage
       )
       .presentationDetents([.height(360)])
@@ -199,7 +208,7 @@ struct ReaderControlsView: View {
     }
     .sheet(isPresented: $showingReadingDirectionPicker) {
       ReadingDirectionPickerSheetView(readingDirection: $readingDirection)
-        .presentationDetents([.height(360)])
+        .presentationDetents([.height(400)])
         .presentationDragIndicator(.visible)
     }
   }
