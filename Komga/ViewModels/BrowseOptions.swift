@@ -17,6 +17,19 @@ struct BrowseOptions: Equatable, RawRepresentable {
   var sortField: SeriesSortField = .name
   var sortDirection: SortDirection = .ascending
 
+  func sortString(for contentType: BrowseContentType) -> String? {
+    switch contentType {
+    case .series:
+      return sortString
+    case .books:
+      return bookSortString
+    case .collections:
+      return collectionSortString
+    case .readlists:
+      return readListSortString
+    }
+  }
+
   var sortString: String {
     if sortField == .random {
       return "random"
@@ -57,4 +70,51 @@ struct BrowseOptions: Equatable, RawRepresentable {
   }
 
   init() {}
+
+  private var bookSortString: String? {
+    switch sortField {
+    case .name:
+      return "metadata.title,\(sortDirection.rawValue)"
+    case .dateAdded:
+      return "createdDate,\(sortDirection.rawValue)"
+    case .dateUpdated:
+      return "lastModifiedDate,\(sortDirection.rawValue)"
+    case .dateRead:
+      return "readProgress.readDate,\(sortDirection.rawValue)"
+    case .releaseDate:
+      return "metadata.releaseDate,\(sortDirection.rawValue)"
+    case .folderName:
+      return "name,\(sortDirection.rawValue)"
+    case .booksCount:
+      return "media.pagesCount,\(sortDirection.rawValue)"
+    case .random:
+      return "random"
+    }
+  }
+
+  private var collectionSortString: String? {
+    switch sortField {
+    case .name:
+      return "name,\(sortDirection.rawValue)"
+    case .dateAdded:
+      return "createdDate,\(sortDirection.rawValue)"
+    case .dateUpdated:
+      return "lastModifiedDate,\(sortDirection.rawValue)"
+    default:
+      return nil
+    }
+  }
+
+  private var readListSortString: String? {
+    switch sortField {
+    case .name:
+      return "name,\(sortDirection.rawValue)"
+    case .dateAdded:
+      return "createdDate,\(sortDirection.rawValue)"
+    case .dateUpdated, .dateRead:
+      return "lastModifiedDate,\(sortDirection.rawValue)"
+    default:
+      return nil
+    }
+  }
 }

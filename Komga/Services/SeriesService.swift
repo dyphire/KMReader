@@ -19,9 +19,10 @@ class SeriesService {
     size: Int = 20,
     sort: String = "metadata.titleSort,asc",
     readStatus: ReadStatusFilter? = nil,
-    seriesStatus: SeriesStatusFilter? = nil
+    seriesStatus: SeriesStatusFilter? = nil,
+    searchTerm: String? = nil
   ) async throws -> Page<Series> {
-    let queryItems = [
+    var queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
       URLQueryItem(name: "size", value: "\(size)"),
       URLQueryItem(name: "sort", value: sort),
@@ -55,7 +56,10 @@ class SeriesService {
         condition = .allOf(conditions)
       }
 
-      let search = SeriesSearch(condition: condition)
+      let search = SeriesSearch(
+        condition: condition,
+        fullTextSearch: searchTerm?.isEmpty == false ? searchTerm : nil
+      )
       let encoder = JSONEncoder()
       let jsonData = try encoder.encode(search)
 
@@ -67,6 +71,9 @@ class SeriesService {
       )
     } else {
       // No filters - use the simple GET endpoint
+      if let searchTerm, !searchTerm.isEmpty {
+        queryItems.append(URLQueryItem(name: "search", value: searchTerm))
+      }
       return try await apiClient.request(path: "/api/v1/series", queryItems: queryItems)
     }
   }

@@ -20,6 +20,12 @@ struct SeriesSearch: Encodable {
   }
 
   let condition: Condition
+  let fullTextSearch: String?
+
+  init(condition: Condition, fullTextSearch: String? = nil) {
+    self.condition = condition
+    self.fullTextSearch = fullTextSearch
+  }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -142,10 +148,13 @@ struct SeriesSearch: Encodable {
         try encodeCondition(condition, into: &allOfContainer)
       }
     }
+
+    try container.encodeIfPresent(fullTextSearch, forKey: .fullTextSearch)
   }
 
   private enum CodingKeys: String, CodingKey {
     case condition
+    case fullTextSearch
   }
 
   private enum AllOfKeys: String, CodingKey {

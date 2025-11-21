@@ -12,6 +12,7 @@ struct BookRowView: View {
   var viewModel: BookViewModel
   var onReadBook: ((Bool) -> Void)?
   var onBookUpdated: (() -> Void)? = nil
+  var showSeriesTitle: Bool = false
 
   private var thumbnailURL: URL? {
     BookService.shared.getBookThumbnailURL(id: book.id)
@@ -32,6 +33,13 @@ struct BookRowView: View {
       ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 60, cornerRadius: 4)
 
       VStack(alignment: .leading, spacing: 4) {
+        if showSeriesTitle && !book.seriesTitle.isEmpty {
+          Text(book.seriesTitle)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+        }
+
         Text("#\(formatNumber(book.number)) - \(book.metadata.title)")
           .font(.callout)
           .foregroundColor(completed ? .secondary : .primary)
@@ -66,6 +74,11 @@ struct BookRowView: View {
               Text("\(book.media.pagesCount) pages")
               Text("•")
               Label(book.size, systemImage: "doc")
+              if book.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
             }.foregroundColor(.secondary)
           }
         }.font(.footnote)

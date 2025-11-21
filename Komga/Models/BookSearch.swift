@@ -24,6 +24,12 @@ struct BookSearch: Encodable {
   }
 
   let condition: Condition
+  let fullTextSearch: String?
+
+  init(condition: Condition, fullTextSearch: String? = nil) {
+    self.condition = condition
+    self.fullTextSearch = fullTextSearch
+  }
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -86,12 +92,15 @@ struct BookSearch: Encodable {
       // Encode each condition in the array
       for condition in conditions {
         try encodeCondition(condition, into: &allOfContainer)
-      }
     }
+
+    try container.encodeIfPresent(fullTextSearch, forKey: .fullTextSearch)
+  }
   }
 
   private enum CodingKeys: String, CodingKey {
     case condition
+    case fullTextSearch
   }
 
   private enum AllOfKeys: String, CodingKey {

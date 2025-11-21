@@ -16,7 +16,9 @@ class ReadListService {
   func getReadLists(
     libraryId: String = "",
     page: Int = 0,
-    size: Int = 20
+    size: Int = 20,
+    sort: String? = nil,
+    search: String? = nil
   ) async throws -> Page<ReadList> {
     var queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
@@ -27,10 +29,24 @@ class ReadListService {
       queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
     }
 
+    if let sort {
+      queryItems.append(URLQueryItem(name: "sort", value: sort))
+    }
+
+    if let search, !search.isEmpty {
+      queryItems.append(URLQueryItem(name: "search", value: search))
+    }
+
     return try await apiClient.request(path: "/api/v1/readlists", queryItems: queryItems)
   }
 
   func getReadList(id: String) async throws -> ReadList {
     return try await apiClient.request(path: "/api/v1/readlists/\(id)")
+  }
+
+  func getReadListThumbnailURL(id: String) -> URL? {
+    let baseURL = UserDefaults.standard.string(forKey: "serverURL") ?? ""
+    guard !baseURL.isEmpty else { return nil }
+    return URL(string: baseURL + "/api/v1/readlists/\(id)/thumbnail")
   }
 }

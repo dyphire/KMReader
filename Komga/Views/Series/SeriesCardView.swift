@@ -158,8 +158,15 @@ struct SeriesCardView: View {
             Text("Unavailable")
               .foregroundColor(.red)
           } else {
-            Text("\(series.booksCount) books")
-              .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+              Text("\(series.booksCount) books")
+              if series.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
+            }
+            .foregroundColor(.secondary)
           }
         }.font(.caption2)
       }

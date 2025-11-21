@@ -21,6 +21,9 @@ class BookViewModel {
   private var hasMorePages = true
   private var currentSeriesId: String?
   private var currentSort: String = "metadata.numberSort,asc"
+  private var currentBrowseState: BrowseOptions?
+  private var currentBrowseSort: String?
+  private var currentBrowseSearch: String = ""
 
   func loadBooks(seriesId: String, sort: String = "metadata.numberSort,asc") async {
     currentSeriesId = seriesId
@@ -158,6 +161,75 @@ class BookViewModel {
 
       withAnimation {
         if refresh {
+          books = page.content
+        } else {
+          books.append(contentsOf: page.content)
+        }
+      }
+
+      hasMorePages = !page.last
+      currentPage += 1
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+
+    isLoading = false
+  }
+
+  func loadBrowseBooks(browseOpts: BrowseOptions, searchText: String = "", refresh: Bool = false) async {
+    let sort = browseOpts.sortString(for: .books)
+    let paramsChanged =
+      currentBrowseState?.libraryId != browseOpts.libraryId
+      || currentBrowseState?.readStatusFilter != browseOpts.readStatusFilter
+      || currentBrowseSort != sort
+      || currentBrowseSearch != searchText
+
+    let shouldReset = refresh || paramsChanged
+
+    if shouldReset {
+      currentPage = 0
+      hasMorePages = true
+      currentBrowseState = browseOpts
+      currentBrowseSort = sort
+      currentBrowseSearch = searchText
+    }
+
+    guard hasMorePages && !isLoading else { return }
+
+    isLoading = true
+    errorMessage = nil
+
+    do {
+      var conditions: [BookSearch.Condition] = []
+      if !browseOpts.libraryId.isEmpty {
+        conditions.append(.libraryId(browseOpts.libraryId))
+      }
+      if let readStatus = browseOpts.readStatusFilter.toReadStatus() {
+        conditions.append(.readStatus(readStatus))
+      }
+
+      let searchCondition: BookSearch.Condition
+      if conditions.isEmpty {
+        searchCondition = .allOf([])
+      } else if conditions.count == 1, let first = conditions.first {
+        searchCondition = first
+      } else {
+        searchCondition = .allOf(conditions)
+      }
+
+      let search = BookSearch(
+        condition: searchCondition,
+        fullTextSearch: searchText.isEmpty ? nil : searchText
+      )
+      let page = try await bookService.getBooksList(
+        search: search,
+        page: currentPage,
+        size: 20,
+        sort: sort
+      )
+
+      withAnimation {
+        if shouldReset {
           books = page.content
         } else {
           books.append(contentsOf: page.content)

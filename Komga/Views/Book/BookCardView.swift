@@ -238,9 +238,16 @@ struct BookCardView: View {
             Text("Unavailable")
               .foregroundColor(.red)
           } else {
-            Text("\(book.media.pagesCount) pages · \(book.size)")
-              .foregroundColor(.secondary)
-              .lineLimit(1)
+            HStack(spacing: 4) {
+              Text("\(book.media.pagesCount) pages · \(book.size)")
+              if book.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
+            }
+            .foregroundColor(.secondary)
+            .lineLimit(1)
           }
         }.font(.caption2)
       }

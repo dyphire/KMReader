@@ -1,0 +1,93 @@
+//
+//  SeriesRowView.swift
+//  Komga
+//
+//  Created by Komga iOS Client
+//
+
+import SwiftUI
+
+struct SeriesRowView: View {
+  let series: Series
+  var onActionCompleted: (() -> Void)? = nil
+
+  @State private var actionErrorMessage: String?
+  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
+
+  private var thumbnailURL: URL? {
+    SeriesService.shared.getSeriesThumbnailURL(id: series.id)
+  }
+
+  private var isActionErrorPresented: Binding<Bool> {
+    Binding(
+      get: { actionErrorMessage != nil },
+      set: { if !$0 { actionErrorMessage = nil } }
+    )
+  }
+
+  var body: some View {
+    HStack(spacing: 12) {
+      ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 80, cornerRadius: 6)
+
+      VStack(alignment: .leading, spacing: 6) {
+        Text(series.metadata.title)
+          .font(.callout)
+          .lineLimit(2)
+
+        Label(series.statusDisplayName, systemImage: series.statusIcon)
+          .font(.footnote)
+          .foregroundColor(series.statusColor)
+
+        Group {
+          if series.deleted {
+            Text("Unavailable")
+              .foregroundColor(.red)
+          } else {
+            HStack {
+              if series.booksUnreadCount > 0 {
+                Label("\(series.booksUnreadCount) unread", systemImage: "circlebadge")
+                  .foregroundColor(series.readStatusColor)
+              } else {
+                Label("All read", systemImage: "checkmark.circle.fill")
+                  .foregroundColor(series.readStatusColor)
+              }
+              Text("•")
+                .foregroundColor(.secondary)
+              Label("\(series.booksCount) books", systemImage: "book")
+                .foregroundColor(.secondary)
+              if series.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
+            }
+          }
+        }.font(.caption)
+
+        Label(series.lastUpdatedDisplay, systemImage: "clock")
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+
+      Spacer()
+
+      Image(systemName: "chevron.right")
+        .foregroundColor(.secondary)
+    }
+    .contentShape(Rectangle())
+    .contextMenu {
+      SeriesContextMenu(
+        series: series,
+        onActionCompleted: onActionCompleted,
+        onActionFailed: { actionErrorMessage = $0 }
+      )
+    }
+    .alert("Action Failed", isPresented: isActionErrorPresented) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      if let message = actionErrorMessage {
+        Text(message)
+      }
+    }
+  }
+}

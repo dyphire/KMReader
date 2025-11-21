@@ -78,11 +78,11 @@ struct SeriesDetailView: View {
 
               // Status
               if let status = series.metadata.status, !status.isEmpty {
-                Text(statusDisplayName(status))
+                Text(series.statusDisplayName)
                   .font(.caption)
                   .padding(.horizontal, 8)
                   .padding(.vertical, 4)
-                  .background(statusColor(status))
+                  .background(series.statusColor.opacity(0.8))
                   .foregroundColor(.white)
                   .cornerRadius(4)
               }
@@ -414,34 +414,6 @@ extension SeriesDetailView {
           actionErrorMessage = error.localizedDescription
         }
       }
-    }
-  }
-
-  private func statusDisplayName(_ status: String) -> String {
-    switch status.uppercased() {
-    case "ONGOING":
-      return "Ongoing"
-    case "ENDED":
-      return "Ended"
-    case "ABANDONED":
-      return "Abandoned"
-    case "HIATUS":
-      return "Hiatus"
-    default:
-      return status.capitalized
-    }
-  }
-
-  private func statusColor(_ status: String) -> Color {
-    switch status.uppercased() {
-    case "ENDED":
-      return Color.green.opacity(0.8)
-    case "ABANDONED":
-      return Color.red.opacity(0.8)
-    case "HIATUS":
-      return themeColorOption.color.opacity(0.8)
-    default:
-      return Color.blue.opacity(0.8)
     }
   }
 
