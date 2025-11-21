@@ -8,15 +8,6 @@
 import Foundation
 import OSLog
 
-enum APIError: Error {
-  case invalidURL
-  case invalidResponse
-  case httpError(Int, String)
-  case decodingError(Error)
-  case unauthorized
-  case networkError(Error)
-}
-
 class APIClient {
   static let shared = APIClient()
 

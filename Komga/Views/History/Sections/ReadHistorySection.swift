@@ -1,0 +1,79 @@
+//
+//  ReadHistorySection.swift
+//  Komga
+//
+//  Created by Komga iOS Client
+//
+
+import SwiftUI
+
+struct ReadHistorySection: View {
+  let title: String
+  var bookViewModel: BookViewModel
+  var onLoadMore: (() -> Void)?
+  var onBookUpdated: (() -> Void)? = nil
+
+  @State private var readerState: BookReaderState?
+
+  private var isBookReaderPresented: Binding<Bool> {
+    Binding(
+      get: { readerState != nil },
+      set: { if !$0 { readerState = nil } }
+    )
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text(title)
+        .font(.title2)
+        .fontWeight(.bold)
+        .padding(.horizontal)
+
+      LazyVStack(spacing: 0) {
+        ForEach(Array(bookViewModel.books.enumerated()), id: \.element.id) { index, book in
+          Button {
+            readerState = BookReaderState(bookId: book.id, incognito: false)
+          } label: {
+            ReadHistoryBookRow(book: book)
+              .padding(8)
+              .contentShape(Rectangle())
+              .contextMenu {
+                BookContextMenu(
+                  book: book,
+                  viewModel: bookViewModel,
+                  onReadBook: { incognito in
+                    readerState = BookReaderState(bookId: book.id, incognito: incognito)
+                  },
+                  onActionCompleted: onBookUpdated
+                )
+              }
+          }
+          .buttonStyle(.plain)
+          .onAppear {
+            // Load next page when the last few items appear
+            if let onLoadMore = onLoadMore, index >= bookViewModel.books.count - 3 {
+              onLoadMore()
+            }
+          }
+        }
+
+        if bookViewModel.isLoading {
+          ProgressView()
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+      }
+      .padding(.horizontal, 8)
+    }
+    .fullScreenCover(
+      isPresented: isBookReaderPresented,
+      onDismiss: {
+        onBookUpdated?()
+      }
+    ) {
+      if let state = readerState, let bookId = state.bookId {
+        BookReaderView(bookId: bookId, incognito: state.incognito)
+      }
+    }
+  }
+}

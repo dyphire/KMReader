@@ -12,67 +12,6 @@ import SDWebImage
 import SwiftUI
 import UIKit
 
-enum ReadingDirection: CaseIterable, Hashable {
-  case ltr
-  case rtl
-  case vertical
-  case webtoon
-
-  static func fromString(_ direction: String) -> ReadingDirection {
-    switch direction.uppercased() {
-    case "LEFT_TO_RIGHT":
-      return .ltr
-    case "RIGHT_TO_LEFT":
-      return .rtl
-    case "VERTICAL":
-      return .vertical
-    case "WEBTOON":
-      return .webtoon
-    default:
-      return .ltr
-    }
-  }
-
-  var displayName: String {
-    switch self {
-    case .ltr:
-      return "LTR"
-    case .rtl:
-      return "RTL"
-    case .vertical:
-      return "Vertical"
-    case .webtoon:
-      return "Webtoon"
-    }
-  }
-
-  var icon: String {
-    if #available(iOS 18.0, *) {
-      switch self {
-      case .ltr:
-        return "inset.filled.trailinghalf.arrow.trailing.rectangle"
-      case .rtl:
-        return "inset.filled.leadinghalf.arrow.leading.rectangle"
-      case .vertical:
-        return "arrow.up.arrow.down.square"
-      case .webtoon:
-        return "arrow.up.and.down.square"
-      }
-    } else {
-      switch self {
-      case .ltr:
-        return "rectangle.trailinghalf.inset.filled.arrow.trailing"
-      case .rtl:
-        return "rectangle.leadinghalf.inset.filled.arrow.leading"
-      case .vertical:
-        return "arrow.up.arrow.down.square"
-      case .webtoon:
-        return "arrow.up.and.down.square"
-      }
-    }
-  }
-}
-
 @MainActor
 @Observable
 class ReaderViewModel {
@@ -331,30 +270,6 @@ class ReaderViewModel {
           }
         }
       }
-    }
-  }
-
-}
-
-enum SaveImageError: Error, LocalizedError {
-  case bookIdEmpty
-  case imageNotCached
-  case photoLibraryAccessDenied
-  case failedToLoadImageData
-  case saveError(String)
-
-  var errorDescription: String? {
-    switch self {
-    case .bookIdEmpty:
-      return "Book ID is empty"
-    case .imageNotCached:
-      return "Image not cached yet"
-    case .photoLibraryAccessDenied:
-      return "Photo library access denied"
-    case .failedToLoadImageData:
-      return "Failed to load image data"
-    case .saveError(let message):
-      return message
     }
   }
 }

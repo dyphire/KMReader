@@ -7,12 +7,6 @@
 
 import Foundation
 
-struct User: Codable {
-  let id: String
-  let email: String
-  let roles: [String]
-}
-
 class AuthService {
   static let shared = AuthService()
   private let apiClient = APIClient.shared

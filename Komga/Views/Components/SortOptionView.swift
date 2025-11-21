@@ -7,17 +7,6 @@
 
 import SwiftUI
 
-// Protocol to unify different sort field types
-protocol SortFieldProtocol: CaseIterable, Hashable, RawRepresentable
-where RawValue == String, AllCases: RandomAccessCollection {
-  var displayName: String { get }
-  var supportsDirection: Bool { get }
-}
-
-extension SeriesSortField: SortFieldProtocol {}
-extension BookSortField: SortFieldProtocol {}
-extension SimpleSortField: SortFieldProtocol {}
-
 struct SortOptionView<SortField: SortFieldProtocol>: View {
   @Binding var sortField: SortField
   @Binding var sortDirection: SortDirection

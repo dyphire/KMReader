@@ -9,20 +9,6 @@ import ImageIO
 import SDWebImage
 import SwiftUI
 
-private enum Constants {
-  static let initialScrollDelay: TimeInterval = 0.3
-  static let layoutReadyDelay: TimeInterval = 0.2
-  static let preloadThrottleInterval: TimeInterval = 0.3
-  static let heightChangeThreshold: CGFloat = 10
-  static let bottomThreshold: CGFloat = 80
-  static let footerHeight: CGFloat = 360
-  static let scrollAmountMultiplier: CGFloat = 0.8
-  static let topAreaThreshold: CGFloat = 0.25
-  static let bottomAreaThreshold: CGFloat = 0.65
-  static let centerAreaMin: CGFloat = 0.25
-  static let centerAreaMax: CGFloat = 0.65
-}
-
 struct WebtoonReaderView: UIViewRepresentable {
   let pages: [BookPage]
   @Binding var currentPage: Int
@@ -190,7 +176,7 @@ struct WebtoonReaderView: UIViewRepresentable {
 
     /// Schedules initial scroll after view appears
     func scheduleInitialScroll() {
-      DispatchQueue.main.asyncAfter(deadline: .now() + Constants.initialScrollDelay) {
+      DispatchQueue.main.asyncAfter(deadline: .now() + WebtoonConstants.initialScrollDelay) {
         [weak self] in
         guard let self = self,
           !self.hasScrolledToInitialPage,
@@ -275,7 +261,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       collectionView.layoutIfNeeded()
 
       if isValidPageIndex(currentPage) {
-        executeAfterDelay(Constants.layoutReadyDelay) { [weak self] in
+        executeAfterDelay(WebtoonConstants.layoutReadyDelay) { [weak self] in
           self?.scrollToInitialPage(currentPage)
         }
         executeAfterDelay(0.5) { [weak self] in
@@ -323,7 +309,7 @@ struct WebtoonReaderView: UIViewRepresentable {
 
       guard collectionView.contentSize.height > 0 else {
         if !hasScrolledToInitialPage {
-          executeAfterDelay(Constants.layoutReadyDelay) { [weak self] in
+          executeAfterDelay(WebtoonConstants.layoutReadyDelay) { [weak self] in
             self?.scrollToInitialPage(pageIndex)
           }
         }
@@ -393,7 +379,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
       if indexPath.item == pages.count {
-        return CGSize(width: pageWidth, height: Constants.footerHeight)
+        return CGSize(width: pageWidth, height: WebtoonConstants.footerHeight)
       }
 
       if let height = pageHeights[indexPath.item] {
@@ -422,7 +408,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     private func throttlePreload() {
       let now = Date()
       if lastPreloadTime == nil
-        || now.timeIntervalSince(lastPreloadTime!) > Constants.preloadThrottleInterval
+        || now.timeIntervalSince(lastPreloadTime!) > WebtoonConstants.preloadThrottleInterval
       {
         lastPreloadTime = now
         preloadNearbyPages()
@@ -466,7 +452,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       }
 
       let isAtBottomNow =
-        scrollOffset + scrollViewHeight >= contentHeight - Constants.bottomThreshold
+        scrollOffset + scrollViewHeight >= contentHeight - WebtoonConstants.bottomThreshold
 
       if isAtBottomNow != isAtBottom {
         isAtBottom = isAtBottomNow
@@ -502,7 +488,7 @@ struct WebtoonReaderView: UIViewRepresentable {
           let scrollOffset = collectionView.contentOffset.y
           let scrollViewHeight = collectionView.bounds.height
 
-          if scrollOffset + scrollViewHeight >= contentHeight - Constants.bottomThreshold {
+          if scrollOffset + scrollViewHeight >= contentHeight - WebtoonConstants.bottomThreshold {
             if currentPage != lastPageIndex {
               currentPage = lastPageIndex
               onPageChange?(lastPageIndex)
@@ -619,7 +605,7 @@ struct WebtoonReaderView: UIViewRepresentable {
         if isVisible {
           layout.invalidateLayout()
           collectionView.layoutIfNeeded()
-        } else if heightDiff > Constants.heightChangeThreshold {
+        } else if heightDiff > WebtoonConstants.heightChangeThreshold {
           if !isUserScrolling {
             applyHeightChangeIfNeeded(pageIndex: pageIndex, oldHeight: oldHeight)
           } else {
@@ -654,7 +640,7 @@ struct WebtoonReaderView: UIViewRepresentable {
       guard let collectionView = collectionView, let layout = layout else { return }
       let currentHeight = pageHeights[pageIndex] ?? oldHeight
       let heightDiff = abs(currentHeight - oldHeight)
-      guard heightDiff > Constants.heightChangeThreshold else { return }
+      guard heightDiff > WebtoonConstants.heightChangeThreshold else { return }
 
       let currentOffset = collectionView.contentOffset.y
       layout.invalidateLayout()
@@ -672,7 +658,9 @@ struct WebtoonReaderView: UIViewRepresentable {
       executeAfterDelay(0.2) { [weak self] in
         guard let self = self else { return }
         let currentHeight = self.pageHeights[pageIndex] ?? oldHeight
-        guard abs(currentHeight - oldHeight) > Constants.heightChangeThreshold else { return }
+        guard abs(currentHeight - oldHeight) > WebtoonConstants.heightChangeThreshold else {
+          return
+        }
 
         if self.isUserScrolling {
           self.scheduleDeferredHeightUpdate(pageIndex: pageIndex, oldHeight: oldHeight)
@@ -743,16 +731,16 @@ struct WebtoonReaderView: UIViewRepresentable {
     private func determineTapArea(location: CGPoint, screenWidth: CGFloat, screenHeight: CGFloat)
       -> TapArea
     {
-      let isTopArea = location.y < screenHeight * Constants.topAreaThreshold
-      let isBottomArea = location.y > screenHeight * Constants.bottomAreaThreshold
+      let isTopArea = location.y < screenHeight * WebtoonConstants.topAreaThreshold
+      let isBottomArea = location.y > screenHeight * WebtoonConstants.bottomAreaThreshold
       let isMiddleArea = !isTopArea && !isBottomArea
-      let isLeftArea = location.x < screenWidth * Constants.topAreaThreshold
+      let isLeftArea = location.x < screenWidth * WebtoonConstants.topAreaThreshold
 
       let isCenterArea =
-        location.x > screenWidth * Constants.centerAreaMin
-        && location.x < screenWidth * Constants.centerAreaMax
-        && location.y > screenHeight * Constants.centerAreaMin
-        && location.y < screenHeight * Constants.centerAreaMax
+        location.x > screenWidth * WebtoonConstants.centerAreaMin
+        && location.x < screenWidth * WebtoonConstants.centerAreaMax
+        && location.y > screenHeight * WebtoonConstants.centerAreaMin
+        && location.y < screenHeight * WebtoonConstants.centerAreaMax
 
       if isCenterArea {
         return .center
@@ -771,7 +759,7 @@ struct WebtoonReaderView: UIViewRepresentable {
     /// Scrolls up
     private func scrollUp(collectionView: UICollectionView, screenHeight: CGFloat) {
       let currentOffset = collectionView.contentOffset.y
-      let scrollAmount = screenHeight * Constants.scrollAmountMultiplier
+      let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
       let targetOffset = max(currentOffset - scrollAmount, 0)
       collectionView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: true)
     }
@@ -779,145 +767,12 @@ struct WebtoonReaderView: UIViewRepresentable {
     /// Scrolls down
     private func scrollDown(collectionView: UICollectionView, screenHeight: CGFloat) {
       let currentOffset = collectionView.contentOffset.y
-      let scrollAmount = screenHeight * Constants.scrollAmountMultiplier
+      let scrollAmount = screenHeight * WebtoonConstants.scrollAmountMultiplier
       let targetOffset = min(
         currentOffset + scrollAmount,
         collectionView.contentSize.height - screenHeight
       )
       collectionView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: true)
     }
-  }
-}
-
-// MARK: - Custom Layout
-
-class WebtoonLayout: UICollectionViewFlowLayout {
-  override func prepare() {
-    super.prepare()
-    scrollDirection = .vertical
-    minimumLineSpacing = 0
-    minimumInteritemSpacing = 0
-    sectionInset = .zero
-  }
-}
-
-// MARK: - Custom Cell
-
-class WebtoonPageCell: UICollectionViewCell {
-  private let imageView = SDAnimatedImageView()
-  private let loadingIndicator = UIActivityIndicatorView(style: .medium)
-  private var pageIndex: Int = -1
-  private var loadImage: ((Int) async -> Void)?
-
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    setupUI()
-  }
-
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-  private func setupUI() {
-    contentView.backgroundColor = UIColor(readerBackground.color)
-
-    imageView.contentMode = .scaleAspectFit
-    imageView.backgroundColor = UIColor(readerBackground.color)
-    imageView.clipsToBounds = false
-    imageView.translatesAutoresizingMaskIntoConstraints = false
-    contentView.addSubview(imageView)
-
-    loadingIndicator.color = .white
-    loadingIndicator.hidesWhenStopped = true
-    loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
-    contentView.addSubview(loadingIndicator)
-
-    NSLayoutConstraint.activate([
-      imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-      imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-      imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-      imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-      loadingIndicator.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-      loadingIndicator.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-    ])
-  }
-
-  func configure(
-    pageIndex: Int, image: UIImage?, loadImage: @escaping (Int) async -> Void
-  ) {
-    self.pageIndex = pageIndex
-    self.loadImage = loadImage
-
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.isHidden = false
-    loadingIndicator.startAnimating()
-  }
-
-  func setImageURL(_ url: URL, imageSize _: CGSize?) {
-    imageView.sd_setImage(
-      with: url,
-      placeholderImage: nil,
-      options: [.retryFailed, .scaleDownLargeImages],
-      context: [
-        .imageScaleDownLimitBytes: 50 * 1024 * 1024,
-        .customManager: SDImageCacheProvider.pageImageManager,
-        .storeCacheType: SDImageCacheType.memory.rawValue,
-        .queryCacheType: SDImageCacheType.memory.rawValue,
-      ],
-      progress: nil,
-      completed: { [weak self] image, error, _, _ in
-        guard let self = self else { return }
-
-        if error != nil {
-          self.imageView.image = nil
-          self.imageView.alpha = 0.0
-          self.loadingIndicator.stopAnimating()
-        } else if image != nil {
-          self.loadingIndicator.stopAnimating()
-          UIView.animate(withDuration: 0.2) {
-            self.imageView.alpha = 1.0
-          }
-        }
-      }
-    )
-  }
-
-  func showError() {
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.stopAnimating()
-  }
-
-  override func prepareForReuse() {
-    super.prepareForReuse()
-    imageView.sd_cancelCurrentImageLoad()
-    imageView.image = nil
-    imageView.alpha = 0.0
-    loadingIndicator.stopAnimating()
-    loadingIndicator.isHidden = true
-    pageIndex = -1
-    loadImage = nil
-  }
-}
-
-// MARK: - Footer Cell
-
-class WebtoonFooterCell: UICollectionViewCell {
-  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
-
-  override init(frame: CGRect) {
-    super.init(frame: frame)
-    setupUI()
-  }
-
-  required init?(coder: NSCoder) {
-    fatalError("init(coder:) has not been implemented")
-  }
-
-  private func setupUI() {
-    contentView.backgroundColor = UIColor(readerBackground.color)
   }
 }

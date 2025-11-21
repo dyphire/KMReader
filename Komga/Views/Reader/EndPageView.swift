@@ -102,37 +102,3 @@ struct EndPageView: View {
     }
   }
 }
-
-struct NextBookInfoView: View {
-  let nextBook: Book?
-
-  @AppStorage("themeColorName") private var themeColorOption: ThemeColorOption = .orange
-
-  var body: some View {
-    if let nextBook = nextBook {
-      VStack {
-        Label("UP NEXT: #\(Int(nextBook.number))", systemImage: "arrow.right.circle")
-        Text(nextBook.metadata.title)
-      }
-      .foregroundColor(.white)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(themeColorOption.color.opacity(0.6))
-      )
-    } else {
-      HStack(spacing: 8) {
-        Image(systemName: "checkmark.circle")
-        Text("You're all caught up!")
-      }
-      .foregroundColor(.white)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 12)
-          .fill(themeColorOption.color.opacity(0.6))
-      )
-    }
-  }
-}

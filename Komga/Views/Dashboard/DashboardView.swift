@@ -252,66 +252,6 @@ struct DashboardView: View {
   }
 }
 
-struct DashboardBooksSection: View {
-  let title: String
-  let books: [Book]
-  var bookViewModel: BookViewModel
-  var onBookUpdated: (() -> Void)? = nil
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(title)
-        .font(.title2)
-        .fontWeight(.bold)
-        .padding(.horizontal)
-
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
-          ForEach(books) { book in
-            BookCardView(
-              book: book,
-              viewModel: bookViewModel,
-              cardWidth: 120,
-              onBookUpdated: onBookUpdated
-            )
-          }
-        }.padding()
-      }
-    }
-  }
-}
-
-struct DashboardSeriesSection: View {
-  let title: String
-  let series: [Series]
-  var seriesViewModel: SeriesViewModel
-  var onSeriesUpdated: (() -> Void)? = nil
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(title)
-        .font(.title2)
-        .fontWeight(.bold)
-        .padding(.horizontal)
-
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
-          ForEach(series) { s in
-            NavigationLink(value: NavDestination.seriesDetail(seriesId: s.id)) {
-              SeriesCardView(
-                series: s,
-                cardWidth: 120,
-                onActionCompleted: onSeriesUpdated
-              )
-            }
-            .buttonStyle(.plain)
-          }
-        }.padding()
-      }
-    }
-  }
-}
-
 #Preview {
   DashboardView()
 }

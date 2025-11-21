@@ -7,13 +7,6 @@
 
 import SwiftUI
 
-enum SaveImageStatus: Equatable {
-  case idle
-  case saving
-  case success
-  case failed(String)
-}
-
 // Save image button for context menu
 struct SaveImageButton: View {
   let viewModel: ReaderViewModel
