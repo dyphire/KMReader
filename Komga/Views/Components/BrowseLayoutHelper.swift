@@ -19,7 +19,8 @@ struct BrowseLayoutHelper {
   }
 
   var isLandscape: Bool {
-    width > height
+    let orientation = UIDevice.current.orientation
+    return orientation.isLandscape || (orientation == .unknown && width > height)
   }
 
   var columnsCount: Int {
