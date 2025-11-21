@@ -13,6 +13,11 @@ struct BookFilterView: View {
 
   var body: some View {
     HStack(spacing: 8) {
+      Button {
+        showOptionsSheet = true
+      } label: {
+        Image(systemName: "line.3.horizontal.decrease.circle")
+      }
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {
           if browseOpts.readStatusFilter != .all {
@@ -32,13 +37,6 @@ struct BookFilterView: View {
       }
 
       Spacer()
-
-      Button {
-        showOptionsSheet = true
-      } label: {
-        Image(systemName: "line.3.horizontal.decrease")
-      }
-      .buttonStyle(.bordered)
     }
     .sheet(isPresented: $showOptionsSheet) {
       BookBrowseOptionsSheet(browseOpts: $browseOpts)

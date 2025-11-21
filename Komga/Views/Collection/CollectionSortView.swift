@@ -14,6 +14,11 @@ struct CollectionSortView: View {
 
   var body: some View {
     HStack(spacing: 8) {
+      Button {
+        showSortSheet = true
+      } label: {
+        Image(systemName: "arrow.up.arrow.down.circle")
+      }
       ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 6) {
           FilterChip(
@@ -26,13 +31,6 @@ struct CollectionSortView: View {
       }
 
       Spacer()
-
-      Button {
-        showSortSheet = true
-      } label: {
-        Image(systemName: "arrow.up.arrow.down")
-      }
-      .buttonStyle(.bordered)
     }
     .sheet(isPresented: $showSortSheet) {
       SimpleSortOptionsSheet(sortOpts: $sortOpts)
