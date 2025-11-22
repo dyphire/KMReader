@@ -65,6 +65,7 @@ struct ThumbnailImage: View {
         .indicator(.activity)
         .transition(.fade(duration: 0.25))
         .aspectRatio(contentMode: contentMode)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .frame(width: width, height: width * 1.3, alignment: .center)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       } else {
