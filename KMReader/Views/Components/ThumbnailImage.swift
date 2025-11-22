@@ -15,6 +15,7 @@ struct ThumbnailImage: View {
   let showPlaceholder: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
+
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
 
   init(
@@ -53,21 +54,17 @@ struct ThumbnailImage: View {
         )
         .resizable()
         .placeholder {
-          if showPlaceholder {
-            Rectangle()
-              .fill(Color.gray.opacity(0.3))
-              .overlay {
+          Rectangle()
+            .fill(Color.gray.opacity(0.3))
+            .overlay {
+              if showPlaceholder {
                 ProgressView()
               }
-          } else {
-            Rectangle()
-              .fill(Color.gray.opacity(0.3))
-          }
+            }
         }
         .indicator(.activity)
-        .transition(.fade(duration: 0.2))
+        .transition(.fade(duration: 0.25))
         .aspectRatio(contentMode: contentMode)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .frame(width: width, height: width * 1.3, alignment: .center)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       } else {
