@@ -49,7 +49,7 @@ struct BookCardView: View {
   }
 
   var bookTitleLineLimit: Int {
-    showTitle ? 2 : 1
+    showTitle ? 1 : 2
   }
 
   var body: some View {

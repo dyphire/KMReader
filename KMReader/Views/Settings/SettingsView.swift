@@ -47,11 +47,9 @@ struct SettingsView: View {
                 .foregroundColor(.secondary)
             }
             HStack {
-              Label("Roles", systemImage: "person.2")
+              Label("Admin", systemImage: "person.2")
               Spacer()
-              Text(user.roles.joined(separator: ", "))
-                .font(.caption)
-                .lineLimit(1)
+              Text(user.roles.contains("ADMIN") ? "Yes" : "No")
                 .foregroundColor(.secondary)
             }
           }
