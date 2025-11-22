@@ -47,33 +47,31 @@ struct CollectionDetailView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-              // Created date
-              HStack(spacing: 4) {
-                Image(systemName: "calendar.badge.plus")
-                  .font(.caption2)
-                Text(collection.createdDate.formatted(date: .abbreviated, time: .omitted))
-              }
-              .font(.caption)
-              .foregroundColor(.secondary)
-
-              // Last modified date
-              HStack(spacing: 4) {
-                Image(systemName: "clock")
-                  .font(.caption2)
-                Text(collection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-              }
-              .font(.caption)
-              .foregroundColor(.secondary)
-
-              // Ordered indicator
-              if collection.ordered {
-                HStack(spacing: 4) {
-                  Image(systemName: "arrow.up.arrow.down")
-                    .font(.caption2)
-                  Text("Ordered")
+              // Info chips
+              VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                  InfoChip(
+                    label: collection.createdDate.formatted(date: .abbreviated, time: .omitted),
+                    systemImage: "calendar.badge.plus",
+                    backgroundColor: Color.blue.opacity(0.2),
+                    foregroundColor: .blue
+                  )
+                  InfoChip(
+                    label: collection.lastModifiedDate.formatted(
+                      date: .abbreviated, time: .omitted),
+                    systemImage: "clock",
+                    backgroundColor: Color.purple.opacity(0.2),
+                    foregroundColor: .purple
+                  )
                 }
-                .font(.caption)
-                .foregroundColor(.secondary)
+                if collection.ordered {
+                  InfoChip(
+                    label: "Ordered",
+                    systemImage: "arrow.up.arrow.down",
+                    backgroundColor: Color.cyan.opacity(0.2),
+                    foregroundColor: .cyan
+                  )
+                }
               }
             }
 

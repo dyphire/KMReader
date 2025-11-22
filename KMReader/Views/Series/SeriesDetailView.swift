@@ -58,67 +58,112 @@ struct SeriesDetailView: View {
           // Header with thumbnail and info
           HStack(alignment: .top, spacing: 16) {
             ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
-              .overlay(alignment: .topTrailing) {
-                if series.booksUnreadCount > 0 {
-                  Text("\(series.booksUnreadCount)")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(themeColorOption.color)
-                    .clipShape(Capsule())
-                    .padding(4)
-                }
-              }
 
             VStack(alignment: .leading) {
               Text(series.metadata.title)
                 .font(.title2)
 
-              // Status
-              if let status = series.metadata.status, !status.isEmpty {
-                Text(series.statusDisplayName)
-                  .font(.caption)
-                  .padding(.horizontal, 8)
-                  .padding(.vertical, 4)
-                  .background(series.statusColor.opacity(0.8))
-                  .foregroundColor(.white)
-                  .cornerRadius(4)
-              }
+              // Status and info chips
+              VStack(alignment: .leading, spacing: 6) {
+                // First row: Books count and read status
+                HStack(spacing: 6) {
+                  // Books count
+                  if let totalBookCount = series.metadata.totalBookCount {
+                    InfoChip(
+                      label: "\(series.booksCount) / \(totalBookCount) books",
+                      systemImage: "books.vertical",
+                      backgroundColor: Color.blue.opacity(0.2),
+                      foregroundColor: .blue
+                    )
+                  } else {
+                    InfoChip(
+                      label: "\(series.booksCount) books",
+                      systemImage: "books.vertical",
+                      backgroundColor: Color.blue.opacity(0.2),
+                      foregroundColor: .blue
+                    )
+                  }
 
-              HStack(spacing: 4) {
-                // Age Rating
-                if let ageRating = series.metadata.ageRating, ageRating > 0 {
-                  Text("\(ageRating)+")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(ageRating > 16 ? Color.red : Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(4)
+                  // Unread count, in progress, or complete
+                  if series.booksUnreadCount > 0 {
+                    InfoChip(
+                      label: "\(series.booksUnreadCount) unread",
+                      systemImage: "book",
+                      backgroundColor: themeColorOption.color.opacity(0.2),
+                      foregroundColor: themeColorOption.color
+                    )
+                  } else if series.booksInProgressCount > 0 {
+                    InfoChip(
+                      label: "\(series.booksInProgressCount) in progress",
+                      systemImage: "book.pages",
+                      backgroundColor: Color.orange.opacity(0.2),
+                      foregroundColor: .orange
+                    )
+                  } else {
+                    InfoChip(
+                      label: "Complete",
+                      systemImage: "checkmark.circle.fill",
+                      backgroundColor: Color.green.opacity(0.2),
+                      foregroundColor: .green
+                    )
+                  }
                 }
 
-                // Language
+                // Additional rows: Status, Age Rating, Language, Reading Direction (max 2 per row)
+                if let status = series.metadata.status, !status.isEmpty {
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      label: series.statusDisplayName,
+                      backgroundColor: series.statusColor.opacity(0.8),
+                      foregroundColor: .white
+                    )
+                    if let ageRating = series.metadata.ageRating, ageRating > 0 {
+                      InfoChip(
+                        label: "\(ageRating)+",
+                        backgroundColor: ageRating > 16 ? Color.red : Color.green,
+                        foregroundColor: .white
+                      )
+                    } else {
+                      Spacer()
+                    }
+                  }
+                } else if let ageRating = series.metadata.ageRating, ageRating > 0 {
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      label: "\(ageRating)+",
+                      backgroundColor: ageRating > 16 ? Color.red : Color.green,
+                      foregroundColor: .white
+                    )
+                    Spacer()
+                  }
+                }
+
                 if let language = series.metadata.language, !language.isEmpty {
-                  Text(languageDisplayName(language))
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.2))
-                    .foregroundColor(.primary)
-                    .cornerRadius(4)
-                }
-
-                // Reading Direction
-                if let direction = series.metadata.readingDirection, !direction.isEmpty {
-                  Text(ReadingDirection.fromString(direction).displayName)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.2))
-                    .foregroundColor(.primary)
-                    .cornerRadius(4)
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      label: languageDisplayName(language),
+                      backgroundColor: Color.purple.opacity(0.2),
+                      foregroundColor: .purple
+                    )
+                    if let direction = series.metadata.readingDirection, !direction.isEmpty {
+                      InfoChip(
+                        label: ReadingDirection.fromString(direction).displayName,
+                        backgroundColor: Color.cyan.opacity(0.2),
+                        foregroundColor: .cyan
+                      )
+                    } else {
+                      Spacer()
+                    }
+                  }
+                } else if let direction = series.metadata.readingDirection, !direction.isEmpty {
+                  HStack(spacing: 6) {
+                    InfoChip(
+                      label: ReadingDirection.fromString(direction).displayName,
+                      backgroundColor: Color.cyan.opacity(0.2),
+                      foregroundColor: .cyan
+                    )
+                    Spacer()
+                  }
                 }
               }
 
@@ -129,26 +174,14 @@ struct SeriesDetailView: View {
                   .foregroundColor(.secondary)
               }
 
-              // Books count
-              HStack(spacing: 4) {
-                if let totalBookCount = series.metadata.totalBookCount {
-                  Text("\(series.booksCount) / \(totalBookCount) books")
-                } else {
-                  Text("\(series.booksCount) books")
-                }
-              }
-              .font(.caption)
-              .foregroundColor(.secondary)
-
-              // Release date
+              // Release date chip
               if let releaseDate = series.booksMetadata.releaseDate {
-                HStack(spacing: 4) {
-                  Image(systemName: "calendar.badge.clock")
-                    .font(.caption2)
-                  Text(releaseDate)
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
+                InfoChip(
+                  label: releaseDate,
+                  systemImage: "calendar.badge.clock",
+                  backgroundColor: Color.orange.opacity(0.2),
+                  foregroundColor: .orange
+                )
               }
 
               // Authors

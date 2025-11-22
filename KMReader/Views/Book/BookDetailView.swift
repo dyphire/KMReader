@@ -77,31 +77,34 @@ struct BookDetailView: View {
               .foregroundColor(.secondary)
 
               if book.deleted {
-                Text("Unavailable")
-                  .font(.caption)
-                  .foregroundColor(.red)
+                InfoChip(
+                  label: "Unavailable",
+                  backgroundColor: Color.red.opacity(0.2),
+                  foregroundColor: .red
+                )
               }
 
               if let readProgress = book.readProgress {
-                HStack(spacing: 4) {
-                  Image(systemName: isCompleted ? "checkmark.circle.fill" : "book.pages")
-                    .font(.caption)
-                  if isCompleted {
-                    Text("Completed")
-                  } else {
-                    Text("Page \(readProgress.page) / \(book.media.pagesCount)")
-                  }
+                if isCompleted {
+                  InfoChip(
+                    label: "Completed",
+                    systemImage: "checkmark.circle.fill",
+                    backgroundColor: Color.green.opacity(0.2),
+                    foregroundColor: .green
+                  )
+                } else {
+                  InfoChip(
+                    label: "Page \(readProgress.page) / \(book.media.pagesCount)",
+                    systemImage: "book.pages",
+                    backgroundColor: Color.orange.opacity(0.2),
+                    foregroundColor: .orange
+                  )
                 }
-                .font(.caption)
-                .foregroundColor(isCompleted ? .green : .orange)
               } else {
-                HStack(spacing: 4) {
-                  Image(systemName: "circle")
-                    .font(.caption)
-                  Text("Unread")
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
+                InfoChip(
+                  label: "Unread",
+                  systemImage: "circle"
+                )
               }
             }
 
@@ -118,16 +121,38 @@ struct BookDetailView: View {
           Divider()
 
           VStack(alignment: .leading, spacing: 12) {
+            // Short info chips
+            VStack(alignment: .leading, spacing: 6) {
+              HStack(spacing: 6) {
+                InfoChip(
+                  label: book.media.mediaType.uppercased(),
+                  systemImage: "doc.text",
+                  backgroundColor: Color.blue.opacity(0.2),
+                  foregroundColor: .blue
+                )
+                if let releaseDate = book.metadata.releaseDate {
+                  InfoChip(
+                    label: releaseDate,
+                    systemImage: "calendar",
+                    backgroundColor: Color.orange.opacity(0.2),
+                    foregroundColor: .orange
+                  )
+                }
+              }
+              if let isbn = book.metadata.isbn, !isbn.isEmpty {
+                InfoChip(
+                  label: isbn,
+                  systemImage: "barcode",
+                  backgroundColor: Color.cyan.opacity(0.2),
+                  foregroundColor: .cyan
+                )
+              }
+            }
+
             InfoRow(
               label: "SIZE",
               value: book.size,
               icon: "internaldrive"
-            )
-
-            InfoRow(
-              label: "FORMAT",
-              value: book.media.mediaType.uppercased(),
-              icon: "doc.text"
             )
 
             InfoRow(
@@ -153,22 +178,6 @@ struct BookDetailView: View {
                 label: "AUTHORS",
                 value: authors.map { $0.name }.joined(separator: ", "),
                 icon: "person"
-              )
-            }
-
-            if let releaseDate = book.metadata.releaseDate {
-              InfoRow(
-                label: "RELEASE DATE",
-                value: releaseDate,
-                icon: "calendar"
-              )
-            }
-
-            if let isbn = book.metadata.isbn, !isbn.isEmpty {
-              InfoRow(
-                label: "ISBN",
-                value: isbn,
-                icon: "barcode"
               )
             }
           }
