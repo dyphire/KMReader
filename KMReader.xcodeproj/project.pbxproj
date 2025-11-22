@@ -13,26 +13,26 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		192E6F7D2EC4B4E20040D165 /* Komga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Komga.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		192E6F7D2EC4B4E20040D165 /* KMReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KMReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "Komga" folder in "Komga" target */ = {
+		19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "KMReader" folder in "KMReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 192E6F7C2EC4B4E20040D165 /* Komga */;
+			target = 192E6F7C2EC4B4E20040D165 /* KMReader */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		192E6F7F2EC4B4E20040D165 /* Komga */ = {
+		192E6F7F2EC4B4E20040D165 /* KMReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "Komga" folder in "Komga" target */,
+				19BDCCB02EC5A7AB00CF5F26 /* Exceptions for "KMReader" folder in "KMReader" target */,
 			);
-			path = Komga;
+			path = KMReader;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -54,7 +54,7 @@
 		192E6F742EC4B4E20040D165 = {
 			isa = PBXGroup;
 			children = (
-				192E6F7F2EC4B4E20040D165 /* Komga */,
+				192E6F7F2EC4B4E20040D165 /* KMReader */,
 				19FDEDCF2EC9DCF000F7C3D9 /* Frameworks */,
 				192E6F7E2EC4B4E20040D165 /* Products */,
 			);
@@ -63,7 +63,7 @@
 		192E6F7E2EC4B4E20040D165 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				192E6F7D2EC4B4E20040D165 /* Komga.app */,
+				192E6F7D2EC4B4E20040D165 /* KMReader.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,9 +78,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		192E6F7C2EC4B4E20040D165 /* Komga */ = {
+		192E6F7C2EC4B4E20040D165 /* KMReader */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 192E6F8A2EC4B4E30040D165 /* Build configuration list for PBXNativeTarget "Komga" */;
+			buildConfigurationList = 192E6F8A2EC4B4E30040D165 /* Build configuration list for PBXNativeTarget "KMReader" */;
 			buildPhases = (
 				192E6F792EC4B4E20040D165 /* Sources */,
 				192E6F7A2EC4B4E20040D165 /* Frameworks */,
@@ -91,16 +91,16 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				192E6F7F2EC4B4E20040D165 /* Komga */,
+				192E6F7F2EC4B4E20040D165 /* KMReader */,
 			);
-			name = Komga;
+			name = KMReader;
 			packageProductDependencies = (
 				6ACB831E4AA344E7B2C3D4DB1846B6A4 /* SDWebImageSwiftUI */,
 				585D1923D403492AAB307C02B56DBF71 /* SDWebImage */,
 				366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */,
 			);
-			productName = Komga;
-			productReference = 192E6F7D2EC4B4E20040D165 /* Komga.app */;
+			productName = KMReader;
+			productReference = 192E6F7D2EC4B4E20040D165 /* KMReader.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -118,7 +118,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 192E6F782EC4B4E20040D165 /* Build configuration list for PBXProject "Komga" */;
+			buildConfigurationList = 192E6F782EC4B4E20040D165 /* Build configuration list for PBXProject "KMReader" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -136,7 +136,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				192E6F7C2EC4B4E20040D165 /* Komga */,
+				192E6F7C2EC4B4E20040D165 /* KMReader */,
 			);
 		};
 /* End PBXProject section */
@@ -293,7 +293,7 @@
 				DEVELOPMENT_TEAM = M777UHWZA4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Komga/Info.plist;
+				INFOPLIST_FILE = KMReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = KMReader;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -330,7 +330,7 @@
 				DEVELOPMENT_TEAM = M777UHWZA4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Komga/Info.plist;
+				INFOPLIST_FILE = KMReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = KMReader;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -360,7 +360,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		192E6F782EC4B4E20040D165 /* Build configuration list for PBXProject "Komga" */ = {
+		192E6F782EC4B4E20040D165 /* Build configuration list for PBXProject "KMReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				192E6F882EC4B4E30040D165 /* Debug */,
@@ -369,7 +369,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		192E6F8A2EC4B4E30040D165 /* Build configuration list for PBXNativeTarget "Komga" */ = {
+		192E6F8A2EC4B4E30040D165 /* Build configuration list for PBXNativeTarget "KMReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				192E6F8B2EC4B4E30040D165 /* Debug */,
