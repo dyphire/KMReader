@@ -50,38 +50,12 @@ struct BookCardView: View {
       ThumbnailImage(url: thumbnailURL, width: cardWidth)
         .overlay(alignment: .topTrailing) {
           if book.readProgress == nil {
-            Circle()
-              .fill(themeColorOption.color)
-              .frame(width: 12, height: 12)
-              .padding(4)
-          }
-        }
-        .overlay(alignment: .topTrailing) {
-          if book.readProgress == nil {
-            Circle()
-              .fill(themeColorOption.color)
-              .frame(width: 12, height: 12)
-              .padding(4)
+            UnreadIndicator()
           }
         }
         .overlay(alignment: .bottom) {
           if isInProgress {
-            GeometryReader { geometry in
-              ZStack(alignment: .leading) {
-                Rectangle()
-                  .fill(Color.gray.opacity(0.2))
-                  .frame(height: 4)
-                  .cornerRadius(2)
-
-                Rectangle()
-                  .fill(themeColorOption.color)
-                  .frame(width: geometry.size.width * progress, height: 4)
-                  .cornerRadius(2)
-              }
-            }
-            .frame(height: 4)
-            .padding(.horizontal, 4)
-            .padding(.bottom, 4)
+            ReadingProgressBar(progress: progress)
           }
         }
 
