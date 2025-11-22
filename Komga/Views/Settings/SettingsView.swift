@@ -20,6 +20,9 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             Label("Server Info", systemImage: "server.rack")
           }
+          NavigationLink(value: NavDestination.settingsMetrics) {
+            Label("Metrics", systemImage: "chart.bar")
+          }
         }
 
         Section {

@@ -16,4 +16,15 @@ class ManagementService {
   func getActuatorInfo() async throws -> ServerInfo {
     return try await apiClient.request(path: "/actuator/info")
   }
+
+  func getMetric(_ metricName: String, tags: [MetricTag]? = nil) async throws -> Metric {
+    let path = "/actuator/metrics/\(metricName)"
+    var queryItems: [URLQueryItem]?
+
+    if let tags = tags, !tags.isEmpty {
+      queryItems = tags.map { URLQueryItem(name: "tag", value: "\($0.key):\($0.value)") }
+    }
+
+    return try await apiClient.request(path: path, queryItems: queryItems)
+  }
 }
