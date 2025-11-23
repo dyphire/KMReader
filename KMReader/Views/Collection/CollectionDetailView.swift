@@ -34,7 +34,7 @@ struct CollectionDetailView: View {
 
               VStack(alignment: .leading) {
                 Text(collection.name)
-                  .font(.title2)
+                  .font(.title3)
 
                 // Info chips
                 VStack(alignment: .leading, spacing: 6) {

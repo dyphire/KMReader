@@ -56,7 +56,7 @@ struct SeriesDetailView: View {
 
               VStack(alignment: .leading) {
                 Text(series.metadata.title)
-                  .font(.title2)
+                  .font(.title3)
 
                 // Status and info chips
                 VStack(alignment: .leading, spacing: 6) {

@@ -100,7 +100,7 @@ struct BooksListViewForReadList: View {
                       .foregroundColor(
                         selectedBookIds.contains(book.id) ? .accentColor : .secondary
                       )
-                      .font(.title2)
+                      .font(.title3)
                       .padding(8)
                       .background(
                         Circle()

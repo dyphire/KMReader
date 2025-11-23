@@ -26,11 +26,6 @@ struct ReadHistorySection: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text(title)
-        .font(.title2)
-        .fontWeight(.bold)
-        .padding(.horizontal)
-
       LazyVStack(spacing: 12) {
         ForEach(Array(bookViewModel.books.enumerated()), id: \.element.id) { index, book in
           Button {

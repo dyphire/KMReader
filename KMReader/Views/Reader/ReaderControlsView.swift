@@ -47,7 +47,7 @@ struct ReaderControlsView: View {
             onDismiss()
           } label: {
             Image(systemName: "xmark")
-              .font(.title2)
+              .font(.title3)
               .foregroundColor(.white)
               .padding()
               .background(themeColor.color.opacity(0.8))

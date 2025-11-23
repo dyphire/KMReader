@@ -101,7 +101,7 @@ struct CollectionSeriesListView: View {
                       .foregroundColor(
                         selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
                       )
-                      .font(.title2)
+                      .font(.title3)
                       .padding(8)
                       .background(
                         Circle()

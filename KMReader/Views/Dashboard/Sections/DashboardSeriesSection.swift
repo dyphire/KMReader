@@ -16,7 +16,7 @@ struct DashboardSeriesSection: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(title)
-        .font(.title2)
+        .font(.title3)
         .fontWeight(.bold)
         .padding(.horizontal)
 

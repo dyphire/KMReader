@@ -31,7 +31,6 @@ struct ReadListDetailView: View {
     )
   }
 
-
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
@@ -43,7 +42,7 @@ struct ReadListDetailView: View {
 
               VStack(alignment: .leading) {
                 Text(readList.name)
-                  .font(.title2)
+                  .font(.title3)
 
                 // Summary
                 if !readList.summary.isEmpty {

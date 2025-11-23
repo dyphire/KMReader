@@ -18,7 +18,7 @@ struct NoPagesView: View {
 
       VStack(spacing: 12) {
         Text("No Pages Available")
-          .font(.title2)
+          .font(.title3)
           .fontWeight(.semibold)
           .foregroundColor(.white)
 
