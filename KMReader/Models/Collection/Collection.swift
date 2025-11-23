@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Collection: Codable, Identifiable, Equatable {
+struct KomgaCollection: Codable, Identifiable, Equatable {
   let id: String
   let name: String
   let ordered: Bool

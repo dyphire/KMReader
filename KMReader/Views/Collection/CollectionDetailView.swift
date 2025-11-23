@@ -16,7 +16,7 @@ struct CollectionDetailView: View {
   @Environment(\.dismiss) private var dismiss
 
   @State private var seriesViewModel = SeriesViewModel()
-  @State private var collection: Collection?
+  @State private var collection: KomgaCollection?
   @State private var showDeleteConfirmation = false
 
   private var thumbnailURL: URL? {

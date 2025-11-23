@@ -19,7 +19,7 @@ class CollectionService {
     size: Int = 20,
     sort: String? = nil,
     search: String? = nil
-  ) async throws -> Page<Collection> {
+  ) async throws -> Page<KomgaCollection> {
     var queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
       URLQueryItem(name: "size", value: "\(size)"),
@@ -40,7 +40,7 @@ class CollectionService {
     return try await apiClient.request(path: "/api/v1/collections", queryItems: queryItems)
   }
 
-  func getCollection(id: String) async throws -> Collection {
+  func getCollection(id: String) async throws -> KomgaCollection {
     return try await apiClient.request(path: "/api/v1/collections/\(id)")
   }
 
@@ -77,7 +77,7 @@ class CollectionService {
     name: String,
     ordered: Bool = false,
     seriesIds: [String] = []
-  ) async throws -> Collection {
+  ) async throws -> KomgaCollection {
     // SeriesIds cannot be empty when creating a collection
     guard !seriesIds.isEmpty else {
       throw NSError(

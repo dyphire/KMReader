@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionCardView: View {
-  let collection: Collection
+  let collection: KomgaCollection
   let width: CGFloat
 
   private var thumbnailURL: URL? {

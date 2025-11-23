@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CollectionRowView: View {
-  let collection: Collection
+  let collection: KomgaCollection
 
   private var thumbnailURL: URL? {
     CollectionService.shared.getCollectionThumbnailURL(id: collection.id)

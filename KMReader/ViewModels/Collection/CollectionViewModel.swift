@@ -11,7 +11,7 @@ import SwiftUI
 @MainActor
 @Observable
 class CollectionViewModel {
-  var collections: [Collection] = []
+  var collections: [KomgaCollection] = []
   var isLoading = false
 
   private let collectionService = CollectionService.shared
