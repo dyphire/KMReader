@@ -41,12 +41,20 @@ struct MangaDualPageView: View {
                     )
                   }
                 } else {
-                  DualPageView(
-                    viewModel: viewModel,
-                    pagePair: pagePair,
-                    screenSize: screenSize,
-                    isRTL: true
-                  )
+                  if let second = pagePair.second {
+                    DualPageImageView(
+                      viewModel: viewModel,
+                      firstPageIndex: pagePair.first,
+                      secondPageIndex: second,
+                      screenSize: screenSize,
+                      isRTL: true
+                    )
+                  } else {
+                    SinglePageImageView(
+                      viewModel: viewModel,
+                      pageIndex: pagePair.first,
+                    )
+                  }
                 }
               }
               .frame(width: screenSize.width, height: screenSize.height)

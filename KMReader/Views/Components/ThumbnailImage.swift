@@ -68,7 +68,7 @@ struct ThumbnailImage<Overlay: View>: View {
             }
         }
         .indicator(.activity)
-        .transition(.fade(duration: 0.25))
+        .transition(.fade)
         .aspectRatio(contentMode: contentMode)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay(alignment: .topTrailing) {

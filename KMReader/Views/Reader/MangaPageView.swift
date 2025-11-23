@@ -46,13 +46,16 @@ struct MangaPageView: View {
 
             // Single page mode - Pages in reverse order for RTL (last to first)
             ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
-              PageImageView(viewModel: viewModel, pageIndex: pageIndex)
-                .frame(width: screenSize.width, height: screenSize.height)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
-                )
-                .id(pageIndex)
+              SinglePageImageView(
+                viewModel: viewModel,
+                pageIndex: pageIndex,
+              )
+              .frame(width: screenSize.width, height: screenSize.height)
+              .contentShape(Rectangle())
+              .simultaneousGesture(
+                horizontalTapGesture(width: screenSize.width, proxy: proxy)
+              )
+              .id(pageIndex)
             }
           }
           .scrollTargetLayout()

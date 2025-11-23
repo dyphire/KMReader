@@ -28,13 +28,16 @@ struct VerticalPageView: View {
         ScrollView(.vertical) {
           LazyVStack(spacing: 0) {
             ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-              PageImageView(viewModel: viewModel, pageIndex: pageIndex)
-                .frame(width: screenSize.width, height: screenSize.height)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  verticalTapGesture(height: screenSize.height, proxy: proxy)
-                )
-                .id(pageIndex)
+              SinglePageImageView(
+                viewModel: viewModel,
+                pageIndex: pageIndex,
+              )
+              .frame(width: screenSize.width, height: screenSize.height)
+              .contentShape(Rectangle())
+              .simultaneousGesture(
+                verticalTapGesture(height: screenSize.height, proxy: proxy)
+              )
+              .id(pageIndex)
             }
 
             // End page after last page

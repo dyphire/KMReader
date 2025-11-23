@@ -50,7 +50,7 @@ struct SettingsReaderView: View {
             }
           }
           .pickerStyle(.menu)
-          Text("Single page, dual page (only in landscape)")
+          Text("Single page or dual page (only in landscape)")
             .font(.caption)
             .foregroundColor(.secondary)
         }

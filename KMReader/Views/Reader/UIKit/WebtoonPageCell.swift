@@ -11,7 +11,7 @@ import SwiftUI
 import UIKit
 
 class WebtoonPageCell: UICollectionViewCell {
-  private let imageView = SDAnimatedImageView()
+  private let imageView = UIImageView()
   private let loadingIndicator = UIActivityIndicatorView(style: .medium)
   private var pageIndex: Int = -1
   private var loadImage: ((Int) async -> Void)?

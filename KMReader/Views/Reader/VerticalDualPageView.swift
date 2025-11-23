@@ -40,12 +40,20 @@ struct VerticalDualPageView: View {
                     )
                   }
                 } else {
-                  DualPageView(
-                    viewModel: viewModel,
-                    pagePair: pagePair,
-                    screenSize: screenSize,
-                    isRTL: false
-                  )
+                  if let second = pagePair.second {
+                    DualPageImageView(
+                      viewModel: viewModel,
+                      firstPageIndex: pagePair.first,
+                      secondPageIndex: second,
+                      screenSize: screenSize,
+                      isRTL: false
+                    )
+                  } else {
+                    SinglePageImageView(
+                      viewModel: viewModel,
+                      pageIndex: pagePair.first,
+                    )
+                  }
                 }
               }
               .frame(width: screenSize.width, height: screenSize.height)

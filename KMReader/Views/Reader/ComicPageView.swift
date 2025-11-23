@@ -29,13 +29,16 @@ struct ComicPageView: View {
           LazyHStack(spacing: 0) {
             // Single page mode
             ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
-              PageImageView(viewModel: viewModel, pageIndex: pageIndex)
-                .frame(width: screenSize.width, height: screenSize.height)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                  horizontalTapGesture(width: screenSize.width, proxy: proxy)
-                )
-                .id(pageIndex)
+              SinglePageImageView(
+                viewModel: viewModel,
+                pageIndex: pageIndex,
+              )
+              .frame(width: screenSize.width, height: screenSize.height)
+              .contentShape(Rectangle())
+              .simultaneousGesture(
+                horizontalTapGesture(width: screenSize.width, proxy: proxy)
+              )
+              .id(pageIndex)
             }
 
             // End page at the end for LTR
