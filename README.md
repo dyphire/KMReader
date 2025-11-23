@@ -43,11 +43,16 @@ _A media server for comics, mangas, BDs, and magazines_
   - Right-to-Left (RTL) for manga
   - Vertical scrolling for traditional manga
   - Webtoon mode with adjustable width (50%-100%)
+- **Page Layouts**:
+  - Single page mode
+  - Dual page mode (landscape orientation) for two-page spreads
+  - Skip cover option in dual page mode
 - **Reader Features**:
   - Pinch to zoom (1x-4x magnification)
   - Swipe navigation with customizable tap zones
   - Auto-hide controls for immersive reading
   - Page jump functionality with visual page counter
+  - Dynamic reading direction switching
 - **Progress Tracking**:
   - Automatic synchronization across all devices
   - Resume from last page
@@ -98,7 +103,9 @@ _A media server for comics, mangas, BDs, and magazines_
 - **Reader Settings**:
   - Tap zone hints toggle
   - Reader background colors (system, black, white, gray)
-  - Webtoon page width adjustment
+  - Page layout selection (single/dual page)
+  - Skip cover in dual page mode
+  - Webtoon page width adjustment (50%-100%)
 - **Cache Management**:
   - Configurable disk cache size (512MB-8GB)
   - Manual cache clearing
@@ -189,9 +196,7 @@ The app includes comprehensive API logging using Apple's unified logging system 
 
 ## 🛣️ Roadmap
 
-- [ ] Two-page spread for landscape mode
-- [ ] Skip cover option for two-page spread
-- [ ] Live Text support
+- [ ] ~~Live Text support~~ automatically page translation
 - [ ] EPUB reader
 
 ---
