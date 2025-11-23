@@ -127,90 +127,20 @@ struct ReaderControlsView: View {
       Spacer()
 
       // Bottom slider
-      VStack(spacing: 12) {
-        HStack(spacing: 12) {
-          // Save to file button
-          Button {
-            Task {
-              await prepareSaveToFile()
-            }
-          } label: {
-            Image(systemName: "folder.badge.plus")
-              .font(.title3)
-              .foregroundColor(.white)
-              .padding()
-              .background(themeColor.color.opacity(0.8))
-              .clipShape(Circle())
-          }
-          .frame(minWidth: 40, minHeight: 40)
-          .contentShape(Rectangle())
-
-          Spacer()
-
-          // Save to Photos button
-          Button {
-            Task {
-              await saveCurrentPageToPhotos()
-            }
-          } label: {
-            Image(systemName: "photo.badge.arrow.down.fill")
-              .font(.title3)
-              .foregroundColor(.white)
-              .padding()
-              .background(themeColor.color.opacity(0.8))
-              .clipShape(Circle())
-          }
-          .frame(minWidth: 40, minHeight: 40)
-          .contentShape(Rectangle())
-        }
-
-        ProgressView(
-          value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
-          total: Double(viewModel.pages.count)
-        )
-        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-      }
+      ProgressView(
+        value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
+        total: Double(viewModel.pages.count)
+      )
+      .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
       .padding()
-      .allowsHitTesting(true)
     }
     .padding(.vertical)
     .allowsHitTesting(true)
     .transition(.opacity)
-    .alert("Save Image", isPresented: $showSaveAlert) {
-      Button("OK") {
-        saveImageResult = nil
-      }
-    } message: {
-      if let result = saveImageResult {
-        switch result {
-        case .success:
-          Text("Image saved to Photos successfully")
-        case .failure(let error):
-          Text("Failed to save image: \(error)")
-        }
-      }
-    }
-    .onChange(of: saveImageResult) { oldValue, newValue in
-      if newValue != nil {
-        showSaveAlert = true
-      }
-    }
     .onChange(of: readingDirection) { _, _ in
       if showingReadingDirectionPicker {
         showingReadingDirectionPicker = false
       }
-    }
-    .fileExporter(
-      isPresented: $showDocumentPicker,
-      document: fileToSave.map { ImageFileDocument(url: $0) },
-      contentType: .item,
-      defaultFilename: fileToSave?.lastPathComponent ?? "page"
-    ) { result in
-      // Clean up temporary file after export
-      if let tempURL = fileToSave {
-        try? FileManager.default.removeItem(at: tempURL)
-      }
-      fileToSave = nil
     }
     .sheet(isPresented: $showingPageJumpSheet) {
       PageJumpSheetView(
@@ -234,70 +164,6 @@ struct ReaderControlsView: View {
     let targetIndex = clampedPage - 1
     if targetIndex != viewModel.currentPageIndex {
       viewModel.targetPageIndex = targetIndex
-    }
-  }
-
-  // Prepare file for saving to Files app
-  private func prepareSaveToFile() async {
-    guard let page = viewModel.currentPage else {
-      await MainActor.run {
-        saveImageResult = .failure("Invalid page")
-      }
-      return
-    }
-
-    // Get page image info
-    guard let cachedFileURL = viewModel.getCachedImageFileURL(page: page) else {
-      await MainActor.run {
-        saveImageResult = .failure("Image not available")
-      }
-      return
-    }
-
-    // Create a temporary file in a location accessible to document picker
-    let tempDir = FileManager.default.temporaryDirectory
-    let timestamp = ISO8601DateFormatter().string(from: Date())
-      .replacingOccurrences(of: ":", with: "-")
-      .replacingOccurrences(of: ".", with: "-")
-    let originalName = page.fileName.isEmpty ? "page-\(page.number)" : page.fileName
-    let fileName = "\(timestamp)_\(originalName)"
-    let tempFileURL = tempDir.appendingPathComponent(fileName)
-
-    // Copy file to temp location with proper extension
-    do {
-      if FileManager.default.fileExists(atPath: tempFileURL.path) {
-        try FileManager.default.removeItem(at: tempFileURL)
-      }
-      try FileManager.default.copyItem(at: cachedFileURL, to: tempFileURL)
-
-      await MainActor.run {
-        fileToSave = tempFileURL
-        showDocumentPicker = true
-      }
-    } catch {
-      await MainActor.run {
-        saveImageResult = .failure("Failed to prepare file: \(error.localizedDescription)")
-      }
-    }
-  }
-
-  // Save current page image to Photos
-  private func saveCurrentPageToPhotos() async {
-    guard let page = viewModel.currentPage else {
-      await MainActor.run {
-        saveImageResult = .failure("Invalid page")
-      }
-      return
-    }
-    let result = await viewModel.savePageImageToPhotos(page: page)
-
-    await MainActor.run {
-      switch result {
-      case .success:
-        saveImageResult = .success
-      case .failure(let error):
-        saveImageResult = .failure(error.localizedDescription)
-      }
     }
   }
 }
