@@ -39,6 +39,7 @@ struct ContentView: View {
 
       // Notification overlay
       VStack(alignment: .center) {
+        Spacer()
         ForEach($errorManager.notifications, id: \.self) { $notification in
           Text(notification)
             .padding(8)
@@ -47,11 +48,10 @@ struct ContentView: View {
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
-        Spacer()
       }
       .animation(.default, value: errorManager.notifications)
       .padding(.horizontal, 8)
-      .padding(.top, 64)
+      .padding(.bottom, 64)
     }
     .alert("Error", isPresented: $errorManager.hasAlert) {
       Button("OK") {
