@@ -57,6 +57,7 @@ struct SeriesCardView: View {
       }
       .frame(width: cardWidth, alignment: .leading)
     }
+    .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .contextMenu {
       SeriesContextMenu(

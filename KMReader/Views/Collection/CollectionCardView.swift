@@ -39,6 +39,7 @@ struct CollectionCardView: View {
         }
         .frame(width: width, alignment: .leading)
       }
+      .frame(maxHeight: .infinity, alignment: .top)
     }
     .buttonStyle(.plain)
     .contextMenu {

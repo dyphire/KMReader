@@ -103,6 +103,7 @@ struct BookCardView: View {
       }
       .frame(width: cardWidth, alignment: .leading)
     }
+    .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .onTapGesture {
       readerState = BookReaderState(bookId: book.id, incognito: false)
