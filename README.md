@@ -6,11 +6,12 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**A beautiful, native iOS client for [Komga](https://github.com/gotson/komga)**
+**A beautiful, native iOS and macOS client for [Komga](https://github.com/gotson/komga)**
 
 _A media server for comics, mangas, BDs, and magazines_
 
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
+[![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos/)
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org/)
 [![Xcode](https://img.shields.io/badge/Xcode-15.0+-blue.svg)](https://developer.apple.com/xcode/)
 
@@ -42,7 +43,7 @@ _A media server for comics, mangas, BDs, and magazines_
   - Left-to-Right (LTR) for Western comics
   - Right-to-Left (RTL) for manga
   - Vertical scrolling for traditional manga
-  - Webtoon mode with adjustable width (50%-100%)
+  - Webtoon mode with adjustable width (50%-100%) (iOS only)
 - **Page Layouts**:
   - Single page mode
   - Dual page mode (landscape orientation) for two-page spreads
@@ -53,6 +54,7 @@ _A media server for comics, mangas, BDs, and magazines_
   - Auto-hide controls for immersive reading
   - Page jump functionality with visual page counter
   - Dynamic reading direction switching
+  - **macOS**: Dedicated reader window for enhanced reading experience
 - **Progress Tracking**:
   - Automatic synchronization across all devices
   - Resume from last page
@@ -108,9 +110,10 @@ _A media server for comics, mangas, BDs, and magazines_
   - Skip cover in dual page mode
   - Webtoon page width adjustment (50%-100%)
 - **Cache Management**:
-  - Configurable disk cache size (512MB-8GB)
+  - Configurable disk cache size (512MB-8GB, adjustable in 256MB steps)
+  - Real-time cache size and image count display
   - Manual cache clearing
-  - Automatic cache cleanup
+  - Automatic cache cleanup when limit is exceeded
 - **Server Management (Admin)**:
   - View server information
   - Monitor server metrics
@@ -146,7 +149,7 @@ Built with **SwiftUI** following **MVVM** pattern:
 
 ### Prerequisites
 
-- iOS 17.0+
+- iOS 17.0+ or macOS 14.0+
 - Xcode 15.0+
 - A running [Komga server](https://github.com/gotson/komga)
 
@@ -160,7 +163,7 @@ Built with **SwiftUI** following **MVVM** pattern:
    open KMReader.xcodeproj
    ```
 
-2. Build and run on iOS 17+ device or simulator
+2. Build and run on iOS 17+ device/simulator or macOS 14.0+
 
 3. On first launch, enter your Komga server URL, username, and password
 

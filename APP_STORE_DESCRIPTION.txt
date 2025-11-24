@@ -1,11 +1,11 @@
-KMReader - Full-Featured iOS Client for Komga
+KMReader - Full-Featured iOS & macOS Client for Komga
 
-A comprehensive, native iOS client for Komga media servers. Manage and enjoy your comics, mangas, BDs, and magazines collection on the go.
+A comprehensive, native iOS and macOS client for Komga media servers. Manage and enjoy your comics, mangas, BDs, and magazines collection on the go.
 
 FEATURES
 
 • Complete Library Management: Browse Series, Books, Collections, and Read Lists with advanced search, filtering, and sorting
-• Multiple Reading Modes: LTR, RTL, Vertical, and Webtoon with customizable settings
+• Multiple Reading Modes: LTR, RTL, Vertical, and Webtoon (iOS only) with customizable settings
 • Dual Page Mode: Enjoy two-page spreads in landscape orientation with optional cover skipping
 • Auto-Sync Progress: Automatic reading progress synchronization across all devices
 • Incognito Mode: Read without updating your progress
@@ -13,8 +13,9 @@ FEATURES
 • Reading History: Complete reading history with infinite scroll and quick resume
 • Collections & Read Lists: Organize your library and create custom reading lists
 • Server Management: View server information, metrics, and manage libraries (admin features)
-• Smart Caching: Intelligent two-tier caching system for smooth, offline-capable experience
+• Smart Caching: Intelligent two-tier caching system (512MB-8GB configurable) for smooth, offline-capable experience
 • Customizable Experience: Themes, layout modes, reader settings, page layouts, and more
-• Save Pages: Export favorite pages to Photos or Files in multiple formats
+• Save Pages: Export favorite pages to Photos or Files in multiple formats (JPEG, PNG, HEIF, WebP)
+• macOS Support: Native macOS app with dedicated reader window for enhanced desktop reading experience
 
 Connect to your Komga server and take full control of your digital library today.
