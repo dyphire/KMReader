@@ -11,23 +11,20 @@ struct SettingsMetricsView: View {
   @State private var isLoading = false
 
   // All libraries metrics
-  @State private var booksFileSize: Metric?
-  @State private var series: Metric?
-  @State private var books: Metric?
-  @State private var collections: Metric?
-  @State private var readlists: Metric?
-  @State private var sidecars: Metric?
+  @State private var allLibrariesMetrics = AllLibrariesMetrics()
 
   // Library-specific metrics
-  @State private var fileSizeByLibrary: [String: Double] = [:]
-  @State private var booksByLibrary: [String: Double] = [:]
-  @State private var seriesByLibrary: [String: Double] = [:]
-  @State private var sidecarsByLibrary: [String: Double] = [:]
+  @State private var libraryMetrics = LibraryMetrics()
 
   // Tasks metrics
   @State private var tasks: Metric?
   @State private var tasksCountByType: [String: Double] = [:]
   @State private var tasksTotalTimeByType: [String: Double] = [:]
+
+  // Error messages for each metric section
+  @State private var metricErrors: [MetricErrorKey: String] = [:]
+  // Individual metric errors for allLibraries section
+  @State private var allLibrariesMetricErrors: [String: String] = [:]
 
   var body: some View {
     List {
@@ -42,7 +39,7 @@ struct SettingsMetricsView: View {
       } else {
         // All Libraries Section
         Section(header: Text("All Libraries")) {
-          if let booksFileSize = booksFileSize,
+          if let booksFileSize = allLibrariesMetrics.booksFileSize,
             let value = booksFileSize.measurements.first?.value
           {
             HStack {
@@ -52,7 +49,7 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let series = series, let value = series.measurements.first?.value {
+          if let series = allLibrariesMetrics.series, let value = series.measurements.first?.value {
             HStack {
               Label("Series", systemImage: "book.closed")
               Spacer()
@@ -60,7 +57,7 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let books = books, let value = books.measurements.first?.value {
+          if let books = allLibrariesMetrics.books, let value = books.measurements.first?.value {
             HStack {
               Label("Books", systemImage: "book")
               Spacer()
@@ -68,7 +65,9 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let collections = collections, let value = collections.measurements.first?.value {
+          if let collections = allLibrariesMetrics.collections,
+            let value = collections.measurements.first?.value
+          {
             HStack {
               Label("Collections", systemImage: "square.grid.2x2")
               Spacer()
@@ -76,7 +75,9 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let readlists = readlists, let value = readlists.measurements.first?.value {
+          if let readlists = allLibrariesMetrics.readlists,
+            let value = readlists.measurements.first?.value
+          {
             HStack {
               Label("Read Lists", systemImage: "list.bullet")
               Spacer()
@@ -84,7 +85,9 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
-          if let sidecars = sidecars, let value = sidecars.measurements.first?.value {
+          if let sidecars = allLibrariesMetrics.sidecars,
+            let value = sidecars.measurements.first?.value
+          {
             HStack {
               Label("Sidecars", systemImage: "doc")
               Spacer()
@@ -92,10 +95,29 @@ struct SettingsMetricsView: View {
                 .foregroundColor(.secondary)
             }
           }
+          // Show individual metric errors
+          ForEach(Array(allLibrariesMetricErrors.keys.sorted()), id: \.self) { metricKey in
+            if let error = allLibrariesMetricErrors[metricKey] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                  Text(getMetricDisplayName(metricKey))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                  Text(error)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                }
+                Spacer()
+              }
+            }
+          }
         }
 
         // Tasks Section
-        if !tasksCountByType.isEmpty {
+        if !tasksCountByType.isEmpty || metricErrors[.tasksExecuted] != nil {
           Section(header: Text("Tasks Executed")) {
             ForEach(Array(tasksCountByType.keys.sorted()), id: \.self) { taskType in
               if let count = tasksCountByType[taskType] {
@@ -107,10 +129,19 @@ struct SettingsMetricsView: View {
                 }
               }
             }
+            if let error = metricErrors[.tasksExecuted] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
           }
         }
 
-        if !tasksTotalTimeByType.isEmpty {
+        if !tasksTotalTimeByType.isEmpty || metricErrors[.tasksTotalTime] != nil {
           Section(header: Text("Tasks Total Time")) {
             ForEach(Array(tasksTotalTimeByType.keys.sorted()), id: \.self) { taskType in
               if let time = tasksTotalTimeByType[taskType] {
@@ -122,14 +153,24 @@ struct SettingsMetricsView: View {
                 }
               }
             }
+            if let error = metricErrors[.tasksTotalTime] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
           }
         }
 
         // Library-specific sections
-        if !fileSizeByLibrary.isEmpty {
+        if !libraryMetrics.fileSizeByLibrary.isEmpty || metricErrors[.libraryDiskSpace] != nil {
           Section(header: Text("Library Disk Space")) {
-            ForEach(Array(fileSizeByLibrary.keys.sorted()), id: \.self) { libraryId in
-              if let size = fileSizeByLibrary[libraryId] {
+            ForEach(Array(libraryMetrics.fileSizeByLibrary.keys.sorted()), id: \.self) {
+              libraryId in
+              if let size = libraryMetrics.fileSizeByLibrary[libraryId] {
                 HStack {
                   Label(getLibraryName(libraryId), systemImage: "externaldrive")
                   Spacer()
@@ -138,13 +179,22 @@ struct SettingsMetricsView: View {
                 }
               }
             }
+            if let error = metricErrors[.libraryDiskSpace] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
           }
         }
 
-        if !booksByLibrary.isEmpty {
+        if !libraryMetrics.booksByLibrary.isEmpty || metricErrors[.libraryBooks] != nil {
           Section(header: Text("Library Books")) {
-            ForEach(Array(booksByLibrary.keys.sorted()), id: \.self) { libraryId in
-              if let count = booksByLibrary[libraryId] {
+            ForEach(Array(libraryMetrics.booksByLibrary.keys.sorted()), id: \.self) { libraryId in
+              if let count = libraryMetrics.booksByLibrary[libraryId] {
                 HStack {
                   Label(getLibraryName(libraryId), systemImage: "book")
                   Spacer()
@@ -153,13 +203,22 @@ struct SettingsMetricsView: View {
                 }
               }
             }
+            if let error = metricErrors[.libraryBooks] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
           }
         }
 
-        if !seriesByLibrary.isEmpty {
+        if !libraryMetrics.seriesByLibrary.isEmpty || metricErrors[.librarySeries] != nil {
           Section(header: Text("Library Series")) {
-            ForEach(Array(seriesByLibrary.keys.sorted()), id: \.self) { libraryId in
-              if let count = seriesByLibrary[libraryId] {
+            ForEach(Array(libraryMetrics.seriesByLibrary.keys.sorted()), id: \.self) { libraryId in
+              if let count = libraryMetrics.seriesByLibrary[libraryId] {
                 HStack {
                   Label(getLibraryName(libraryId), systemImage: "book.closed")
                   Spacer()
@@ -168,19 +227,38 @@ struct SettingsMetricsView: View {
                 }
               }
             }
+            if let error = metricErrors[.librarySeries] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
           }
         }
 
-        if !sidecarsByLibrary.isEmpty {
+        if !libraryMetrics.sidecarsByLibrary.isEmpty || metricErrors[.librarySidecars] != nil {
           Section(header: Text("Library Sidecars")) {
-            ForEach(Array(sidecarsByLibrary.keys.sorted()), id: \.self) { libraryId in
-              if let count = sidecarsByLibrary[libraryId] {
+            ForEach(Array(libraryMetrics.sidecarsByLibrary.keys.sorted()), id: \.self) {
+              libraryId in
+              if let count = libraryMetrics.sidecarsByLibrary[libraryId] {
                 HStack {
                   Label(getLibraryName(libraryId), systemImage: "doc")
                   Spacer()
                   Text(formatNumber(count))
                     .foregroundColor(.secondary)
                 }
+              }
+            }
+            if let error = metricErrors[.librarySidecars] {
+              HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                  .foregroundColor(.orange)
+                Text(error)
+                  .font(.caption)
+                  .foregroundColor(.secondary)
               }
             }
           }
@@ -199,56 +277,154 @@ struct SettingsMetricsView: View {
 
   private func loadMetrics() async {
     isLoading = true
+    metricErrors.removeAll()
+    allLibrariesMetricErrors.removeAll()
 
     // Ensure libraries are loaded
     await LibraryManager.shared.loadLibraries()
 
-    do {
-      // Load all libraries metrics
-      async let booksFileSizeTask = ManagementService.shared.getMetric("komga.books.filesize")
-      async let seriesTask = ManagementService.shared.getMetric("komga.series")
-      async let booksTask = ManagementService.shared.getMetric("komga.books")
-      async let collectionsTask = ManagementService.shared.getMetric("komga.collections")
-      async let readlistsTask = ManagementService.shared.getMetric("komga.readlists")
-      async let sidecarsTask = ManagementService.shared.getMetric("komga.sidecars")
-      async let tasksTask = ManagementService.shared.getMetric("komga.tasks.execution")
+    // Load all libraries metrics - handle each metric independently
+    await withTaskGroup(of: Void.self) { group in
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.booksFileSize.rawValue,
+          key: "booksFileSize",
+          setter: { self.allLibrariesMetrics.booksFileSize = $0 },
+          errorKey: .allLibraries,
+          metricKey: "booksFileSize"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.series.rawValue,
+          key: "series",
+          setter: { self.allLibrariesMetrics.series = $0 },
+          errorKey: .allLibraries,
+          metricKey: "series"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.books.rawValue,
+          key: "books",
+          setter: { self.allLibrariesMetrics.books = $0 },
+          errorKey: .allLibraries,
+          metricKey: "books"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.collections.rawValue,
+          key: "collections",
+          setter: { self.allLibrariesMetrics.collections = $0 },
+          errorKey: .allLibraries,
+          metricKey: "collections"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.readlists.rawValue,
+          key: "readlists",
+          setter: { self.allLibrariesMetrics.readlists = $0 },
+          errorKey: .allLibraries,
+          metricKey: "readlists"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.sidecars.rawValue,
+          key: "sidecars",
+          setter: { self.allLibrariesMetrics.sidecars = $0 },
+          errorKey: .allLibraries,
+          metricKey: "sidecars"
+        )
+      }
+      group.addTask {
+        await self.loadMetric(
+          metricName: MetricName.tasksExecution.rawValue,
+          key: "tasks",
+          setter: { self.tasks = $0 },
+          errorKey: nil
+        )
+      }
+    }
 
-      let (
-        booksFileSizeResult, seriesResult, booksResult, collectionsResult, readlistsResult,
-        sidecarsResult, tasksResult
-      ) = try await (
-        booksFileSizeTask, seriesTask, booksTask, collectionsTask, readlistsTask, sidecarsTask,
-        tasksTask
-      )
+    // Process library-specific metrics
+    if let booksFileSize = allLibrariesMetrics.booksFileSize {
+      libraryMetrics.fileSizeByLibrary = await processLibraryMetrics(
+        booksFileSize, errorKey: .libraryDiskSpace)
+    }
+    if let books = allLibrariesMetrics.books {
+      libraryMetrics.booksByLibrary = await processLibraryMetrics(books, errorKey: .libraryBooks)
+    }
+    if let series = allLibrariesMetrics.series {
+      libraryMetrics.seriesByLibrary = await processLibraryMetrics(
+        series, errorKey: .librarySeries)
+    }
+    if let sidecars = allLibrariesMetrics.sidecars {
+      libraryMetrics.sidecarsByLibrary = await processLibraryMetrics(
+        sidecars, errorKey: .librarySidecars)
+    }
 
-      booksFileSize = booksFileSizeResult
-      series = seriesResult
-      books = booksResult
-      collections = collectionsResult
-      readlists = readlistsResult
-      sidecars = sidecarsResult
-      tasks = tasksResult
-
-      // Process library-specific metrics
-      fileSizeByLibrary = await processLibraryMetrics(booksFileSizeResult)
-      booksByLibrary = await processLibraryMetrics(booksResult)
-      seriesByLibrary = await processLibraryMetrics(seriesResult)
-      sidecarsByLibrary = await processLibraryMetrics(sidecarsResult)
-
-      // Process tasks metrics
-      let (countByType, totalTimeByType) = await processTasksMetrics(tasksResult)
+    // Process tasks metrics
+    if let tasks = tasks {
+      let (countByType, totalTimeByType, errors) = await processTasksMetrics(tasks)
       tasksCountByType = countByType
       tasksTotalTimeByType = totalTimeByType
-
-    } catch {
-      ErrorManager.shared.alert(error: error)
+      if let tasksExecutedError = errors[.tasksExecuted] {
+        metricErrors[.tasksExecuted] = tasksExecutedError
+      }
+      if let tasksTotalTimeError = errors[.tasksTotalTime] {
+        metricErrors[.tasksTotalTime] = tasksTotalTimeError
+      }
     }
 
     isLoading = false
   }
 
-  private func processLibraryMetrics(_ metric: Metric) async -> [String: Double] {
+  private func loadMetric(
+    metricName: String,
+    key: String,
+    setter: @escaping (Metric?) -> Void,
+    errorKey: MetricErrorKey?,
+    metricKey: String? = nil
+  ) async {
+    do {
+      let metric = try await ManagementService.shared.getMetric(metricName)
+      setter(metric)
+    } catch {
+      setter(nil)
+      let errorMessage = getErrorMessage(error)
+
+      // Store individual metric error for allLibraries section
+      if errorKey == .allLibraries, let metricKey = metricKey {
+        allLibrariesMetricErrors[metricKey] = errorMessage
+      }
+
+      // Keep the old behavior for other error keys
+      if let errorKey = errorKey, errorKey != .allLibraries {
+        if metricErrors[errorKey] == nil {
+          metricErrors[errorKey] = errorMessage
+        } else {
+          // Append to existing error message
+          metricErrors[errorKey] = "\(metricErrors[errorKey] ?? ""); \(errorMessage)"
+        }
+      }
+    }
+  }
+
+  private func getErrorMessage(_ error: Error) -> String {
+    if let apiError = error as? APIError {
+      return apiError.userMessage
+    }
+    return error.localizedDescription
+  }
+
+  private func processLibraryMetrics(_ metric: Metric, errorKey: MetricErrorKey) async -> [String:
+    Double]
+  {
     var result: [String: Double] = [:]
+    var errorCount = 0
 
     guard let libraryTag = metric.availableTags?.first(where: { $0.tag == "library" }) else {
       return result
@@ -262,20 +438,31 @@ struct SettingsMetricsView: View {
           result[libraryId] = value
         }
       } catch {
-        // Skip errors for individual libraries
+        // Track errors for individual libraries
+        errorCount += 1
         continue
       }
+    }
+
+    if errorCount > 0 {
+      metricErrors[errorKey] =
+        "Failed to load metrics for \(errorCount) librar\(errorCount == 1 ? "y" : "ies")"
     }
 
     return result
   }
 
-  private func processTasksMetrics(_ metric: Metric) async -> ([String: Double], [String: Double]) {
+  private func processTasksMetrics(_ metric: Metric) async -> (
+    [String: Double], [String: Double], [MetricErrorKey: String]
+  ) {
     var countByType: [String: Double] = [:]
     var totalTimeByType: [String: Double] = [:]
+    var errors: [MetricErrorKey: String] = [:]
+    var countErrorCount = 0
+    var timeErrorCount = 0
 
     guard let typeTag = metric.availableTags?.first(where: { $0.tag == "type" }) else {
-      return (countByType, totalTimeByType)
+      return (countByType, totalTimeByType, errors)
     }
 
     for taskType in typeTag.values {
@@ -285,23 +472,57 @@ struct SettingsMetricsView: View {
 
         if let count = taskMetric.measurements.first(where: { $0.statistic == "COUNT" })?.value {
           countByType[taskType] = count
+        } else {
+          countErrorCount += 1
         }
         if let totalTime = taskMetric.measurements.first(where: { $0.statistic == "TOTAL_TIME" })?
           .value
         {
           totalTimeByType[taskType] = totalTime
+        } else {
+          timeErrorCount += 1
         }
       } catch {
-        // Skip errors for individual task types
+        // Track errors for individual task types
+        countErrorCount += 1
+        timeErrorCount += 1
         continue
       }
     }
 
-    return (countByType, totalTimeByType)
+    if countErrorCount > 0 {
+      errors[.tasksExecuted] =
+        "Failed to load count metrics for \(countErrorCount) task type\(countErrorCount == 1 ? "" : "s")"
+    }
+    if timeErrorCount > 0 {
+      errors[.tasksTotalTime] =
+        "Failed to load time metrics for \(timeErrorCount) task type\(timeErrorCount == 1 ? "" : "s")"
+    }
+
+    return (countByType, totalTimeByType, errors)
   }
 
   private func getLibraryName(_ id: String) -> String {
     return LibraryManager.shared.getLibrary(id: id)?.name ?? id
+  }
+
+  private func getMetricDisplayName(_ key: String) -> String {
+    switch key {
+    case "booksFileSize":
+      return "Disk Space"
+    case "series":
+      return "Series"
+    case "books":
+      return "Books"
+    case "collections":
+      return "Collections"
+    case "readlists":
+      return "Read Lists"
+    case "sidecars":
+      return "Sidecars"
+    default:
+      return key
+    }
   }
 
   private func formatNumber(_ value: Double) -> String {
@@ -314,4 +535,32 @@ struct SettingsMetricsView: View {
   private func formatFileSize(_ bytes: Double) -> String {
     return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)
   }
+}
+
+// MARK: - Metrics Data Structures
+
+struct AllLibrariesMetrics {
+  var booksFileSize: Metric?
+  var series: Metric?
+  var books: Metric?
+  var collections: Metric?
+  var readlists: Metric?
+  var sidecars: Metric?
+}
+
+struct LibraryMetrics {
+  var fileSizeByLibrary: [String: Double] = [:]
+  var booksByLibrary: [String: Double] = [:]
+  var seriesByLibrary: [String: Double] = [:]
+  var sidecarsByLibrary: [String: Double] = [:]
+}
+
+enum MetricErrorKey: Hashable {
+  case allLibraries
+  case tasksExecuted
+  case tasksTotalTime
+  case libraryDiskSpace
+  case libraryBooks
+  case librarySeries
+  case librarySidecars
 }

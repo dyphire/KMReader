@@ -29,3 +29,13 @@ struct MetricTag: Codable {
   let key: String
   let value: String
 }
+
+enum MetricName: String {
+  case booksFileSize = "komga.books.filesize"
+  case series = "komga.series"
+  case books = "komga.books"
+  case collections = "komga.collections"
+  case readlists = "komga.readlists"
+  case sidecars = "komga.sidecars"
+  case tasksExecution = "komga.tasks.execution"
+}
