@@ -11,6 +11,7 @@ enum MediaProfile: String, Codable {
   case divina = "DIVINA"
   case pdf = "PDF"
   case epub = "EPUB"
+  case unknown = ""
 }
 
 struct Media: Codable, Equatable {
