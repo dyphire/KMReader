@@ -44,6 +44,22 @@ struct PlatformHelper {
     #endif
   }
 
+  /// Persistent, per-installation identifier used when reporting reading positions.
+  static var deviceIdentifier: String {
+    if let cached = AppConfig.deviceIdentifier, !cached.isEmpty {
+      return cached
+    }
+    #if canImport(UIKit)
+      if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
+        AppConfig.deviceIdentifier = vendorId
+        return vendorId
+      }
+    #endif
+    let fallback = UUID().uuidString
+    AppConfig.deviceIdentifier = fallback
+    return fallback
+  }
+
   /// Check if running on iPad
   static var isPad: Bool {
     #if canImport(UIKit)

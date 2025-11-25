@@ -325,7 +325,7 @@ private func generatePagePairs(pages: [BookPage]) -> [PagePair] {
   guard pages.count > 0 else { return [] }
 
   var pairs: [PagePair] = []
-  let noCover = UserDefaults.standard.bool(forKey: "dualPageNoCover")
+  let noCover = AppConfig.dualPageNoCover
 
   var index = 0
   while index < pages.count {

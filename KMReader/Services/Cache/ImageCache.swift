@@ -22,13 +22,9 @@ class ImageCache {
   private let fileManager = FileManager.default
   private let maxDiskCacheSizeMB: Int
 
-  // Get max disk cache size from UserDefaults (with fallback to default)
+  // Get max disk cache size from AppConfig (with fallback to default)
   private static func getMaxDiskCacheSizeMB() -> Int {
-    let userDefaults = UserDefaults.standard
-    if userDefaults.object(forKey: "maxDiskCacheSizeMB") != nil {
-      return userDefaults.integer(forKey: "maxDiskCacheSizeMB")
-    }
-    return 2048  // Default value
+    AppConfig.maxDiskCacheSizeMB
   }
 
   // Cached disk cache size (static for shared access)
