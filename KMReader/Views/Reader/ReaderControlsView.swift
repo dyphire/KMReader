@@ -64,7 +64,7 @@ struct ReaderControlsView: View {
               .font(.title3)
               .foregroundColor(.white)
               .padding()
-              .background(themeColor.color.opacity(0.8))
+              .background(themeColor.color.opacity(0.9))
               .clipShape(Circle())
           }
           .frame(minWidth: 40, minHeight: 40)
@@ -86,7 +86,7 @@ struct ReaderControlsView: View {
             .foregroundColor(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(themeColor.color.opacity(0.8))
+            .background(themeColor.color.opacity(0.9))
             .cornerRadius(20)
             .overlay(
               RoundedRectangle(cornerRadius: 20)
@@ -107,7 +107,7 @@ struct ReaderControlsView: View {
               .font(.title3)
               .foregroundColor(.white)
               .padding()
-              .background(themeColor.color.opacity(0.8))
+              .background(themeColor.color.opacity(0.9))
               .clipShape(Circle())
           }
           .frame(minWidth: 40, minHeight: 40)
@@ -125,11 +125,11 @@ struct ReaderControlsView: View {
             .foregroundColor(.white)
           Text("#\(Int(book.number)) - \(book.metadata.title)")
             .font(.subheadline)
-            .foregroundColor(.white.opacity(0.9))
+            .foregroundColor(.white)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(themeColor.color.opacity(0.8))
+        .background(themeColor.color.opacity(0.9))
         .cornerRadius(12)
       }
 

@@ -11,7 +11,7 @@ import SwiftUI
 struct BooksListViewForReadList: View {
   let readListId: String
   @Bindable var bookViewModel: BookViewModel
-  var onReadBook: (String, Bool) -> Void
+  var onReadBook: (Book, Bool) -> Void
   let layoutMode: BrowseLayoutMode
   let layoutHelper: BrowseLayoutHelper
 
@@ -205,7 +205,7 @@ struct BooksListViewForReadList: View {
                         book: book,
                         viewModel: bookViewModel,
                         onReadBook: { incognito in
-                          onReadBook(book.id, incognito)
+                          onReadBook(book, incognito)
                         },
                         onBookUpdated: {
                           refreshBooks()

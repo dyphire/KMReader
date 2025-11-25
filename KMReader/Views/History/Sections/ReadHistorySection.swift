@@ -34,7 +34,7 @@ struct ReadHistorySection: View {
       LazyVStack(spacing: 12) {
         ForEach(Array(bookViewModel.books.enumerated()), id: \.element.id) { index, book in
           Button {
-            readerState = BookReaderState(bookId: book.id, incognito: false)
+            readerState = BookReaderState(book: book, incognito: false)
           } label: {
             ReadHistoryBookRow(book: book)
               .contentShape(Rectangle())
@@ -43,7 +43,7 @@ struct ReadHistorySection: View {
                   book: book,
                   viewModel: bookViewModel,
                   onReadBook: { incognito in
-                    readerState = BookReaderState(bookId: book.id, incognito: incognito)
+                    readerState = BookReaderState(book: book, incognito: incognito)
                   },
                   onActionCompleted: onBookUpdated,
                   onShowReadListPicker: {
@@ -95,14 +95,14 @@ struct ReadHistorySection: View {
           onBookUpdated?()
         }
       ) {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+        if let state = readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
         }
       }
     #else
       .onChange(of: readerState) { _, newState in
-        if let state = newState, let bookId = state.bookId {
-          ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+        if let state = newState, let book = state.book {
+          ReaderWindowManager.shared.openReader(book: book, incognito: state.incognito)
           openWindow(id: "reader")
         } else {
           ReaderWindowManager.shared.closeReader()

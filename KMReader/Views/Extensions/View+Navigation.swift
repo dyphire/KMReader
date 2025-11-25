@@ -41,9 +41,9 @@ extension View {
 
   #if canImport(AppKit)
     /// Open reader in a new window on macOS
-    func openReaderWindow(bookId: String, incognito: Bool = false) -> some View {
+    func openReaderWindow(book: Book, incognito: Bool = false) -> some View {
       self.onAppear {
-        ReaderWindowManager.shared.openReader(bookId: bookId, incognito: incognito)
+        ReaderWindowManager.shared.openReader(book: book, incognito: incognito)
       }
     }
   #endif

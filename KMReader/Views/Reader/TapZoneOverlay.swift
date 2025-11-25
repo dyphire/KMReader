@@ -18,14 +18,14 @@ struct ComicTapZoneOverlay: View {
         // Left zone (25%) - Previous page
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(width: geometry.size.width * 0.25)
+          .frame(width: geometry.size.width * 0.3)
 
         Spacer()
 
         // Right zone (35%) - Next page
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(width: geometry.size.width * 0.35)
+          .frame(width: geometry.size.width * 0.3)
       }
       .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -49,14 +49,14 @@ struct MangaTapZoneOverlay: View {
         // Left zone (35%) - Next page
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(width: geometry.size.width * 0.35)
+          .frame(width: geometry.size.width * 0.3)
 
         Spacer()
 
         // Right zone (25%) - Previous page
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(width: geometry.size.width * 0.25)
+          .frame(width: geometry.size.width * 0.3)
       }
       .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -80,14 +80,14 @@ struct VerticalTapZoneOverlay: View {
         // Previous page zone (top 25%)
         Rectangle()
           .fill(Color.red.opacity(0.3))
-          .frame(height: geometry.size.height * 0.25)
+          .frame(height: geometry.size.height * 0.3)
 
         Spacer()
 
         // Next page zone (bottom 35%)
         Rectangle()
           .fill(Color.green.opacity(0.3))
-          .frame(height: geometry.size.height * 0.35)
+          .frame(height: geometry.size.height * 0.3)
       }
       .opacity(isVisible && showTapZone ? 1.0 : 0.0)
       .allowsHitTesting(false)
@@ -107,10 +107,10 @@ struct VerticalTapZoneOverlay: View {
     @Binding var isVisible: Bool
 
     // Match the thresholds from WebtoonReaderView.swift Constants
-    private let topAreaThreshold: CGFloat = 0.25
-    private let bottomAreaThreshold: CGFloat = 0.65
-    private let centerAreaMin: CGFloat = 0.25
-    private let centerAreaMax: CGFloat = 0.65
+    private let topAreaThreshold: CGFloat = 0.3
+    private let bottomAreaThreshold: CGFloat = 0.7
+    private let centerAreaMin: CGFloat = 0.3
+    private let centerAreaMax: CGFloat = 0.7
 
     var body: some View {
       GeometryReader { geometry in

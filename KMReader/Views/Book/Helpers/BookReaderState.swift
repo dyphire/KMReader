@@ -8,6 +8,6 @@
 import Foundation
 
 struct BookReaderState: Equatable {
-  var bookId: String?
+  var book: Book?
   var incognito: Bool = false
 }

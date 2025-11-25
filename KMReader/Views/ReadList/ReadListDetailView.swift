@@ -96,8 +96,8 @@ struct ReadListDetailView: View {
             BooksListViewForReadList(
               readListId: readListId,
               bookViewModel: bookViewModel,
-              onReadBook: { bookId, incognito in
-                readerState = BookReaderState(bookId: bookId, incognito: incognito)
+              onReadBook: { book, incognito in
+                readerState = BookReaderState(book: book, incognito: incognito)
               },
               layoutMode: layoutMode,
               layoutHelper: BrowseLayoutHelper(
@@ -127,14 +127,14 @@ struct ReadListDetailView: View {
             }
           }
         ) {
-          if let state = readerState, let bookId = state.bookId {
-            BookReaderView(bookId: bookId, incognito: state.incognito)
+          if let state = readerState, let book = state.book {
+            BookReaderView(book: book, incognito: state.incognito)
           }
         }
       #else
         .onChange(of: readerState) { _, newState in
-          if let state = newState, let bookId = state.bookId {
-            ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+          if let state = newState, let book = state.book {
+            ReaderWindowManager.shared.openReader(book: book, incognito: state.incognito)
             openWindow(id: "reader")
           } else {
             ReaderWindowManager.shared.closeReader()

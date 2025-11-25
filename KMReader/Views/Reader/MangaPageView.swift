@@ -107,14 +107,14 @@ struct MangaPageView: View {
       .onEnded { value in
         guard width > 0 else { return }
         let normalizedX = max(0, min(1, value.location.x / width))
-        if normalizedX < 0.35 {
+        if normalizedX < 0.3 {
           guard !viewModel.pages.isEmpty else { return }
           // Next page (left tap for RTL means go forward)
 
           // Single page mode only
           let newIndex = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
           viewModel.targetPageIndex = newIndex
-        } else if normalizedX > 0.75 {
+        } else if normalizedX > 0.7 {
           guard !viewModel.pages.isEmpty else { return }
           // Previous page (right tap for RTL means go back)
           guard viewModel.currentPageIndex > 0 else { return }

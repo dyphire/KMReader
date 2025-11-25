@@ -252,6 +252,31 @@ class APIClient {
     }
   }
 
+  func requestOptional<T: Decodable>(
+    path: String,
+    method: String = "GET",
+    body: Data? = nil,
+    queryItems: [URLQueryItem]? = nil
+  ) async throws -> T? {
+    let urlRequest = try buildRequest(
+      path: path, method: method, body: body, queryItems: queryItems)
+    let (data, httpResponse) = try await executeRequest(urlRequest)
+
+    if httpResponse.statusCode == 204 || data.isEmpty {
+      return nil
+    }
+
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    do {
+      return try decoder.decode(T.self, from: data)
+    } catch {
+      let responseBody = String(data: data, encoding: .utf8)
+      let urlString = urlRequest.url?.absoluteString ?? ""
+      throw APIError.decodingError(error, url: urlString, response: responseBody)
+    }
+  }
+
   func requestData(
     path: String,
     method: String = "GET"

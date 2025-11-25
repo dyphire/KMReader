@@ -106,14 +106,14 @@ struct BookCardView: View {
     .frame(maxHeight: .infinity, alignment: .top)
     .contentShape(Rectangle())
     .onTapGesture {
-      readerState = BookReaderState(bookId: book.id, incognito: false)
+      readerState = BookReaderState(book: book, incognito: false)
     }
     .contextMenu {
       BookContextMenu(
         book: book,
         viewModel: viewModel,
         onReadBook: { incognito in
-          readerState = BookReaderState(bookId: book.id, incognito: incognito)
+          readerState = BookReaderState(book: book, incognito: incognito)
         },
         onActionCompleted: onBookUpdated,
         onShowReadListPicker: {
@@ -160,14 +160,14 @@ struct BookCardView: View {
           onBookUpdated?()
         }
       ) {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+        if let state = readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
         }
       }
     #else
       .onChange(of: readerState) { _, newState in
-        if let state = newState, let bookId = state.bookId {
-          ReaderWindowManager.shared.openReader(bookId: bookId, incognito: state.incognito)
+        if let state = newState, let book = state.book {
+          ReaderWindowManager.shared.openReader(book: book, incognito: state.incognito)
           openWindow(id: "reader")
         } else {
           ReaderWindowManager.shared.closeReader()

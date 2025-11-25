@@ -17,8 +17,8 @@
 
     private init() {}
 
-    func openReader(bookId: String, incognito: Bool = false) {
-      currentState = BookReaderState(bookId: bookId, incognito: incognito)
+    func openReader(book: Book, incognito: Bool = false) {
+      currentState = BookReaderState(book: book, incognito: incognito)
     }
 
     func closeReader() {

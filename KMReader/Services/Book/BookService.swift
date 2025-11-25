@@ -46,6 +46,27 @@ class BookService {
     return try await apiClient.request(path: "/api/v1/books/\(id)/pages")
   }
 
+  func getWebPubProgression(bookId: String) async throws -> R2Progression? {
+    return try await apiClient.requestOptional(path: "/api/v1/books/\(bookId)/progression")
+  }
+
+  func updateWebPubProgression(bookId: String, progression: R2Progression) async throws {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    let data = try encoder.encode(progression)
+    let _: EmptyResponse = try await apiClient.request(
+      path: "/api/v1/books/\(bookId)/progression",
+      method: "PUT",
+      body: data
+    )
+  }
+
+  /// Download the entire EPUB file for a book
+  func downloadEpubFile(bookId: String) async throws -> Data {
+    let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/file")
+    return result.data
+  }
+
   func getBooksList(
     search: BookSearch,
     page: Int = 0,

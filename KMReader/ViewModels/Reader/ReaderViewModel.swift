@@ -39,7 +39,6 @@ class ReaderViewModel {
   // map of page index to dual page index
   var dualPageIndices: [Int: PagePair] = [:]
 
-  private let bookService = BookService.shared
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "Komga", category: "ReaderViewModel")
   /// Current book ID for API calls and cache access
@@ -72,7 +71,7 @@ class ReaderViewModel {
     downloadingTasks.removeAll()
 
     do {
-      pages = try await bookService.getBookPages(id: bookId)
+      pages = try await BookService.shared.getBookPages(id: bookId)
 
       // Update page pairs and dual page indices after loading pages
       pagePairs = generatePagePairs(pages: pages)
@@ -120,7 +119,8 @@ class ReaderViewModel {
       logger.info("📥 Downloading page \(page.number) for book \(self.bookId)")
 
       do {
-        let result = try await bookService.getBookPage(bookId: self.bookId, page: page.number)
+        let result = try await BookService.shared.getBookPage(
+          bookId: self.bookId, page: page.number)
         let data = result.data
 
         let dataSize = ByteCountFormatter.string(
@@ -207,7 +207,7 @@ class ReaderViewModel {
     let completed = currentPageIndex >= pages.count - 1
 
     do {
-      try await bookService.updatePageReadProgress(
+      try await BookService.shared.updatePageReadProgress(
         bookId: bookId,
         page: currentPage.number,
         completed: completed

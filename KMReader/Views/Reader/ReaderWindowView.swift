@@ -15,8 +15,8 @@
 
     var body: some View {
       Group {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+        if let state = readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
             .onDisappear {
               ReaderWindowManager.shared.closeReader()
             }

@@ -106,13 +106,13 @@ struct VerticalPageView: View {
       .onEnded { value in
         guard height > 0 else { return }
         let normalizedY = max(0, min(1, value.location.y / height))
-        if normalizedY < 0.25 {
+        if normalizedY < 0.3 {
           guard !viewModel.pages.isEmpty else { return }
           guard viewModel.currentPageIndex > 0 else { return }
           // Previous page (top tap)
           let current = min(viewModel.currentPageIndex, viewModel.pages.count)
           viewModel.targetPageIndex = current - 1
-        } else if normalizedY > 0.65 {
+        } else if normalizedY > 0.7 {
           guard !viewModel.pages.isEmpty else { return }
           // Next page (bottom tap)
           viewModel.targetPageIndex = min(

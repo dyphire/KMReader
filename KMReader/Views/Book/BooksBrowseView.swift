@@ -90,14 +90,14 @@ struct BooksBrowseView: View {
     }
     #if canImport(UIKit)
       .fullScreenCover(isPresented: isBookReaderPresented) {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+        if let state = readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
         }
       }
     #else
       .sheet(isPresented: isBookReaderPresented) {
-        if let state = readerState, let bookId = state.bookId {
-          BookReaderView(bookId: bookId, incognito: state.incognito)
+        if let state = readerState, let book = state.book {
+          BookReaderView(book: book, incognito: state.incognito)
         }
       }
     #endif
@@ -138,7 +138,7 @@ struct BooksBrowseView: View {
           book: book,
           viewModel: viewModel,
           onReadBook: { incognito in
-            readerState = BookReaderState(bookId: book.id, incognito: incognito)
+            readerState = BookReaderState(book: book, incognito: incognito)
           },
           onBookUpdated: {
             Task {

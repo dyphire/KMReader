@@ -113,7 +113,7 @@ struct ComicDualPageView: View {
       .onEnded { value in
         guard width > 0 else { return }
         let normalizedX = max(0, min(1, value.location.x / width))
-        if normalizedX < 0.25 {
+        if normalizedX < 0.3 {
           guard !viewModel.pages.isEmpty else { return }
           guard viewModel.currentPageIndex > 0 else { return }
 
@@ -121,7 +121,7 @@ struct ComicDualPageView: View {
           let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
           guard let currentPair = currentPair else { return }
           viewModel.targetPageIndex = max(0, currentPair.first - 1)
-        } else if normalizedX > 0.65 {
+        } else if normalizedX > 0.7 {
           guard !viewModel.pages.isEmpty else { return }
 
           // Next page (right tap)
