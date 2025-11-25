@@ -38,19 +38,19 @@
           }
         )
 
-        if isAtBottom {
-          VStack {
-            Spacer()
-            EndPageView(
-              nextBook: nextBook,
-              onDismiss: onDismiss,
-              onNextBook: onNextBook,
-              isRTL: false,
-            )
-            .padding(.bottom, 160)
-          }
-          .transition(.opacity)
+        VStack {
+          Spacer()
+          EndPageView(
+            nextBook: nextBook,
+            onDismiss: onDismiss,
+            onNextBook: onNextBook,
+            isRTL: false,
+          )
+          .padding(.bottom, 160)
         }
+        .opacity(isAtBottom ? 1 : 0)
+        .allowsHitTesting(isAtBottom)
+        .transition(.opacity)
       }
     }
   }
