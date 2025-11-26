@@ -26,6 +26,8 @@ struct SeriesDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
+  @State private var containingCollections: [KomgaCollection] = []
+  @State private var isLoadingCollections = false
 
   private var thumbnailURL: URL? {
     guard let series = series else { return nil }
@@ -230,6 +232,37 @@ struct SeriesDetailView: View {
               }
 
               Spacer()
+            }
+
+            if !isLoadingCollections && !containingCollections.isEmpty {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 4) {
+                  Image(systemName: "square.grid.2x2")
+                    .font(.caption)
+                  Text("Collections")
+                    .font(.headline)
+                }
+                .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                  ForEach(containingCollections) { collection in
+                    NavigationLink {
+                      CollectionDetailView(collectionId: collection.id)
+                    } label: {
+                      HStack {
+                        Text(collection.name)
+                          .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                          .font(.caption)
+                          .foregroundColor(.secondary)
+                      }
+                      .padding(.vertical, 4)
+                    }
+                  }
+                }
+              }
+              .padding(.top, 8)
             }
 
             // Alternate titles
@@ -497,9 +530,26 @@ extension SeriesDetailView {
     do {
       let fetchedSeries = try await SeriesService.shared.getOneSeries(id: seriesId)
       series = fetchedSeries
+      await loadSeriesCollections(seriesId: fetchedSeries.id)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
+  }
+
+  @MainActor
+  private func loadSeriesCollections(seriesId: String) async {
+    isLoadingCollections = true
+    containingCollections = []
+    do {
+      let collections = try await SeriesService.shared.getSeriesCollections(seriesId: seriesId)
+      withAnimation {
+        containingCollections = collections
+      }
+    } catch {
+      containingCollections = []
+      ErrorManager.shared.alert(error: error)
+    }
+    isLoadingCollections = false
   }
 
   private func analyzeSeries() {

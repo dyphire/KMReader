@@ -20,6 +20,8 @@ struct BookDetailView: View {
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
+  @State private var bookReadLists: [ReadList] = []
+  @State private var isLoadingRelations = false
 
   private var thumbnailURL: URL? {
     return BookService.shared.getBookThumbnailURL(id: bookId)
@@ -145,6 +147,37 @@ struct BookDetailView: View {
               readerState = BookReaderState(book: book, incognito: incognito)
             }
           )
+
+          if !isLoadingRelations && !bookReadLists.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+              HStack(spacing: 4) {
+                Image(systemName: "list.bullet")
+                  .font(.caption)
+                Text("Read Lists")
+                  .font(.headline)
+              }
+              .foregroundColor(.secondary)
+
+              VStack(alignment: .leading, spacing: 8) {
+                ForEach(bookReadLists) { readList in
+                  NavigationLink {
+                    ReadListDetailView(readListId: readList.id)
+                  } label: {
+                    HStack {
+                      Text(readList.name)
+                        .foregroundColor(.primary)
+                      Spacer()
+                      Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                  }
+                }
+              }
+            }
+            .padding(.vertical, 8)
+          }
 
           Divider()
 
@@ -455,11 +488,42 @@ struct BookDetailView: View {
   private func loadBook() async {
     isLoading = true
     do {
-      book = try await BookService.shared.getBook(id: bookId)
+      let fetchedBook = try await BookService.shared.getBook(id: bookId)
+      book = fetchedBook
       isLoading = false
+      isLoadingRelations = true
+      bookReadLists = []
+      Task {
+        await loadBookRelations(for: fetchedBook)
+      }
     } catch {
       isLoading = false
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  @MainActor
+  private func loadBookRelations(for book: Book) async {
+    isLoadingRelations = true
+    let targetBookId = book.id
+    bookReadLists = []
+
+    do {
+      let readLists = try await BookService.shared.getReadListsForBook(bookId: book.id)
+      if self.book?.id == targetBookId {
+        withAnimation {
+          bookReadLists = readLists
+        }
+      }
+    } catch {
+      if self.book?.id == targetBookId {
+        bookReadLists = []
+      }
+      ErrorManager.shared.alert(error: error)
+    }
+
+    if self.book?.id == targetBookId {
+      isLoadingRelations = false
     }
   }
 

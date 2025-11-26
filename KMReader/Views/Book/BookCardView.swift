@@ -162,7 +162,11 @@ struct BookCardView: View {
       ) {
         if let state = readerState, let book = state.book {
           BookReaderView(book: book, incognito: state.incognito)
+          .transition(.scale.animation(.easeInOut))
         }
+      }
+      .transaction { transaction in
+        transaction.disablesAnimations = true
       }
     #else
       .onChange(of: readerState) { _, newState in

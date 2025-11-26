@@ -90,6 +90,10 @@ class SeriesService {
     return try await apiClient.request(path: "/api/v1/series/\(id)")
   }
 
+  func getSeriesCollections(seriesId: String) async throws -> [KomgaCollection] {
+    return try await apiClient.request(path: "/api/v1/series/\(seriesId)/collections")
+  }
+
   func getNewSeries(
     libraryId: String = "",
     page: Int = 0,

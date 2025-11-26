@@ -42,6 +42,10 @@ class BookService {
     return try await apiClient.request(path: "/api/v1/books/\(id)")
   }
 
+  func getReadListsForBook(bookId: String) async throws -> [ReadList] {
+    return try await apiClient.request(path: "/api/v1/books/\(bookId)/readlists")
+  }
+
   func getBookPages(id: String) async throws -> [BookPage] {
     return try await apiClient.request(path: "/api/v1/books/\(id)/pages")
   }
