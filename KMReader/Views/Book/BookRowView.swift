@@ -61,8 +61,9 @@ struct BookRowView: View {
           if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
             Label(releaseDate, systemImage: "calendar")
             Text("•")
+          } else {
+            Label(book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
           }
-          Label(book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
           if let progress = book.readProgress {
             Text("•")
             if progress.completed {

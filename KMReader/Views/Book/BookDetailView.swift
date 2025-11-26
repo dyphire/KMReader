@@ -116,7 +116,7 @@ struct BookDetailView: View {
 
               if let releaseDate = book.metadata.releaseDate {
                 InfoChip(
-                  label: "Release: \(releaseDate)",
+                  label: releaseDate,
                   systemImage: "calendar",
                   backgroundColor: Color.orange.opacity(0.2),
                   foregroundColor: .orange
@@ -138,7 +138,7 @@ struct BookDetailView: View {
               }
             }
             Spacer()
-          }.frame(minHeight: 160)
+          }
 
           BookActionsSection(
             book: book,

@@ -58,6 +58,11 @@ struct SeriesDetailView: View {
     return !tags.isEmpty || !genres.isEmpty
   }
 
+  private var hasAdditionalInfo: Bool {
+    guard let series else { return false }
+    return series.metadata.status != nil || series.metadata.readingDirection != nil
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
@@ -128,22 +133,24 @@ struct SeriesDetailView: View {
                   }
 
                   // Additional info: Status, Reading Direction
-                  HStack(spacing: 6) {
-                    if let status = series.metadata.status, !status.isEmpty {
-                      InfoChip(
-                        label: series.statusDisplayName,
-                        systemImage: series.statusIcon,
-                        backgroundColor: series.statusColor.opacity(0.8),
-                        foregroundColor: .white
-                      )
-                    }
-                    if let direction = series.metadata.readingDirection, !direction.isEmpty {
-                      InfoChip(
-                        label: ReadingDirection.fromString(direction).displayName,
-                        systemImage: ReadingDirection.fromString(direction).icon,
-                        backgroundColor: Color.cyan.opacity(0.2),
-                        foregroundColor: .cyan
-                      )
+                  if hasAdditionalInfo {
+                    HStack(spacing: 6) {
+                      if let status = series.metadata.status, !status.isEmpty {
+                        InfoChip(
+                          label: series.statusDisplayName,
+                          systemImage: series.statusIcon,
+                          backgroundColor: series.statusColor.opacity(0.8),
+                          foregroundColor: .white
+                        )
+                      }
+                      if let direction = series.metadata.readingDirection, !direction.isEmpty {
+                        InfoChip(
+                          label: ReadingDirection.fromString(direction).displayName,
+                          systemImage: ReadingDirection.fromString(direction).icon,
+                          backgroundColor: Color.cyan.opacity(0.2),
+                          foregroundColor: .cyan
+                        )
+                      }
                     }
                   }
 
@@ -151,7 +158,7 @@ struct SeriesDetailView: View {
                     // Release date chip
                     if let releaseDate = series.booksMetadata.releaseDate {
                       InfoChip(
-                        label: "Release: \(releaseDate)",
+                        label: releaseDate,
                         systemImage: "calendar",
                         backgroundColor: Color.orange.opacity(0.2),
                         foregroundColor: .orange
@@ -198,7 +205,7 @@ struct SeriesDetailView: View {
                 Spacer()
               }
               Spacer(minLength: 0)
-            }.frame(minHeight: 160)
+            }
 
             if hasTags {
               VStack(alignment: .leading, spacing: 6) {
@@ -247,7 +254,7 @@ struct SeriesDetailView: View {
                 foregroundColor: .blue
               )
               InfoChip(
-                label: "Last Modified: \(formatDate(series.lastModified))",
+                label: "Modified: \(formatDate(series.lastModified))",
                 systemImage: "clock",
                 backgroundColor: Color.purple.opacity(0.2),
                 foregroundColor: .purple
