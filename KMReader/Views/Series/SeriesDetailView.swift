@@ -51,13 +51,6 @@ struct SeriesDetailView: View {
     return (series.booksReadCount + series.booksInProgressCount) > 0
   }
 
-  private var hasTags: Bool {
-    guard let series else { return false }
-    guard let tags = series.metadata.tags else { return false }
-    guard let genres = series.metadata.genres else { return false }
-    return !tags.isEmpty || !genres.isEmpty
-  }
-
   private var hasAdditionalInfo: Bool {
     guard let series else { return false }
     return series.metadata.status != nil || series.metadata.readingDirection != nil
@@ -207,39 +200,35 @@ struct SeriesDetailView: View {
               Spacer(minLength: 0)
             }
 
-            if hasTags {
-              VStack(alignment: .leading, spacing: 6) {
-                // Genres
-                if let genres = series.metadata.genres, !genres.isEmpty {
-                  ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                      ForEach(genres.sorted(), id: \.self) { genre in
-                        InfoChip(
-                          label: genre,
-                          systemImage: "bookmark",
-                          backgroundColor: Color.blue.opacity(0.1),
-                          foregroundColor: .blue,
-                          cornerRadius: 8
-                        )
-                      }
-                    }
+            // Genres
+            if let genres = series.metadata.genres, !genres.isEmpty {
+              ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                  ForEach(genres.sorted(), id: \.self) { genre in
+                    InfoChip(
+                      label: genre,
+                      systemImage: "bookmark",
+                      backgroundColor: Color.blue.opacity(0.1),
+                      foregroundColor: .blue,
+                      cornerRadius: 8
+                    )
                   }
                 }
+              }
+            }
 
-                // Tags
-                if let tags = series.metadata.tags, !tags.isEmpty {
-                  ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                      ForEach(tags.sorted(), id: \.self) { tag in
-                        InfoChip(
-                          label: tag,
-                          systemImage: "tag",
-                          backgroundColor: Color.secondary.opacity(0.1),
-                          foregroundColor: .secondary,
-                          cornerRadius: 8
-                        )
-                      }
-                    }
+            // Tags
+            if let tags = series.metadata.tags, !tags.isEmpty {
+              ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                  ForEach(tags.sorted(), id: \.self) { tag in
+                    InfoChip(
+                      label: tag,
+                      systemImage: "tag",
+                      backgroundColor: Color.secondary.opacity(0.1),
+                      foregroundColor: .secondary,
+                      cornerRadius: 8
+                    )
                   }
                 }
               }
