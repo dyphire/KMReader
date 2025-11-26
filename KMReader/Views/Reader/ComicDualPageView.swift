@@ -21,6 +21,7 @@ struct ComicDualPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
+  @State private var isZoomed = false
 
   var body: some View {
     ZStack {
@@ -46,13 +47,15 @@ struct ComicDualPageView: View {
                       firstPageIndex: pagePair.first,
                       secondPageIndex: second,
                       screenSize: screenSize,
-                      isRTL: false
+                      isRTL: false,
+                      isZoomed: $isZoomed
                     )
                   } else {
                     SinglePageImageView(
                       viewModel: viewModel,
                       pageIndex: pagePair.first,
-                      screenSize: screenSize
+                      screenSize: screenSize,
+                      isZoomed: $isZoomed
                     )
                   }
                 }
@@ -111,6 +114,7 @@ struct ComicDualPageView: View {
   private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
     SpatialTapGesture()
       .onEnded { value in
+        guard !isZoomed else { return }
         guard width > 0 else { return }
         let normalizedX = max(0, min(1, value.location.x / width))
         if normalizedX < 0.3 {

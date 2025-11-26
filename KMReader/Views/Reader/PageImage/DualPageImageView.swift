@@ -14,6 +14,23 @@ struct DualPageImageView: View {
   let secondPageIndex: Int
   let screenSize: CGSize
   let isRTL: Bool
+  @Binding var isZoomed: Bool
+
+  init(
+    viewModel: ReaderViewModel,
+    firstPageIndex: Int,
+    secondPageIndex: Int,
+    screenSize: CGSize,
+    isRTL: Bool,
+    isZoomed: Binding<Bool> = .constant(false)
+  ) {
+    self.viewModel = viewModel
+    self.firstPageIndex = firstPageIndex
+    self.secondPageIndex = secondPageIndex
+    self.screenSize = screenSize
+    self.isRTL = isRTL
+    self._isZoomed = isZoomed
+  }
 
   @Environment(\.zoomableContentSizeReporter) private var reportContentSize
 
@@ -33,7 +50,11 @@ struct DualPageImageView: View {
   }
 
   var body: some View {
-    ZoomableImageContainer(screenSize: screenSize, resetID: resetID) {
+    ZoomableImageContainer(
+      screenSize: screenSize,
+      resetID: resetID,
+      isZoomed: $isZoomed
+    ) {
       HStack(spacing: 0) {
         if isRTL {
           pageView(

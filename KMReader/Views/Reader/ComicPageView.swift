@@ -19,6 +19,7 @@ struct ComicPageView: View {
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
+  @State private var isZoomed = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
   var body: some View {
@@ -31,7 +32,8 @@ struct ComicPageView: View {
               SinglePageImageView(
                 viewModel: viewModel,
                 pageIndex: pageIndex,
-                screenSize: screenSize
+                screenSize: screenSize,
+                isZoomed: $isZoomed
               )
               .frame(width: screenSize.width, height: screenSize.height)
               .contentShape(Rectangle())
@@ -105,6 +107,7 @@ struct ComicPageView: View {
   private func horizontalTapGesture(width: CGFloat, proxy: ScrollViewProxy) -> some Gesture {
     SpatialTapGesture()
       .onEnded { value in
+        guard !isZoomed else { return }
         guard width > 0 else { return }
         let normalizedX = max(0, min(1, value.location.x / width))
         if normalizedX < 0.3 {

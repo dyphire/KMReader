@@ -14,6 +14,7 @@ struct ZoomableImageContainer<Content: View>: View {
   let minScale: CGFloat
   let maxScale: CGFloat
   let doubleTapScale: CGFloat
+  @Binding var isZoomed: Bool
   @ViewBuilder private let content: () -> Content
 
   @State private var scale: CGFloat = 1.0
@@ -24,6 +25,7 @@ struct ZoomableImageContainer<Content: View>: View {
   @State private var contentSize: CGSize = .zero
 
   private let resetAnimation = Animation.easeOut(duration: 0.2)
+  private let zoomThreshold: CGFloat = 0.01
 
   private var effectiveContentSize: CGSize {
     let width = contentSize.width > 0 ? contentSize.width : screenSize.width
@@ -41,6 +43,7 @@ struct ZoomableImageContainer<Content: View>: View {
     minScale: CGFloat = 1.0,
     maxScale: CGFloat = 4.0,
     doubleTapScale: CGFloat = 2.0,
+    isZoomed: Binding<Bool> = .constant(false),
     @ViewBuilder content: @escaping () -> Content
   ) {
     self.screenSize = screenSize
@@ -48,6 +51,7 @@ struct ZoomableImageContainer<Content: View>: View {
     self.minScale = minScale
     self.maxScale = maxScale
     self.doubleTapScale = doubleTapScale
+    self._isZoomed = isZoomed
     self.content = content
   }
 
@@ -68,6 +72,12 @@ struct ZoomableImageContainer<Content: View>: View {
       }
       .onDisappear {
         resetTransform(animated: false)
+      }
+      .onAppear {
+        updateZoomState(scale)
+      }
+      .onChange(of: scale) { _, newScale in
+        updateZoomState(newScale)
       }
   }
 
@@ -228,6 +238,13 @@ struct ZoomableImageContainer<Content: View>: View {
       width: lastOffset.width + shift.width,
       height: lastOffset.height + shift.height
     )
+  }
+
+  private func updateZoomState(_ scale: CGFloat) {
+    let zoomed = scale > (minScale + zoomThreshold)
+    if isZoomed != zoomed {
+      isZoomed = zoomed
+    }
   }
 
 }
