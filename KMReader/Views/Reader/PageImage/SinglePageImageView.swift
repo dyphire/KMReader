@@ -33,7 +33,6 @@ struct SinglePageImageView: View {
       isZoomed: $isZoomed
     ) {
       PageImageView(viewModel: viewModel, pageIndex: pageIndex)
-        .reportZoomableContentSize()
         .frame(width: screenSize.width, height: screenSize.height, alignment: .center)
     }
   }
