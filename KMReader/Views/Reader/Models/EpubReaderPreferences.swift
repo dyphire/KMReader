@@ -17,29 +17,40 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
   var pagination: PaginationMode
   var layout: LayoutChoice
   var theme: ThemeChoice
+  var wordSpacing: Double
+  var paragraphSpacing: Double
+  var paragraphIndent: Double
+  var pageMargins: Double
+  var letterSpacing: Double
+  var lineHeight: Double
+  var fontWeight: Double
 
   init(
     fontFamily: FontFamilyChoice = .publisher,
     fontSize: Double = 1.0,
     pagination: PaginationMode = .paged,
     layout: LayoutChoice = .auto,
-    theme: ThemeChoice = .system
+    theme: ThemeChoice = .system,
+    wordSpacing: Double = 1.0,
+    paragraphSpacing: Double = 1.0,
+    paragraphIndent: Double = 1.0,
+    pageMargins: Double = 1.0,
+    letterSpacing: Double = 1.0,
+    lineHeight: Double = 1.0,
+    fontWeight: Double = 1.0
   ) {
     self.fontFamily = fontFamily
     self.fontSize = fontSize
     self.pagination = pagination
     self.layout = layout
     self.theme = theme
-  }
-
-  init() {
-    self.init(
-      fontFamily: .publisher,
-      fontSize: 1.0,
-      pagination: .paged,
-      layout: .auto,
-      theme: .system
-    )
+    self.wordSpacing = wordSpacing
+    self.paragraphSpacing = paragraphSpacing
+    self.paragraphIndent = paragraphIndent
+    self.pageMargins = pageMargins
+    self.letterSpacing = letterSpacing
+    self.lineHeight = lineHeight
+    self.fontWeight = fontWeight
   }
 
   init?(rawValue: String) {
@@ -61,8 +72,27 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
     let pagination = (dict["pagination"] as? String).flatMap(PaginationMode.init) ?? .paged
     let layout = (dict["layout"] as? String).flatMap(LayoutChoice.init) ?? .auto
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
+    let wordSpacing = dict["wordSpacing"] as? Double ?? 1.0
+    let paragraphSpacing = dict["paragraphSpacing"] as? Double ?? 1.0
+    let paragraphIndent = dict["paragraphIndent"] as? Double ?? 1.0
+    let pageMargins = dict["pageMargins"] as? Double ?? 1.0
+    let letterSpacing = dict["letterSpacing"] as? Double ?? 1.0
+    let lineHeight = dict["lineHeight"] as? Double ?? 1.0
+    let fontWeight = dict["fontWeight"] as? Double ?? 1.0
     self.init(
-      fontFamily: font, fontSize: fontSize, pagination: pagination, layout: layout, theme: theme)
+      fontFamily: font,
+      fontSize: fontSize,
+      pagination: pagination,
+      layout: layout,
+      theme: theme,
+      wordSpacing: wordSpacing,
+      paragraphSpacing: paragraphSpacing,
+      paragraphIndent: paragraphIndent,
+      pageMargins: pageMargins,
+      letterSpacing: letterSpacing,
+      lineHeight: lineHeight,
+      fontWeight: fontWeight
+    )
   }
 
   var rawValue: String {
@@ -72,6 +102,13 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
       "pagination": pagination.rawValue,
       "layout": layout.rawValue,
       "theme": theme.rawValue,
+      "wordSpacing": wordSpacing,
+      "paragraphSpacing": paragraphSpacing,
+      "paragraphIndent": paragraphIndent,
+      "pageMargins": pageMargins,
+      "letterSpacing": letterSpacing,
+      "lineHeight": lineHeight,
+      "fontWeight": fontWeight,
     ]
     if let data = try? JSONSerialization.data(withJSONObject: dict),
       let json = String(data: data, encoding: .utf8)
@@ -86,19 +123,16 @@ struct EpubReaderPreferences: RawRepresentable, Equatable {
       columnCount: layout.columnCount,
       fontFamily: fontFamily.fontFamily,
       fontSize: fontSize,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      lineHeight: lineHeight,
+      pageMargins: pageMargins,
+      paragraphIndent: paragraphIndent,
+      paragraphSpacing: paragraphSpacing,
       scroll: pagination == .scroll,
       spread: .auto,
-      theme: theme.resolvedTheme(for: colorScheme)
-    )
-  }
-
-  static func from(preferences: EPUBPreferences) -> EpubReaderPreferences {
-    EpubReaderPreferences(
-      fontFamily: FontFamilyChoice.from(preferences.fontFamily),
-      fontSize: preferences.fontSize ?? 1.0,
-      pagination: (preferences.scroll ?? false) ? .scroll : .paged,
-      layout: LayoutChoice.from(preferences.columnCount),
-      theme: ThemeChoice.from(preferences.theme)
+      theme: theme.resolvedTheme(for: colorScheme),
+      wordSpacing: wordSpacing
     )
   }
 }
