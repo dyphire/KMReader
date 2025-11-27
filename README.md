@@ -39,16 +39,19 @@ _A media server for comics, mangas, BDs, and magazines_
 
 ### 📖 Reading Experience
 
-- **Multiple Reading Modes**:
+- **Supported Formats**:
+  - **DIVINA** (comics, manga, BDs): Full-featured comic reader with multiple reading modes
+  - **EPUB**: Advanced EPUB reader with comprehensive customization
+- **Multiple Reading Modes** (DIVINA):
   - Left-to-Right (LTR) for Western comics
   - Right-to-Left (RTL) for manga
   - Vertical scrolling for traditional manga
   - Webtoon mode with adjustable width (50%-100%) (iOS only)
-- **Page Layouts**:
+- **Page Layouts** (DIVINA):
   - Single page mode
   - Dual page mode (landscape orientation) for two-page spreads
   - Skip cover option in dual page mode
-- **Reader Features**:
+- **Comic Reader Features** (DIVINA):
   - Pinch to zoom (1x-4x magnification)
   - Swipe navigation with customizable tap zones
   - Auto-hide controls for immersive reading
@@ -66,7 +69,7 @@ _A media server for comics, mangas, BDs, and magazines_
   - Automatic synchronization across all devices
   - Resume from last page
   - Reading status indicators (read, unread, in-progress)
-  - Incognito mode: Read without updating progress
+  - Incognito mode: Read without updating progress (available for both DIVINA and EPUB)
 - **Save Pages**: Save favorite pages to Photos or Files in multiple formats (JPEG, PNG, HEIF, WebP)
 
 ### 📊 Dashboard & History
@@ -118,10 +121,13 @@ _A media server for comics, mangas, BDs, and magazines_
   - Webtoon page width adjustment (50%-100%)
   - EPUB preferences: fonts, font size, pagination, layout, and theme presets (system/light/sepia/dark)
 - **Cache Management**:
-  - Configurable disk cache size (512MB-8GB, adjustable in 256MB steps)
-  - Real-time cache size and image count display
-  - Manual cache clearing
-  - Automatic cache cleanup when limit is exceeded
+  - **Three-tier caching system**:
+    - Page cache: Configurable disk cache size (512MB-8GB, adjustable in 256MB steps)
+    - Book file cache: Stores complete EPUB files for offline access
+    - Thumbnail cache: Fast thumbnail loading for browse views
+  - Real-time cache size and file count display for each cache type
+  - Individual manual cache clearing for each cache type
+  - Automatic cache cleanup when page cache limit is exceeded
 - **Server Management (Admin)**:
   - View server information
   - Monitor server metrics
@@ -134,18 +140,19 @@ _A media server for comics, mangas, BDs, and magazines_
 
 ### 💾 Performance & Optimization
 
-- **Two-Tier Caching**: Intelligent memory and disk caching system
-- **WebP Support**: Optimized image loading with WebP format
+- **Three-Tier Caching System**: Intelligent memory and disk caching for pages, book files, and thumbnails
+- **WebP Support**: Optimized image loading with WebP format support
 - **Intelligent Preloading**: Automatic page preloading for seamless reading
-- **Offline Capability**: Access recently viewed content when offline
+- **Offline Capability**: Access recently viewed content when offline (pages and EPUB files)
 - **Efficient Image Loading**: Smart image loading with progressive enhancement
 - **EPUB Cache**: Whole-book EPUB downloads stored securely for instant reopen and offline support
+- **Separate Cache Management**: Independent control over page cache, book file cache, and thumbnail cache
 
 ---
 
 ## 🏗️ Architecture
 
-Built with **SwiftUI** following **MVVM** pattern:
+Built following **MVVM** pattern:
 
 - **Models**: Library, Series, Book, Collection, ReadList, etc.
 - **Services**: APIClient, AuthService, LibraryService, SeriesService, BookService, ImageCache, ErrorManager
@@ -191,7 +198,7 @@ Compatible with **Komga API v1 and v2**:
 
 ## 🛠️ Debugging
 
-The app includes comprehensive API logging using Apple's unified logging system (OSLog).
+The app includes comprehensive API logging.
 
 **View logs in Xcode Console or Console.app:**
 

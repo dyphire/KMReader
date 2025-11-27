@@ -6,11 +6,12 @@ KEY FEATURES
 
 • Unified Library Management: Browse Series, Books, Collections, and Read Lists with advanced search, filtering, and sorting that remember your layout preferences.
 • Personalized Dashboard & History: Keep Reading, On Deck, Recently Added, Recently Updated, and infinite-scroll reading history make it easy to jump back into any book.
-• Reader Modes for Comics & Webtoons: LTR, RTL, vertical, and adjustable-width webtoon reading, dual-page spreads with optional cover skipping, pinch-to-zoom, customizable tap zones, auto-hide controls, page jumps, and page exports (JPEG/PNG/HEIF/WebP).
-• EPUB Reader Powered by Readium: Full-book EPUB downloads cached for offline or incognito reading, choose any installed font or the publisher default, adjust font size, toggle paged vs. continuous scroll, pick auto/single/dual-column layouts, and switch between system, light, sepia, or dark themes with a live chapter navigator.
-• Complete Progress Tracking: Automatic sync across devices, resume from the last page, in-progress indicators, and incognito mode when you want to read without leaving a trace.
+• Dual-Format Reader Support:
+  - DIVINA Reader: LTR, RTL, vertical, and adjustable-width webtoon reading, dual-page spreads with optional cover skipping, pinch-to-zoom, customizable tap zones, auto-hide controls, page jumps, and page exports (JPEG/PNG/HEIF/WebP).
+  - EPUB Reader: Full-book EPUB downloads cached for offline or incognito reading, choose any installed font or the publisher default, adjust font size, toggle paged vs. continuous scroll, pick auto/single/dual-column layouts, and switch between system, light, sepia, or dark themes with a live chapter navigator.
+• Complete Progress Tracking: Automatic sync across devices, resume from the last page, in-progress indicators, and incognito mode (available for both DIVINA and EPUB) when you want to read without leaving a trace.
 • Collections & Read Lists: Build curated collections, add/remove entries, and manage your backlog from anywhere.
-• Server Controls & Smart Caching: Admin tools for server info, metrics, scans, metadata refresh, and trash management alongside a configurable 512MB–8GB cache for instant image and EPUB loading—even offline.
+• Server Controls & Smart Caching: Admin tools for server info, metrics, scans, metadata refresh, and trash management alongside a three-tier caching system (page cache: 512MB–8GB, book file cache, thumbnail cache) for instant image and EPUB loading—even offline.
 • Native macOS Experience: Dedicated reader window, keyboard shortcuts, and full feature parity with iOS.
 
 Connect to your Komga server and take full control of your digital library today.
