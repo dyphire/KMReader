@@ -194,10 +194,10 @@ struct SettingsServersView: View {
 
         detailRow(icon: "globe", text: instance.serverURL)
         detailRow(icon: "person", text: "User: \(instance.username)")
-
-        let roleText = instance.isAdmin ? "Role: Admin" : "Role: User"
-        let roleColor: Color = instance.isAdmin ? .green : .secondary
-        detailRow(icon: "shield", text: roleText, color: roleColor)
+        detailRow(
+          icon: "shield",
+          text: instance.isAdmin ? "Role: Admin" : "Role: User",
+          color: instance.isAdmin ? .green : .secondary)
       }
       .padding(16)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,10 +212,13 @@ struct SettingsServersView: View {
       .overlay(
         RoundedRectangle(cornerRadius: 18)
           .stroke(
-            isActive(instance) ? themeColor.color.opacity(0.6) : Color.clear,
+            isActive(instance)
+              ? themeColor.color.opacity(0.6)
+              : Color.primary.opacity(0.1),
             lineWidth: 1.5
           )
       )
+      .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
     .animation(.easeInOut(duration: 0.25), value: isActive(instance))
     .buttonStyle(.plain)
