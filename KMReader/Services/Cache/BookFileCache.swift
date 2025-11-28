@@ -11,20 +11,15 @@ actor BookFileCache {
   static let shared = BookFileCache()
 
   private let fileManager = FileManager.default
-  private let rootDirectory: URL
   private var downloadTasks: [String: Task<URL, Error>] = [:]
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
 
-  init() {
-    let cachesDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    rootDirectory = cachesDir.appendingPathComponent("KomgaBookFileCache", isDirectory: true)
-    try? fileManager.createDirectory(at: rootDirectory, withIntermediateDirectories: true)
-  }
+  init() {}
 
   func bookRootURL(bookId: String) -> URL {
-    let url = rootDirectory.appendingPathComponent(bookId, isDirectory: true)
+    let url = namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
     if !fileManager.fileExists(atPath: url.path) {
       try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
     }
@@ -32,17 +27,21 @@ actor BookFileCache {
   }
 
   func clear(bookId: String) {
-    let url = rootDirectory.appendingPathComponent(bookId, isDirectory: true)
+    let url = namespacedRootDirectory().appendingPathComponent(bookId, isDirectory: true)
     try? fileManager.removeItem(at: url)
     Task {
       await Self.cacheSizeActor.invalidate()
     }
   }
 
+  private func namespacedRootDirectory() -> URL {
+    CacheNamespace.directory(for: "KomgaBookFileCache")
+  }
+
   /// Clear disk cache for a specific book (static method for use from anywhere)
   static func clearDiskCache(forBookId bookId: String) async {
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = namespacedDiskCacheURL()
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
 
     await Task.detached(priority: .userInitiated) {
@@ -163,16 +162,19 @@ actor BookFileCache {
     return base.appendingPathComponent(fileName, isDirectory: false)
   }
 
-  /// Get the disk cache directory URL (static helper)
-  nonisolated private static func getDiskCacheURL() -> URL {
-    let fileManager = FileManager.default
-    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    return cacheDir.appendingPathComponent("KomgaBookFileCache", isDirectory: true)
+  /// Namespaced disk cache directory URL (static helper)
+  nonisolated private static func namespacedDiskCacheURL() -> URL {
+    CacheNamespace.directory(for: "KomgaBookFileCache")
+  }
+
+  /// Root cache directory shared by all namespaces.
+  nonisolated private static func baseDiskCacheURL() -> URL {
+    CacheNamespace.baseDirectory(for: "KomgaBookFileCache")
   }
 
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = baseDiskCacheURL()
 
     await Task.detached(priority: .userInitiated) {
       try? fileManager.removeItem(at: diskCacheURL)
@@ -209,7 +211,7 @@ actor BookFileCache {
 
     // Cache miss or invalid, calculate size and count
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = namespacedDiskCacheURL()
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {

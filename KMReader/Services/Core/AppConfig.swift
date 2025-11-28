@@ -70,6 +70,17 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "dualPageNoCover") }
   }
 
+  static var currentInstanceId: String? {
+    get { defaults.string(forKey: "currentInstanceId") }
+    set {
+      if let value = newValue {
+        defaults.set(value, forKey: "currentInstanceId")
+      } else {
+        defaults.removeObject(forKey: "currentInstanceId")
+      }
+    }
+  }
+
   static var maxDiskCacheSizeMB: Int {
     get {
       if defaults.object(forKey: "maxDiskCacheSizeMB") != nil {
@@ -94,8 +105,8 @@ enum AppConfig {
   static func clearAuthData() {
     authToken = nil
     username = nil
-    isLoggedIn = false
     isAdmin = false
     selectedLibraryId = ""
+    currentInstanceId = nil
   }
 }

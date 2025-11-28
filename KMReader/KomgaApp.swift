@@ -7,13 +7,22 @@
 
 import SDWebImage
 import SDWebImageWebPCoder
+import SwiftData
 import SwiftUI
 
 @main
 struct KomgaApp: App {
-  @State private var authViewModel = AuthViewModel()
+  private let modelContainer: ModelContainer
+  @State private var authViewModel: AuthViewModel
 
   init() {
+    do {
+      modelContainer = try ModelContainer(for: KomgaInstance.self)
+    } catch {
+      fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
+    }
+    KomgaInstanceStore.shared.configure(with: modelContainer)
+    _authViewModel = State(initialValue: AuthViewModel())
     configureSDWebImage()
   }
 
@@ -21,7 +30,11 @@ struct KomgaApp: App {
     WindowGroup {
       ContentView()
         .environment(authViewModel)
+        .modelContainer(modelContainer)
         .onChange(of: authViewModel.isLoggedIn) {
+          configureSDWebImage()
+        }
+        .onChange(of: authViewModel.credentialsVersion) {
           configureSDWebImage()
         }
     }
@@ -29,6 +42,7 @@ struct KomgaApp: App {
       WindowGroup("Reader", id: "reader") {
         ReaderWindowView()
           .environment(authViewModel)
+          .modelContainer(modelContainer)
       }
       .defaultSize(width: 1200, height: 800)
     #endif

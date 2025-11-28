@@ -36,7 +36,6 @@ class AuthService {
 
     // Store credentials if successful
     AppConfig.username = username
-    AppConfig.isLoggedIn = true
     AppConfig.isAdmin = user.roles.contains("ADMIN")
 
     return user

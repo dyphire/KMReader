@@ -6,31 +6,54 @@
 //
 
 import Foundation
+import SwiftData
 import SwiftUI
 
 @MainActor
 @Observable
 class AuthViewModel {
-  var isLoggedIn = false
+  private var loggedInState: Bool
+  var isLoggedIn: Bool {
+    get { loggedInState }
+    set {
+      if loggedInState != newValue {
+        loggedInState = newValue
+        AppConfig.isLoggedIn = newValue
+      }
+    }
+  }
   var isLoading = false
   var user: User?
+  var credentialsVersion = UUID()
 
   private let authService = AuthService.shared
+  private let instanceStore = KomgaInstanceStore.shared
 
   init() {
-    self.isLoggedIn = authService.isLoggedIn()
+    self.loggedInState = authService.isLoggedIn()
   }
 
-  func login(username: String, password: String, serverURL: String) async {
+  func login(
+    username: String,
+    password: String,
+    serverURL: String,
+    displayName: String? = nil
+  ) async {
     isLoading = true
 
     do {
       user = try await authService.login(
         username: username, password: password, serverURL: serverURL)
       isLoggedIn = true
+      persistInstance(serverURL: serverURL, username: username, displayName: displayName)
+      credentialsVersion = UUID()
     } catch {
       ErrorManager.shared.alert(error: error)
       isLoggedIn = false
+    }
+
+    if isLoggedIn {
+      ErrorManager.shared.notify(message: "Logged in successfully")
     }
 
     isLoading = false
@@ -42,6 +65,7 @@ class AuthViewModel {
     }
     isLoggedIn = false
     user = nil
+    credentialsVersion = UUID()
   }
 
   func loadCurrentUser() async {
@@ -57,6 +81,42 @@ class AuthViewModel {
         return
       }
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  func switchTo(instance: KomgaInstance) {
+    APIClient.shared.setServer(url: instance.serverURL)
+    APIClient.shared.setAuthToken(instance.authToken)
+    AppConfig.username = instance.username
+    AppConfig.isAdmin = instance.isAdmin
+    isLoggedIn = true
+    AppConfig.currentInstanceId = instance.id.uuidString
+    credentialsVersion = UUID()
+
+    Task {
+      await loadCurrentUser()
+      await LibraryManager.shared.loadLibraries()
+      ErrorManager.shared.notify(message: "Switched to \(instance.name)")
+    }
+  }
+
+  private func persistInstance(serverURL: String, username: String, displayName: String?) {
+    guard let authToken = AppConfig.authToken else {
+      return
+    }
+
+    do {
+      let instance = try instanceStore.upsertInstance(
+        serverURL: serverURL,
+        username: username,
+        authToken: authToken,
+        isAdmin: AppConfig.isAdmin,
+        displayName: displayName
+      )
+      AppConfig.currentInstanceId = instance.id.uuidString
+    } catch {
+      ErrorManager.shared
+        .notify(message: "Failed to remember server: \(error.localizedDescription)")
     }
   }
 }

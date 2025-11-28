@@ -33,4 +33,12 @@ enum CacheManager {
       SDImageCacheProvider.thumbnailCache.clearDisk()
     }
   }
+
+  /// Remove all cached data for a specific Komga instance.
+  static func clearCaches(instanceId: String) async {
+    await Task.detached(priority: .utility) {
+      CacheNamespace.removeNamespace(for: "KomgaImageCache", instanceId: instanceId)
+      CacheNamespace.removeNamespace(for: "KomgaBookFileCache", instanceId: instanceId)
+    }.value
+  }
 }

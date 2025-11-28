@@ -8,29 +8,33 @@
 import SwiftUI
 
 struct LoginView: View {
+  @Environment(\.dismiss) private var dismiss
   @Environment(AuthViewModel.self) private var authViewModel
   @AppStorage("serverURL") private var serverURL: String = "https://demo.komga.org"
   @AppStorage("username") private var username: String = ""
   @State private var password = ""
+  @State private var instanceName = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   var body: some View {
     ScrollView {
       VStack(spacing: 32) {
         // Logo/Title Section
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
           Image("Komga")
             .resizable()
             .aspectRatio(contentMode: .fit)
-            .frame(height: 80)
+            .frame(height: 72)
 
-          Text("Get started")
-            .font(.system(size: 36, weight: .bold))
+          Text("Sign in to Komga")
+            .font(.system(size: 32, weight: .bold))
             .foregroundStyle(.primary)
 
-          Text("Connect to your Komga server")
-            .font(.subheadline)
+          Text("Enter the credentials you use to access your Komga server.")
+            .font(.callout)
             .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 12)
         }
         .padding(.top, 60)
         .padding(.bottom, 20)
@@ -54,6 +58,25 @@ struct LoginView: View {
                   .autocapitalization(.none)
                   .keyboardType(.URL)
                 #endif
+                .autocorrectionDisabled()
+            }
+            .padding()
+            .background(PlatformHelper.secondarySystemBackgroundColor)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+          }
+
+          // Instance Name Field (Optional)
+          VStack(alignment: .leading, spacing: 8) {
+            Label("Instance Name (Optional)", systemImage: "tag")
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+
+            HStack {
+              Image(systemName: "tag.circle")
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+
+              TextField("e.g. \"Home\" or \"Work\"", text: $instanceName)
                 .autocorrectionDisabled()
             }
             .padding()
@@ -145,7 +168,17 @@ struct LoginView: View {
 
   private func login() {
     Task {
-      await authViewModel.login(username: username, password: password, serverURL: serverURL)
+      let trimmedName = instanceName.trimmingCharacters(in: .whitespacesAndNewlines)
+      let displayName = trimmedName.isEmpty ? nil : trimmedName
+      await authViewModel.login(
+        username: username,
+        password: password,
+        serverURL: serverURL,
+        displayName: displayName
+      )
+      if authViewModel.isLoggedIn {
+        dismiss()
+      }
     }
   }
 }

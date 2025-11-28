@@ -9,7 +9,7 @@ import SwiftUI
 
 struct LandingView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-  @State private var showLogin = false
+  @State private var showGetStarted = false
 
   var body: some View {
     NavigationStack {
@@ -38,7 +38,7 @@ struct LandingView: View {
 
         // Get Started Button
         Button(action: {
-          showLogin = true
+          showGetStarted = true
         }) {
           HStack {
             Text("Get Started")
@@ -54,8 +54,8 @@ struct LandingView: View {
         .padding(.horizontal, 40)
         .padding(.bottom, 60)
       }
-      .navigationDestination(isPresented: $showLogin) {
-        LoginView()
+      .navigationDestination(isPresented: $showGetStarted) {
+        SettingsServersView(mode: .onboarding)
       }
     }
   }

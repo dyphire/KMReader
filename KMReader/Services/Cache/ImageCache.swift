@@ -33,12 +33,8 @@ class ImageCache {
   init(maxDiskCacheMB: Int = 2048) {
     self.maxDiskCacheSizeMB = maxDiskCacheMB
 
-    // Setup disk cache directory
-    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    diskCacheURL = cacheDir.appendingPathComponent("KomgaImageCache", isDirectory: true)
-
-    // Create cache directory if needed
-    try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
+    // Setup disk cache directory scoped to the active server namespace
+    diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache")
 
     // Clean up old disk cache on init
     Task {
@@ -144,7 +140,7 @@ class ImageCache {
   /// Clear disk cache for a specific book (static method for use from anywhere)
   static func clearDiskCache(forBookId bookId: String) async {
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = namespacedDiskCacheURL()
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
 
     await Task.detached(priority: .userInitiated) {
@@ -158,7 +154,7 @@ class ImageCache {
   /// Clear all disk cache (static method for use from anywhere)
   static func clearAllDiskCache() async {
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = CacheNamespace.baseDirectory(for: "KomgaImageCache")
 
     await Task.detached(priority: .userInitiated) {
       try? fileManager.removeItem(at: diskCacheURL)
@@ -188,7 +184,7 @@ class ImageCache {
   /// Checks current cache size against configured max size and cleans up if needed
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = namespacedDiskCacheURL()
     let maxCacheSizeMB = getMaxDiskCacheSizeMB()
 
     await Task.detached(priority: .utility) {
@@ -211,7 +207,7 @@ class ImageCache {
 
     // Cache miss or invalid, calculate size and count
     let fileManager = FileManager.default
-    let diskCacheURL = getDiskCacheURL()
+    let diskCacheURL = namespacedDiskCacheURL()
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {
@@ -235,11 +231,9 @@ class ImageCache {
 
   // MARK: - Private Methods
 
-  /// Get the disk cache directory URL (static helper)
-  nonisolated private static func getDiskCacheURL() -> URL {
-    let fileManager = FileManager.default
-    let cacheDir = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first!
-    return cacheDir.appendingPathComponent("KomgaImageCache", isDirectory: true)
+  /// Namespaced disk cache directory URL (static helper)
+  nonisolated private static func namespacedDiskCacheURL() -> URL {
+    CacheNamespace.directory(for: "KomgaImageCache")
   }
 
   /// Recursively collect all files in a directory

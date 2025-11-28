@@ -9,7 +9,6 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
-  @State private var showLogoutAlert = false
 
   var body: some View {
     NavigationStack {
@@ -41,6 +40,9 @@ struct SettingsView: View {
         }
 
         Section(header: Text("Account")) {
+          NavigationLink(value: NavDestination.settingsServers) {
+            Label("Servers", systemImage: "list.bullet.rectangle")
+          }
           if let user = authViewModel.user {
             HStack {
               Label("Email", systemImage: "envelope")
@@ -58,15 +60,6 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
             Label("Authentication Activity", systemImage: "clock")
           }
-          Button(role: .destructive) {
-            showLogoutAlert = true
-          } label: {
-            HStack {
-              Spacer()
-              Text("Logout")
-              Spacer()
-            }
-          }
         }
 
         HStack {
@@ -81,14 +74,6 @@ struct SettingsView: View {
       #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
       #endif
-      .alert("Logout", isPresented: $showLogoutAlert) {
-        Button("Cancel", role: .cancel) {}
-        Button("Logout", role: .destructive) {
-          authViewModel.logout()
-        }
-      } message: {
-        Text("Are you sure you want to logout?")
-      }
     }
   }
 

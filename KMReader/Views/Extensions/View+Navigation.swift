@@ -35,6 +35,8 @@ extension View {
           SettingsMetricsView()
         case .settingsAuthenticationActivity:
           AuthenticationActivityView()
+        case .settingsServers:
+          SettingsServersView()
         }
       }
   }
