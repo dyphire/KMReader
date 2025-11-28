@@ -13,7 +13,6 @@ import SwiftUI
 class LibraryManager {
   static let shared = LibraryManager()
 
-  private(set) var libraries: [LibraryInfo] = []
   private(set) var isLoading = false
 
   private let libraryService = LibraryService.shared
@@ -23,14 +22,12 @@ class LibraryManager {
 
   func loadLibraries() async {
     guard let instanceId = AppConfig.currentInstanceId else {
-      libraries = []
       hasLoaded = false
       loadedInstanceId = nil
       return
     }
 
     if loadedInstanceId != instanceId {
-      loadPersistedLibraries(for: instanceId)
       loadedInstanceId = instanceId
       hasLoaded = false
     }
@@ -43,7 +40,6 @@ class LibraryManager {
       let fullLibraries = try await libraryService.getLibraries()
       // Extract only id and name
       let infos = fullLibraries.map { LibraryInfo(id: $0.id, name: $0.name) }
-      libraries = infos
       try libraryStore.replaceLibraries(infos, for: instanceId)
       hasLoaded = true
     } catch {
@@ -54,6 +50,10 @@ class LibraryManager {
   }
 
   func getLibrary(id: String) -> LibraryInfo? {
+    guard let instanceId = AppConfig.currentInstanceId else {
+      return nil
+    }
+    let libraries = libraryStore.fetchLibraries(instanceId: instanceId)
     return libraries.first { $0.id == id }
   }
 
@@ -63,7 +63,6 @@ class LibraryManager {
   }
 
   func clearAllLibraries() {
-    libraries = []
     hasLoaded = false
     loadedInstanceId = nil
     do {
@@ -77,16 +76,11 @@ class LibraryManager {
     do {
       try libraryStore.deleteLibraries(instanceId: instanceId)
       if loadedInstanceId == instanceId {
-        libraries = []
         hasLoaded = false
         loadedInstanceId = nil
       }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-  }
-
-  private func loadPersistedLibraries(for instanceId: String) {
-    libraries = libraryStore.fetchLibraries(instanceId: instanceId)
   }
 }

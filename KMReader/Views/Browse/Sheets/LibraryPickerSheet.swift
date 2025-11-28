@@ -5,24 +5,34 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @Environment(\.dismiss) private var dismiss
-  @State private var libraryManager = LibraryManager.shared
+  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
+    [KomgaLibrary]
+  private let libraryManager = LibraryManager.shared
+
+  private var libraries: [KomgaLibrary] {
+    guard let instanceId = AppConfig.currentInstanceId else {
+      return []
+    }
+    return allLibraries.filter { $0.instanceId == instanceId }
+  }
 
   var body: some View {
     NavigationStack {
       Form {
-        if libraryManager.isLoading && libraryManager.libraries.isEmpty {
+        if libraryManager.isLoading && libraries.isEmpty {
           ProgressView()
             .frame(maxWidth: .infinity)
         } else {
           Picker("Library", selection: $selectedLibraryId) {
             Label("All Libraries", systemImage: "square.grid.2x2").tag("")
-            ForEach(libraryManager.libraries) { library in
-              Label(library.name, systemImage: "books.vertical").tag(library.id)
+            ForEach(libraries) { library in
+              Label(library.name, systemImage: "books.vertical").tag(library.libraryId)
             }
           }
           .pickerStyle(.inline)
