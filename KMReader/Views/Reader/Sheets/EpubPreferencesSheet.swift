@@ -7,6 +7,7 @@
 
 import CoreText
 import ReadiumNavigator
+import SwiftData
 import SwiftUI
 
 #if canImport(UIKit)
@@ -23,6 +24,7 @@ struct EpubPreferencesSheet: View {
   @State private var showCustomFontsSheet: Bool = false
   @State private var fontListRefreshId: UUID = UUID()
 
+  @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
   @Environment(\.dismiss) private var dismiss
 
   init(_ pref: EpubReaderPreferences, onApply: @escaping (EpubReaderPreferences) -> Void) {
@@ -96,8 +98,8 @@ struct EpubPreferencesSheet: View {
               HStack {
                 Label("Manage Custom Fonts", systemImage: "textformat")
                 Spacer()
-                if !AppConfig.customFontNames.isEmpty {
-                  Text("\(AppConfig.customFontNames.count)")
+                if !customFonts.isEmpty {
+                  Text("\(customFonts.count)")
                     .foregroundStyle(.secondary)
                 }
                 Image(systemName: "chevron.right")
@@ -184,7 +186,8 @@ struct EpubPreferencesSheet: View {
             fontListRefreshId = UUID()
 
             // If current selection is a removed font, reset to publisher default
-            if !AppConfig.customFontNames.contains(draft.fontFamily.rawValue)
+            let customFontNames = customFonts.map { $0.name }
+            if !customFontNames.contains(draft.fontFamily.rawValue)
               && draft.fontFamily != .publisher
               && !FontProvider.allChoices.contains(where: {
                 $0.rawValue == draft.fontFamily.rawValue
@@ -329,7 +332,7 @@ enum FontProvider {
 
   private static func loadFonts() -> [FontFamilyChoice] {
     // Only use custom fonts, not system fonts
-    let customFonts = AppConfig.customFontNames
+    let customFonts = CustomFontStore.shared.fetchCustomFonts()
     let sorted = customFonts.sorted()
     let customChoices = sorted.map { FontFamilyChoice.system($0) }
 

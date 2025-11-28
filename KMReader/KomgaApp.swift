@@ -17,12 +17,14 @@ struct KomgaApp: App {
 
   init() {
     do {
-      modelContainer = try ModelContainer(for: KomgaInstance.self, KomgaLibrary.self)
+      modelContainer = try ModelContainer(
+        for: KomgaInstance.self, KomgaLibrary.self, CustomFont.self)
     } catch {
       fatalError("Failed to create ModelContainer: \(error.localizedDescription)")
     }
     KomgaInstanceStore.shared.configure(with: modelContainer)
     KomgaLibraryStore.shared.configure(with: modelContainer)
+    CustomFontStore.shared.configure(with: modelContainer)
     _authViewModel = State(initialValue: AuthViewModel())
     SDImageCacheProvider.configureSDWebImage()
   }

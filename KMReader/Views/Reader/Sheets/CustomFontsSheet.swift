@@ -6,6 +6,7 @@
 //
 
 import CoreText
+import SwiftData
 import SwiftUI
 
 #if canImport(UIKit)
@@ -18,10 +19,11 @@ struct CustomFontsSheet: View {
   @State private var customFontInput: String = ""
   @State private var showFontInputError: Bool = false
   @State private var fontInputErrorMessage: String = ""
-  @State private var customFonts: [String] = AppConfig.customFontNames
   @State private var showFontPicker: Bool = false
 
+  @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     NavigationStack {
@@ -87,21 +89,17 @@ struct CustomFontsSheet: View {
 
         if !customFonts.isEmpty {
           Section {
-            ForEach(customFonts, id: \.self) { fontName in
-              HStack {
-                Text(fontName)
-                  .font(.system(size: 14, design: .monospaced))
-                  .textSelection(.enabled)
-                Spacer()
-                Button {
-                  removeCustomFont(fontName)
-                } label: {
-                  Label("Delete", systemImage: "trash")
-                    .labelStyle(.iconOnly)
+            ForEach(customFonts) { font in
+              Text(font.name)
+                .font(.system(size: 14, design: .monospaced))
+                .textSelection(.enabled)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                  Button(role: .destructive) {
+                    removeCustomFont(font)
+                  } label: {
+                    Label("Delete", systemImage: "trash")
+                  }
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.red)
-              }
             }
           } header: {
             Text("Custom Fonts")
@@ -136,7 +134,7 @@ struct CustomFontsSheet: View {
     let familyName = font.familyName
 
     // Check if font already exists in custom fonts
-    if customFonts.contains(familyName) {
+    if customFonts.contains(where: { $0.name == familyName }) {
       // Font already added, just clear any error
       showFontInputError = false
       fontInputErrorMessage = ""
@@ -145,11 +143,15 @@ struct CustomFontsSheet: View {
 
     // Add font to custom fonts list (even if it's in system fonts,
     // because it might be a profile-installed font that we want to ensure is available)
-    var updatedFonts = customFonts
-    updatedFonts.append(familyName)
-    let sortedFonts = updatedFonts.sorted()
-    AppConfig.customFontNames = sortedFonts
-    customFonts = sortedFonts
+    let customFont = CustomFont(name: familyName)
+    modelContext.insert(customFont)
+    do {
+      try modelContext.save()
+    } catch {
+      showFontInputError = true
+      fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+      return
+    }
 
     // Refresh font provider
     FontProvider.refresh()
@@ -168,7 +170,7 @@ struct CustomFontsSheet: View {
     }
 
     // Check if font already exists in custom fonts
-    if customFonts.contains(fontName) {
+    if customFonts.contains(where: { $0.name == fontName }) {
       showFontInputError = true
       fontInputErrorMessage = "Font already added"
       return
@@ -189,11 +191,15 @@ struct CustomFontsSheet: View {
     }
 
     // Add font to custom fonts list
-    var updatedFonts = customFonts
-    updatedFonts.append(fontName)
-    let sortedFonts = updatedFonts.sorted()
-    AppConfig.customFontNames = sortedFonts
-    customFonts = sortedFonts
+    let customFont = CustomFont(name: fontName)
+    modelContext.insert(customFont)
+    do {
+      try modelContext.save()
+    } catch {
+      showFontInputError = true
+      fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+      return
+    }
 
     // Clear input and error
     customFontInput = ""
@@ -204,11 +210,15 @@ struct CustomFontsSheet: View {
     FontProvider.refresh()
   }
 
-  private func removeCustomFont(_ fontName: String) {
-    var updatedFonts = customFonts
-    updatedFonts.removeAll { $0 == fontName }
-    AppConfig.customFontNames = updatedFonts
-    customFonts = updatedFonts
+  private func removeCustomFont(_ font: CustomFont) {
+    modelContext.delete(font)
+    do {
+      try modelContext.save()
+    } catch {
+      showFontInputError = true
+      fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
+      return
+    }
 
     // Refresh font provider
     FontProvider.refresh()
