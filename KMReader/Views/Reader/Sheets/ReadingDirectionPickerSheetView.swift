@@ -18,7 +18,10 @@ struct ReadingDirectionPickerSheetView: View {
             HStack {
               Image(systemName: direction.icon)
               Text(direction.displayName)
-            }.tag(direction)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .tag(direction)
           }
         }
         .pickerStyle(.inline)

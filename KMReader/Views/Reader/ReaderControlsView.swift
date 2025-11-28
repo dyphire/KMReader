@@ -25,7 +25,6 @@ struct ReaderControlsView: View {
   @State private var fileToSave: URL?
   @State private var showingPageJumpSheet = false
   @State private var showingTOCSheet = false
-  @State private var showingActionsSheet = false
 
   enum SaveImageResult: Equatable {
     case success
@@ -63,55 +62,68 @@ struct ReaderControlsView: View {
       // Top bar
       VStack(spacing: 12) {
 
-        // Close button
+        // Close button and action buttons
         HStack {
           Button {
             onDismiss()
           } label: {
             Image(systemName: "xmark")
-              .font(.title3)
               .foregroundColor(.white)
-              .padding()
+              .frame(minWidth: 40, minHeight: 40)
+              .padding(6)
               .background(themeColor.color.opacity(0.9))
               .clipShape(Circle())
+              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
-          .frame(minWidth: 40, minHeight: 40)
-          .contentShape(Rectangle())
 
           Spacer()
 
-          // Page info display
-          HStack(spacing: 6) {
-            Image(systemName: "bookmark")
-              .font(.footnote)
-            Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
-              .monospacedDigit()
-          }
-          .foregroundColor(.white)
-          .padding(.horizontal, 16)
-          .padding(.vertical, 8)
-          .background(themeColor.color.opacity(0.9))
-          .cornerRadius(20)
-          .overlay(
-            RoundedRectangle(cornerRadius: 20)
-              .stroke(Color.white.opacity(0.3), lineWidth: 1)
-          )
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          // Action buttons
+          HStack(spacing: 12) {
+            // TOC button (only show if TOC exists)
+            if !viewModel.tableOfContents.isEmpty {
+              Button {
+                showingTOCSheet = true
+              } label: {
+                Image(systemName: "list.bullet.rectangle.portrait")
+                  .foregroundColor(.white)
+                  .frame(width: 40, height: 40)
+                  .padding(6)
+                  .background(themeColor.color.opacity(0.9))
+                  .clipShape(Circle())
+                  .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+              }
+            }
 
-          Spacer()
+            // Jump to page button
+            Button {
+              guard !viewModel.pages.isEmpty else { return }
+              showingPageJumpSheet = true
+            } label: {
+              Image(systemName: "photo.stack")
+                .foregroundColor(.white)
+                .frame(width: 40, height: 40)
+                .padding(6)
+                .background(themeColor.color.opacity(0.9))
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
 
-          Button {
-            showingActionsSheet = true
-          } label: {
-            Image(systemName: "gearshape")
-              .font(.title3)
-              .foregroundColor(.white)
-              .padding()
-              .background(themeColor.color.opacity(0.9))
-              .clipShape(Circle())
+            // Reading direction button
+            Button {
+              showingReadingDirectionPicker = true
+            } label: {
+              Image(systemName: readingDirection.icon)
+                .foregroundColor(.white)
+                .frame(width: 40, height: 40)
+                .padding(6)
+                .background(themeColor.color.opacity(0.9))
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
           }
-          .contentShape(Rectangle())
-        }
+
+        }.buttonStyle(.plain)
       }
       .padding()
       .allowsHitTesting(true)
@@ -134,12 +146,33 @@ struct ReaderControlsView: View {
 
       Spacer()
 
-      // Bottom slider
-      ProgressView(
-        value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
-        total: Double(viewModel.pages.count)
-      )
-      .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+      // Bottom section with page info and slider
+      VStack(spacing: 12) {
+        // Page info display
+        HStack(spacing: 6) {
+          Image(systemName: "bookmark")
+            .font(.footnote)
+          Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
+            .monospacedDigit()
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(themeColor.color.opacity(0.9))
+        .cornerRadius(20)
+        .overlay(
+          RoundedRectangle(cornerRadius: 20)
+            .stroke(Color.white.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+
+        // Bottom slider
+        ProgressView(
+          value: Double(min(viewModel.currentPageIndex + 1, viewModel.pages.count)),
+          total: Double(viewModel.pages.count)
+        )
+        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+      }
       .padding()
     }
     .padding(.vertical)
@@ -173,28 +206,6 @@ struct ReaderControlsView: View {
           jumpToTOCEntry(entry)
         }
       )
-    }
-    .sheet(isPresented: $showingActionsSheet) {
-      ReaderActionsSheetView(
-        hasTOC: !viewModel.tableOfContents.isEmpty,
-        readingDirectionIcon: readingDirection.icon,
-        onSelectAction: { action in
-          showingActionsSheet = false
-          switch action {
-          case .readingDirection:
-            showingReadingDirectionPicker = true
-          case .jumpToPage:
-            guard !viewModel.pages.isEmpty else { return }
-            showingPageJumpSheet = true
-          case .toc:
-            showingTOCSheet = true
-          case .cancel:
-            break
-          }
-        }
-      )
-      .presentationDetents([.medium])
-      .presentationDragIndicator(.visible)
     }
   }
 }

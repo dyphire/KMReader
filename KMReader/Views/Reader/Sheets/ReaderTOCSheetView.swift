@@ -22,8 +22,10 @@ struct ReaderTOCSheetView: View {
             VStack(alignment: .leading) {
               Text(entry.title)
                 .font(.body)
-              Text(String(
-                format: NSLocalizedString("Page %d", comment: "TOC page label"), entry.pageNumber))
+              Text(
+                String(
+                  format: NSLocalizedString("Page %d", comment: "TOC page label"), entry.pageNumber)
+              )
               .font(.caption)
               .foregroundStyle(.secondary)
             }
@@ -33,9 +35,10 @@ struct ReaderTOCSheetView: View {
                 .foregroundStyle(.tint)
             }
           }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .contentShape(Rectangle())
       }
       .navigationTitle("Table of Contents")
       #if canImport(UIKit)
