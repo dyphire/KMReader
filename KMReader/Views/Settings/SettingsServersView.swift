@@ -29,6 +29,7 @@ struct SettingsServersView: View {
   ]) private var instances: [KomgaInstance]
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   @State private var instancePendingDeletion: KomgaInstance?
   @State private var editingInstance: KomgaInstance?
@@ -36,7 +37,7 @@ struct SettingsServersView: View {
   @State private var showLogoutAlert = false
 
   private var activeInstanceId: String? {
-    AppConfig.currentInstanceId
+    currentInstanceId.isEmpty ? nil : currentInstanceId
   }
 
   var body: some View {

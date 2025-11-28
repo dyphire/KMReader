@@ -11,7 +11,8 @@ import Foundation
 enum CacheNamespace {
   /// Returns the active Komga instance identifier for namespace segregation.
   static func identifier() -> String {
-    guard let instanceId = AppConfig.currentInstanceId, !instanceId.isEmpty else {
+    let instanceId = AppConfig.currentInstanceId
+    guard !instanceId.isEmpty else {
       assertionFailure("CacheNamespace requires a current Komga instance id")
       return "default"
     }
@@ -51,7 +52,9 @@ enum CacheNamespace {
 
   private static func ensureDirectoryExists(at url: URL) {
     var isDirectory: ObjCBool = false
-    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue {
+    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+      isDirectory.boolValue
+    {
       return
     }
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

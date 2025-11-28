@@ -13,6 +13,7 @@ struct SettingsServerEditView: View {
   @Environment(\.modelContext) private var modelContext
   @Environment(AuthViewModel.self) private var authViewModel
   @Bindable var instance: KomgaInstance
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   @State private var name: String
   @State private var serverURL: String
@@ -43,7 +44,10 @@ struct SettingsServerEditView: View {
             .autocorrectionDisabled()
         }
 
-        Section(header: Text("Credentials"), footer: Text("Leave the password empty to keep the existing credentials.")) {
+        Section(
+          header: Text("Credentials"),
+          footer: Text("Leave the password empty to keep the existing credentials.")
+        ) {
           TextField("Username", text: $username)
             .textContentType(.username)
             #if canImport(UIKit)
@@ -113,7 +117,7 @@ struct SettingsServerEditView: View {
 
     do {
       try modelContext.save()
-      if AppConfig.currentInstanceId == instance.id.uuidString {
+      if currentInstanceId == instance.id.uuidString {
         authViewModel.switchTo(instance: instance)
       }
       dismiss()

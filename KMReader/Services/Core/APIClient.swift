@@ -14,14 +14,6 @@ class APIClient {
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "API")
 
-  private var baseURL: String {
-    AppConfig.serverURL
-  }
-
-  private var authToken: String? {
-    AppConfig.authToken
-  }
-
   private let userAgent: String
 
   // URLSession with cache configuration for all requests
@@ -60,7 +52,7 @@ class APIClient {
   }
 
   func setAuthToken(_ token: String?) {
-    AppConfig.authToken = token
+    AppConfig.authToken = token ?? ""
   }
 
   // MARK: - Private Helpers
@@ -71,7 +63,7 @@ class APIClient {
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil
   ) throws -> URLRequest {
-    guard var urlComponents = URLComponents(string: baseURL + path) else {
+    guard var urlComponents = URLComponents(string: AppConfig.serverURL + path) else {
       throw APIError.invalidURL
     }
 
@@ -90,8 +82,8 @@ class APIClient {
     // Set User-Agent
     request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
-    if let authToken = authToken {
-      request.addValue("Basic \(authToken)", forHTTPHeaderField: "Authorization")
+    if !AppConfig.authToken.isEmpty {
+      request.addValue("Basic \(AppConfig.authToken)", forHTTPHeaderField: "Authorization")
     }
 
     if body != nil {
@@ -298,7 +290,6 @@ class APIClient {
 
     return (data, contentType, suggestedFilename)
   }
-
 
   private func filenameFromContentDisposition(_ header: String?) -> String? {
     guard let header = header else { return nil }

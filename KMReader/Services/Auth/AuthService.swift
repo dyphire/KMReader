@@ -50,7 +50,7 @@ class AuthService {
     }
 
     // Clear local data
-    apiClient.setAuthToken(nil)
+    apiClient.setAuthToken("")
     AppConfig.clearAuthData()
 
     // Clear library data

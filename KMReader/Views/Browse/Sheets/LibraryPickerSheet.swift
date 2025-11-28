@@ -10,16 +10,17 @@ import SwiftUI
 
 struct LibraryPickerSheet: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @Environment(\.dismiss) private var dismiss
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
   private let libraryManager = LibraryManager.shared
 
   private var libraries: [KomgaLibrary] {
-    guard let instanceId = AppConfig.currentInstanceId else {
+    guard !currentInstanceId.isEmpty else {
       return []
     }
-    return allLibraries.filter { $0.instanceId == instanceId }
+    return allLibraries.filter { $0.instanceId == currentInstanceId }
   }
 
   var body: some View {

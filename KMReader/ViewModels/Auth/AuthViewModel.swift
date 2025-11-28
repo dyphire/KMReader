@@ -98,7 +98,7 @@ class AuthViewModel {
   }
 
   private func persistInstance(serverURL: String, username: String, displayName: String?) {
-    guard let authToken = AppConfig.authToken else {
+    guard !AppConfig.authToken.isEmpty else {
       return
     }
 
@@ -106,7 +106,7 @@ class AuthViewModel {
       let instance = try instanceStore.upsertInstance(
         serverURL: serverURL,
         username: username,
-        authToken: authToken,
+        authToken: AppConfig.authToken,
         isAdmin: AppConfig.isAdmin,
         displayName: displayName
       )

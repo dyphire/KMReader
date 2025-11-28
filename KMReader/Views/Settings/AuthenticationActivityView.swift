@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AuthenticationActivityView: View {
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @State private var activities: [AuthenticationActivity] = []
   @State private var isLoading = false
   @State private var isLoadingMore = false
@@ -16,7 +17,27 @@ struct AuthenticationActivityView: View {
 
   var body: some View {
     List {
-      if isLoading && activities.isEmpty {
+      if !isAdmin {
+        Section {
+          HStack {
+            Spacer()
+            VStack(spacing: 8) {
+              Image(systemName: "lock.shield")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+              Text("Admin access required")
+                .font(.headline)
+                .foregroundColor(.secondary)
+              Text("This feature is only available to administrators")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            }
+            Spacer()
+          }
+          .padding(.vertical)
+        }
+      } else if isLoading && activities.isEmpty {
         Section {
           HStack {
             Spacer()
@@ -120,10 +141,14 @@ struct AuthenticationActivityView: View {
       .navigationBarTitleDisplayMode(.inline)
     #endif
     .task {
-      await loadActivities(refresh: true)
+      if isAdmin {
+        await loadActivities(refresh: true)
+      }
     }
     .refreshable {
-      await loadActivities(refresh: true)
+      if isAdmin {
+        await loadActivities(refresh: true)
+      }
     }
   }
 

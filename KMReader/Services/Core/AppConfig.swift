@@ -17,37 +17,19 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "serverURL") }
   }
 
-  static var serverDisplayName: String? {
-    get { defaults.string(forKey: "serverDisplayName") }
-    set {
-      if let value = newValue, !value.isEmpty {
-        defaults.set(value, forKey: "serverDisplayName")
-      } else {
-        defaults.removeObject(forKey: "serverDisplayName")
-      }
-    }
+  static var serverDisplayName: String {
+    get { defaults.string(forKey: "serverDisplayName") ?? "" }
+    set { defaults.set(newValue, forKey: "serverDisplayName") }
   }
 
-  static var authToken: String? {
-    get { defaults.string(forKey: "authToken") }
-    set {
-      if let token = newValue {
-        defaults.set(token, forKey: "authToken")
-      } else {
-        defaults.removeObject(forKey: "authToken")
-      }
-    }
+  static var authToken: String {
+    get { defaults.string(forKey: "authToken") ?? "" }
+    set { defaults.set(newValue, forKey: "authToken") }
   }
 
-  static var username: String? {
-    get { defaults.string(forKey: "username") }
-    set {
-      if let username = newValue {
-        defaults.set(username, forKey: "username")
-      } else {
-        defaults.removeObject(forKey: "username")
-      }
-    }
+  static var username: String {
+    get { defaults.string(forKey: "username") ?? "" }
+    set { defaults.set(newValue, forKey: "username") }
   }
 
   static var isLoggedIn: Bool {
@@ -81,15 +63,9 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "dualPageNoCover") }
   }
 
-  static var currentInstanceId: String? {
-    get { defaults.string(forKey: "currentInstanceId") }
-    set {
-      if let value = newValue {
-        defaults.set(value, forKey: "currentInstanceId")
-      } else {
-        defaults.removeObject(forKey: "currentInstanceId")
-      }
-    }
+  static var currentInstanceId: String {
+    get { defaults.string(forKey: "currentInstanceId") ?? "" }
+    set { defaults.set(newValue, forKey: "currentInstanceId") }
   }
 
   static var maxDiskCacheSizeMB: Int {
@@ -114,11 +90,11 @@ enum AppConfig {
 
   // MARK: - Clear all auth data
   static func clearAuthData() {
-    authToken = nil
-    username = nil
-    serverDisplayName = nil
+    authToken = ""
+    username = ""
+    serverDisplayName = ""
     isAdmin = false
     selectedLibraryId = ""
-    currentInstanceId = nil
+    currentInstanceId = ""
   }
 }

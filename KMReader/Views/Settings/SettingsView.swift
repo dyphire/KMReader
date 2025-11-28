@@ -9,6 +9,8 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AuthViewModel.self) private var authViewModel
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
+  @AppStorage("serverDisplayName") private var serverDisplayName: String = ""
 
   var body: some View {
     NavigationStack {
@@ -32,20 +34,20 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             Label("Server Info", systemImage: "server.rack")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
           NavigationLink(value: NavDestination.settingsMetrics) {
             Label("Metrics", systemImage: "chart.bar")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
         }
 
         Section(header: Text("Account")) {
           NavigationLink(value: NavDestination.settingsServers) {
             HStack {
               Label("Servers", systemImage: "list.bullet.rectangle")
-              if let displayName = AppConfig.serverDisplayName, !displayName.isEmpty {
+              if !serverDisplayName.isEmpty {
                 Spacer()
-                Text(displayName)
+                Text(serverDisplayName)
                   .lineLimit(1)
                   .foregroundColor(.secondary)
               }
@@ -62,7 +64,7 @@ struct SettingsView: View {
             HStack {
               Label("Role", systemImage: "shield")
               Spacer()
-              Text(AppConfig.isAdmin ? "Admin" : "User")
+              Text(isAdmin ? "Admin" : "User")
                 .lineLimit(1)
                 .foregroundColor(.secondary)
             }
@@ -70,6 +72,7 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
             Label("Authentication Activity", systemImage: "clock")
           }
+          .disabled(!isAdmin)
         }
 
         HStack {

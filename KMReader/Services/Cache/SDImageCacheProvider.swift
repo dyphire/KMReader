@@ -40,9 +40,9 @@ enum SDImageCacheProvider {
 
   static func configureSDWebImage() {
     // Set authentication header for SDWebImage
-    if let authToken = AppConfig.authToken {
+    if !AppConfig.authToken.isEmpty {
       SDWebImageDownloader.shared.setValue(
-        "Basic \(authToken)", forHTTPHeaderField: "Authorization")
+        "Basic \(AppConfig.authToken)", forHTTPHeaderField: "Authorization")
     } else {
       SDWebImageDownloader.shared.setValue(nil, forHTTPHeaderField: "Authorization")
     }
