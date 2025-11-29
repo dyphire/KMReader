@@ -48,6 +48,11 @@ import UniformTypeIdentifiers
         self?.window?.makeFirstResponder(self)
       }
     }
+
+    // Don't intercept mouse events - let them pass through
+    override func hitTest(_ point: NSPoint) -> NSView? {
+      return nil
+    }
   }
 #endif
 
@@ -263,7 +268,6 @@ struct ReaderControlsView: View {
       .padding()
     }
     .padding(.vertical)
-    .allowsHitTesting(true)
     .transition(.opacity)
     .onChange(of: readingDirection) { _, _ in
       if showingReadingDirectionPicker {
