@@ -16,6 +16,7 @@ struct ComicPageView: View {
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let screenSize: CGSize
+  let onEndPageFocusChange: ((Bool) -> Void)?
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
@@ -48,11 +49,12 @@ struct ComicPageView: View {
           ZStack {
             readerBackground.color.ignoresSafeArea()
             EndPageView(
+              viewModel: viewModel,
               nextBook: nextBook,
               onDismiss: onDismiss,
               onNextBook: onNextBook,
               isRTL: false,
-              goToPreviousPage: goToPreviousPage
+              onFocusChange: onEndPageFocusChange
             )
           }
           .frame(width: screenSize.width, height: screenSize.height)
@@ -70,6 +72,9 @@ struct ComicPageView: View {
       .scrollIndicators(.hidden)
       .scrollPosition(id: $scrollPosition)
       .scrollDisabled(isZoomed)
+      #if os(tvOS)
+        .focusable(false)
+      #endif
       .onAppear {
         synchronizeInitialScrollIfNeeded(proxy: proxy)
       }

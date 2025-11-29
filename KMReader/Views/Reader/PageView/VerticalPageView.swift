@@ -16,6 +16,7 @@ struct VerticalPageView: View {
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let screenSize: CGSize
+  let onEndPageFocusChange: ((Bool) -> Void)?
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
@@ -47,11 +48,12 @@ struct VerticalPageView: View {
           ZStack {
             readerBackground.color.ignoresSafeArea()
             EndPageView(
+              viewModel: viewModel,
               nextBook: nextBook,
               onDismiss: onDismiss,
               onNextBook: onNextBook,
               isRTL: false,
-              goToPreviousPage: goToPreviousPage
+              onFocusChange: onEndPageFocusChange
             )
           }
           // IMPORTANT: Add 100 to the height to prevent the bounce behavior
@@ -70,6 +72,9 @@ struct VerticalPageView: View {
       .scrollIndicators(.hidden)
       .scrollPosition(id: $scrollPosition)
       .scrollDisabled(isZoomed)
+      #if os(tvOS)
+        .focusable(false)
+      #endif
       .onAppear {
         synchronizeInitialScrollIfNeeded(proxy: proxy)
       }

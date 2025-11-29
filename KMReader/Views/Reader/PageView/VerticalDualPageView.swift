@@ -16,6 +16,7 @@ struct VerticalDualPageView: View {
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let screenSize: CGSize
+  let onEndPageFocusChange: ((Bool) -> Void)?
 
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
@@ -34,11 +35,12 @@ struct VerticalDualPageView: View {
                 ZStack {
                   readerBackground.color.ignoresSafeArea()
                   EndPageView(
+                    viewModel: viewModel,
                     nextBook: nextBook,
                     onDismiss: onDismiss,
                     onNextBook: onNextBook,
                     isRTL: false,
-                    goToPreviousPage: goToPreviousPage
+                    onFocusChange: onEndPageFocusChange
                   )
                 }
               } else {
@@ -78,6 +80,9 @@ struct VerticalDualPageView: View {
       .scrollIndicators(.hidden)
       .scrollPosition(id: $scrollPosition)
       .scrollDisabled(isZoomed)
+      #if os(tvOS)
+        .focusable(false)
+      #endif
       .onAppear {
         synchronizeInitialScrollIfNeeded(proxy: proxy)
       }

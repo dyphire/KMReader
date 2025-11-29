@@ -97,14 +97,6 @@ struct ReaderControlsView: View {
     #endif
   }
 
-  private var buttonSpacing: CGFloat {
-    #if os(tvOS)
-      return 36
-    #else
-      return 12
-    #endif
-  }
-
   private var buttonMargin: CGFloat {
     #if os(tvOS)
       return 36
@@ -164,7 +156,7 @@ struct ReaderControlsView: View {
         Spacer()
 
         // Action buttons
-        HStack(spacing: buttonSpacing) {
+        HStack(spacing: PlatformHelper.buttonSpacing) {
           // TOC button (only show if TOC exists)
           if !viewModel.tableOfContents.isEmpty {
             Button {

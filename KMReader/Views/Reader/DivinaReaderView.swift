@@ -28,6 +28,9 @@ struct DivinaReaderView: View {
   @State private var showHelperOverlay = false
   @State private var helperOverlayTimer: Timer?
   @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  #if os(tvOS)
+    @State private var isEndPageButtonFocused = false
+  #endif
 
   init(bookId: String, incognito: Bool = false) {
     self.incognito = incognito
@@ -56,6 +59,19 @@ struct DivinaReaderView: View {
     return pageLayout == .dual
   }
 
+  #if os(tvOS)
+    private var endPageFocusChangeHandler: ((Bool) -> Void) {
+      { isFocused in
+        // isFocused is true when any button in EndPageView has focus
+        isEndPageButtonFocused = isFocused
+      }
+    }
+  #else
+    private var endPageFocusChangeHandler: ((Bool) -> Void)? {
+      nil
+    }
+  #endif
+
   var body: some View {
     GeometryReader { geometry in
       let screenKey = "\(Int(geometry.size.width))x\(Int(geometry.size.height))"
@@ -78,7 +94,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               } else {
                 ComicPageView(
@@ -89,7 +106,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               }
 
@@ -103,7 +121,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               } else {
                 MangaPageView(
@@ -114,7 +133,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               }
 
@@ -128,7 +148,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               } else {
                 VerticalPageView(
@@ -139,7 +160,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               }
 
@@ -164,7 +186,8 @@ struct DivinaReaderView: View {
                   goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
                   goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: { toggleControls() },
-                  screenSize: geometry.size
+                  screenSize: geometry.size,
+                  onEndPageFocusChange: endPageFocusChangeHandler
                 ).ignoresSafeArea()
               #endif
             }
@@ -264,12 +287,16 @@ struct DivinaReaderView: View {
           toggleControls(autoHide: false)
         }
         .onMoveCommand { direction in
-          // ignore if showing controls
           if showingControls {
+            return
+          }
+          if isEndPageButtonFocused {
             return
           }
 
           let useDualPage = shouldUseDualPage(screenSize: geometry.size)
+
+          // Execute page navigation
           switch readingDirection {
           case .ltr, .rtl:
             // Horizontal navigation

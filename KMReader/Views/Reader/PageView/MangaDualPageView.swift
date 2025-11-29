@@ -16,6 +16,7 @@ struct MangaDualPageView: View {
   let goToPreviousPage: () -> Void
   let toggleControls: () -> Void
   let screenSize: CGSize
+  let onEndPageFocusChange: ((Bool) -> Void)?
 
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
 
@@ -35,11 +36,12 @@ struct MangaDualPageView: View {
                 ZStack {
                   readerBackground.color.ignoresSafeArea()
                   EndPageView(
+                    viewModel: viewModel,
                     nextBook: nextBook,
                     onDismiss: onDismiss,
                     onNextBook: onNextBook,
                     isRTL: true,
-                    goToPreviousPage: goToPreviousPage
+                    onFocusChange: onEndPageFocusChange
                   )
                 }
               } else {
@@ -79,6 +81,9 @@ struct MangaDualPageView: View {
       .scrollIndicators(.hidden)
       .scrollPosition(id: $scrollPosition)
       .scrollDisabled(isZoomed)
+      #if os(tvOS)
+        .focusable(false)
+      #endif
       .onAppear {
         synchronizeInitialScrollIfNeeded(proxy: proxy)
       }

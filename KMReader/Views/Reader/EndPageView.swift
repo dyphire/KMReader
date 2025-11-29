@@ -8,17 +8,28 @@
 import SwiftUI
 
 struct EndPageView: View {
+  @Bindable var viewModel: ReaderViewModel
   let nextBook: Book?
   let onDismiss: () -> Void
   let onNextBook: (String) -> Void
   let isRTL: Bool
-  let goToPreviousPage: (() -> Void)?
+  let onFocusChange: ((Bool) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
+  #if os(tvOS)
+    private enum ButtonFocus: Hashable {
+      case hidden
+      case close
+      case next
+    }
+    @FocusState private var focusedButton: ButtonFocus?
+    @State private var shouldSetFocus = false
+  #endif
+
   var body: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 16) {
+    VStack(spacing: PlatformHelper.buttonSpacing) {
+      HStack(spacing: PlatformHelper.buttonSpacing) {
 
         // Next book button for RTL
         if isRTL, let nextBook = nextBook {
@@ -45,7 +56,23 @@ struct EndPageView: View {
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
           .buttonStyle(.plain)
+          #if os(tvOS)
+            .focused($focusedButton, equals: .next)
+          #endif
         }
+
+        // Hidden button for navigation
+        #if os(tvOS)
+          if !isRTL {
+            Button {
+            } label: {
+              Color.clear
+                .frame(width: 1, height: 1)
+            }
+            .buttonStyle(.plain)
+            .focused($focusedButton, equals: .hidden)
+          }
+        #endif
 
         // Dismiss button
         Button {
@@ -77,6 +104,22 @@ struct EndPageView: View {
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
+        #if os(tvOS)
+          .focused($focusedButton, equals: .close)
+        #endif
+
+        // Hidden button for navigation
+        #if os(tvOS)
+          if isRTL {
+            Button {
+            } label: {
+              Color.clear
+                .frame(width: 1, height: 1)
+            }
+            .buttonStyle(.plain)
+            .focused($focusedButton, equals: .hidden)
+          }
+        #endif
 
         // Next book button
         if !isRTL, let nextBook = nextBook {
@@ -103,9 +146,37 @@ struct EndPageView: View {
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
           .buttonStyle(.plain)
+          #if os(tvOS)
+            .focused($focusedButton, equals: .next)
+          #endif
         }
       }
       NextBookInfoView(nextBook: nextBook)
     }
+    #if os(tvOS)
+      .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
+      .onAppear {
+        if viewModel.currentPageIndex >= viewModel.pages.count {
+          shouldSetFocus = true
+        }
+      }
+      .onChange(of: viewModel.currentPageIndex) { _, newIndex in
+        if newIndex >= viewModel.pages.count {
+          shouldSetFocus = true
+        }
+      }
+      .onChange(of: shouldSetFocus) { _, shouldSet in
+        guard shouldSet else { return }
+        focusedButton = .close
+        onFocusChange?(true)
+        shouldSetFocus = false
+      }
+      .onChange(of: focusedButton) { _, newValue in
+        let hasFocus = newValue != nil && newValue != .hidden
+        onFocusChange?(hasFocus)
+      }
+      .defaultFocus($focusedButton, .close)
+      .focusSection()
+    #endif
   }
 }

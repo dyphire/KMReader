@@ -98,6 +98,14 @@ struct PlatformHelper {
     #endif
   }
 
+  static var buttonSpacing: CGFloat {
+    #if os(tvOS)
+      return 36
+    #else
+      return 12
+    #endif
+  }
+
   /// Get device orientation
   /// - iOS: use `UIDevice.current.orientation`
   /// - tvOS / macOS: always return `.landscape`
