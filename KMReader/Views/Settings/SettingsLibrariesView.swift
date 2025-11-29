@@ -101,7 +101,76 @@ struct SettingsLibrariesView: View {
   private func refreshLibraries() async {
     isLoading = true
     await LibraryManager.shared.refreshLibraries()
+    if AppConfig.isAdmin {
+      await loadLibraryMetrics()
+    }
     isLoading = false
+  }
+
+  private func loadLibraryMetrics() async {
+    // Load all 4 base metrics in parallel
+    await withTaskGroup(of: Void.self) { group in
+      group.addTask {
+        await self.processLibraryMetric(
+          metricName: MetricName.booksFileSize.rawValue,
+          setter: { library, value in library.fileSize = value }
+        )
+      }
+      group.addTask {
+        await self.processLibraryMetric(
+          metricName: MetricName.books.rawValue,
+          setter: { library, value in library.booksCount = value }
+        )
+      }
+      group.addTask {
+        await self.processLibraryMetric(
+          metricName: MetricName.series.rawValue,
+          setter: { library, value in library.seriesCount = value }
+        )
+      }
+      group.addTask {
+        await self.processLibraryMetric(
+          metricName: MetricName.sidecars.rawValue,
+          setter: { library, value in library.sidecarsCount = value }
+        )
+      }
+    }
+  }
+
+  private func processLibraryMetric(
+    metricName: String,
+    setter: @escaping (KomgaLibrary, Double) -> Void
+  ) async {
+    guard let metric = try? await ManagementService.shared.getMetric(metricName),
+      let libraryTag = metric.availableTags?.first(where: { $0.tag == "library" })
+    else {
+      return
+    }
+
+    // Process all libraries for this metric in parallel
+    await withTaskGroup(of: (String, Double?).self) { group in
+      for libraryId in libraryTag.values {
+        group.addTask {
+          if let libraryMetric = try? await ManagementService.shared.getMetric(
+            metricName,
+            tags: [MetricTag(key: "library", value: libraryId)]
+          ),
+            let value = libraryMetric.measurements.first(where: { $0.statistic == "VALUE" })?.value
+          {
+            return (libraryId, value)
+          }
+          return (libraryId, nil)
+        }
+      }
+
+      for await (libraryId, value) in group {
+        if let value = value,
+          let library = libraries.first(where: { $0.libraryId == libraryId })
+        {
+          setter(library, value)
+        }
+      }
+    }
   }
 
   @ViewBuilder
@@ -224,9 +293,13 @@ struct SettingsLibrariesView: View {
   {
     VStack(alignment: .leading, spacing: 4) {
       HStack(spacing: 8) {
-        Image(systemName: "books.vertical")
         VStack(alignment: .leading, spacing: 2) {
           Text(library.name)
+          if hasMetrics(library) {
+            Text(formatMetrics(library))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
 
         Spacer()
@@ -242,6 +315,41 @@ struct SettingsLibrariesView: View {
       }
     }
     .padding(.vertical, 6)
+  }
+
+  private func hasMetrics(_ library: KomgaLibrary) -> Bool {
+    library.seriesCount != nil || library.booksCount != nil || library.fileSize != nil
+      || library.sidecarsCount != nil
+  }
+
+  private func formatMetrics(_ library: KomgaLibrary) -> String {
+    var parts: [String] = []
+
+    if let seriesCount = library.seriesCount {
+      parts.append("\(formatNumber(seriesCount)) series")
+    }
+    if let booksCount = library.booksCount {
+      parts.append("\(formatNumber(booksCount)) books")
+    }
+    if let sidecarsCount = library.sidecarsCount {
+      parts.append("\(formatNumber(sidecarsCount)) sidecars")
+    }
+    if let fileSize = library.fileSize {
+      parts.append(formatFileSize(fileSize))
+    }
+
+    return parts.joined(separator: " · ")
+  }
+
+  private func formatNumber(_ value: Double) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.maximumFractionDigits = 0
+    return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+  }
+
+  private func formatFileSize(_ bytes: Double) -> String {
+    return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)
   }
 
   private func scanLibrary(_ library: KomgaLibrary) {
