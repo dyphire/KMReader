@@ -1,6 +1,6 @@
-KMReader - Native Komga Reader for iOS & macOS
+KMReader - Native Komga Reader for iOS, macOS & tvOS
 
-KMReader is a beautiful, multi-server native Komga client that keeps your comics, manga, and novels perfectly in sync across iPhone, iPad, and Mac. Connect once, save every server you care about, and enjoy the same polished experience on every Apple platform.
+KMReader is a beautiful, multi-server native Komga client that keeps your comics, manga, and novels perfectly in sync across iPhone, iPad, Mac, and Apple TV. Connect once, save every server you care about, and enjoy the same polished experience on every Apple platform.
 
 HIGHLIGHTS
 
@@ -8,12 +8,12 @@ HIGHLIGHTS
 
 • Unified Library & Dashboard: Browse Series, Books, Collections, and Read Lists with advanced search and filtering while personalized sections like Keep Reading, On Deck, Recently Added Books, Recently Added Series, and Recently Updated Series keep your next read ready. History stays in sync so you can resume from any device with infinite scroll and library filtering.
 
-• Dual-Format Readers: Enjoy a comic reader built for LTR/RTL/vertical/Webtoon styles with dual-page spreads, pinch zoom, customizable tap zones, page jumps with visual counter, and page exports in multiple formats (JPEG, PNG, HEIF, WebP). The EPUB reader keeps entire books available for offline or incognito sessions with adjustable fonts, themes (system/light/sepia/dark), pagination modes, column layouts, and an optional image-view mode for comic-style rendering.
+• Dual-Format Readers: Enjoy a comic reader built for LTR/RTL/vertical/Webtoon styles (Webtoon on iOS/iPadOS only) with dual-page spreads, pinch zoom (iOS/iPadOS/macOS), customizable tap zones, page jumps with visual counter, and page exports in multiple formats (JPEG, PNG, HEIF, WebP). The EPUB reader (iOS/iPadOS/macOS) keeps entire books available for offline or incognito sessions with adjustable fonts, themes (system/light/sepia/dark), pagination modes, column layouts, and an optional image-view mode for comic-style rendering. tvOS supports DIVINA comic reading with remote control navigation.
 
 • Admin & Monitoring Tools: Edit metadata, manage collections and read lists, run scans or analyses per library or across all libraries, and review server info plus easy-to-read metrics dashboard with disk usage, task analytics, and per-library drill-downs—all without leaving the couch.
 
-• Smart Caching & Offline Access: Three-tier caching system (pages, book files, thumbnails) loads everything instantly while respecting storage. Check live usage and file counts, clear individual caches when needed, and rely on saved content when you're offline. Automatic cleanup when limits are exceeded.
+• Smart Caching & Offline Access: Three-tier caching system (pages, book files, thumbnails) loads everything instantly while respecting storage. Adjustable page cache limits (512MB-8GB), real-time cache size and file count monitoring, individual cache clearing, and automatic cleanup when limits are exceeded. Access recently viewed pages and downloaded EPUB files when offline.
 
-• Native Apple Experience: Optimized layouts for iPhone, iPad, and Mac include a dedicated reader window on macOS, rich keyboard shortcuts, customizable theme colors and orientation-aware column counts, adjustable Webtoon width, tap zone hints, and incognito reading across both reader engines.
+• Native Apple Experience: Optimized layouts for iPhone, iPad, Mac, and Apple TV include a dedicated reader window on macOS, rich keyboard shortcuts, customizable theme colors and orientation-aware column counts, adjustable Webtoon width (iOS/iPadOS), tap zone hints, and incognito reading across both reader engines. tvOS features focus-based navigation optimized for remote control.
 
 Connect to your Komga server and take full control of your digital library today.

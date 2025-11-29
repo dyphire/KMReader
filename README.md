@@ -6,12 +6,13 @@
   <img src="icon.svg" alt="KMReader Icon" width="128" height="128">
 </div>
 
-**A beautiful, multi-server native iOS and macOS client for [Komga](https://github.com/gotson/komga) with comic and EPUB readers**
+**A beautiful, multi-server native iOS, macOS, and tvOS client for [Komga](https://github.com/gotson/komga) with comic and EPUB readers**
 
 _A media server for comics, mangas, BDs, and magazines_
 
 [![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://www.apple.com/ios/)
 [![macOS](https://img.shields.io/badge/macOS-14.0+-blue.svg)](https://www.apple.com/macos/)
+[![tvOS](https://img.shields.io/badge/tvOS-17.0+-blue.svg)](https://www.apple.com/tv/)
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org/)
 [![Xcode](https://img.shields.io/badge/Xcode-15.0+-blue.svg)](https://developer.apple.com/xcode/)
 
@@ -50,19 +51,20 @@ _A media server for comics, mangas, BDs, and magazines_
   - Left-to-Right (LTR) for Western comics
   - Right-to-Left (RTL) for manga
   - Vertical scrolling for traditional manga
-  - Webtoon mode with adjustable width (iOS only)
+  - Webtoon mode with adjustable width (iOS/iPadOS only)
 - **Page Layouts** (DIVINA):
   - Single page mode
   - Dual page mode (landscape orientation) for two-page spreads
   - Skip cover option in dual page mode
 - **Comic Reader Features** (DIVINA):
-  - Pinch to zoom for fine detail
+  - Pinch to zoom for fine detail (iOS/iPadOS/macOS)
   - Swipe navigation with customizable tap zones
   - Auto-hide controls for immersive reading
   - Page jump functionality with visual page counter
   - Dynamic reading direction switching
   - **macOS**: Dedicated reader window for enhanced reading experience
-- **EPUB Reader**:
+  - **tvOS**: Optimized for remote control navigation with focus-based interface
+- **EPUB Reader** (iOS/iPadOS/macOS only):
   - Full-book EPUB downloads cached for offline and incognito reading
   - Pick any installed typeface or stick with the publisher's choice
   - Adjustable font size slider with paged or continuous scroll modes
@@ -153,8 +155,9 @@ _A media server for comics, mangas, BDs, and magazines_
 - **Offline Capability**: Access recently viewed content when offline (pages and EPUB files)
 - **Efficient Image Loading**: Smart image loading with progressive enhancement
 - **EPUB Cache**: Whole-book EPUB downloads stored securely for instant reopen and offline support
-- **Separate Cache Management**: Independent control over page, book file, and thumbnail caches with adjustable limits and live size/file counters
+- **Separate Cache Management**: Independent control over page, book file, and thumbnail caches with adjustable limits (512MB-8GB for page cache) and live size/file counters
 - **Server-Aware Cleanup**: Removing a saved server clears its cached pages, thumbnails, and EPUB data automatically
+- **Real-Time Cache Monitoring**: View current cache sizes and file counts for each cache type in Settings
 
 ---
 
@@ -163,13 +166,13 @@ _A media server for comics, mangas, BDs, and magazines_
 - Clear separation between browsing, reading, settings, and admin areas keeps navigation intuitive
 - Local storage remembers every Komga server profile so you can switch sessions instantly
 - Reusable services centralize networking, caching, and error handling for predictable behavior
-- Dedicated views for authentication, dashboards, and readers ensure consistent experiences across iPhone, iPad, and Mac
+- Dedicated views for authentication, dashboards, and readers ensure consistent experiences across iPhone, iPad, Mac, and Apple TV
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- iOS 17.0+ or macOS 14.0+
+- iOS 17.0+, macOS 14.0+, or tvOS 17.0+
 - Xcode 15.0+
 - A running [Komga server](https://github.com/gotson/komga)
 
@@ -183,9 +186,11 @@ _A media server for comics, mangas, BDs, and magazines_
    open KMReader.xcodeproj
    ```
 
-2. Build and run on iOS 17+ device/simulator or macOS 14.0+
+2. Build and run on iOS 17+ device/simulator, macOS 14.0+, or tvOS 17.0+
 
 3. On first launch, enter your Komga server URL, username, and password
+
+**Note**: tvOS supports DIVINA (comic) reading only. EPUB reading and Webtoon mode are available on iOS/iPadOS/macOS.
 
 ---
 
