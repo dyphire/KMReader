@@ -74,6 +74,15 @@ struct ReaderControlsView: View {
   @State private var fileToSave: URL?
   @State private var showingPageJumpSheet = false
   @State private var showingTOCSheet = false
+  #if os(tvOS)
+    private enum ControlFocus: Hashable {
+      case close
+      case toc
+      case jump
+      case readingDirection
+    }
+    @FocusState private var focusedControl: ControlFocus?
+  #endif
 
   enum SaveImageResult: Equatable {
     case success
@@ -124,6 +133,10 @@ struct ReaderControlsView: View {
               .clipShape(Circle())
               .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           }
+          #if os(tvOS)
+            .focused($focusedControl, equals: .close)
+            .id("closeButton")
+          #endif
 
           Spacer()
 
@@ -142,6 +155,9 @@ struct ReaderControlsView: View {
                   .clipShape(Circle())
                   .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
               }
+              #if os(tvOS)
+                .focused($focusedControl, equals: .toc)
+              #endif
             }
 
             // Jump to page button
@@ -157,6 +173,9 @@ struct ReaderControlsView: View {
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             }
+            #if os(tvOS)
+              .focused($focusedControl, equals: .jump)
+            #endif
 
             // Reading direction button
             Button {
@@ -170,6 +189,9 @@ struct ReaderControlsView: View {
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             }
+            #if os(tvOS)
+              .focused($focusedControl, equals: .readingDirection)
+            #endif
           }
 
         }.buttonStyle(.plain)
@@ -232,6 +254,26 @@ struct ReaderControlsView: View {
         showingReadingDirectionPicker = false
       }
     }
+    #if os(tvOS)
+      .onAppear {
+        if showingControls {
+          focusedControl = .close
+        }
+      }
+      .onChange(of: showingControls) { _, newValue in
+        if newValue {
+          focusedControl = .close
+        } else {
+          focusedControl = nil
+        }
+      }
+      .onChange(of: focusedControl) { _, newValue in
+        if showingControls && newValue == nil {
+          focusedControl = .close
+        }
+      }
+      .focusSection()
+    #endif
     #if canImport(AppKit)
       .background(
         // Window-level keyboard event handler
