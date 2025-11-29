@@ -42,70 +42,73 @@ struct BookRowView: View {
   }
 
   var body: some View {
-    HStack(spacing: 12) {
-      ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 60, cornerRadius: 4)
+    Button {
+      onReadBook?(false)
+    } label: {
+      HStack(spacing: 12) {
+        ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 60, cornerRadius: 4)
 
-      VStack(alignment: .leading, spacing: 4) {
-        if shouldShowSeriesTitle {
-          Text(book.seriesTitle)
-            .font(.footnote)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-        }
-
-        Text("#\(formatNumber(book.number)) - \(book.metadata.title)")
-          .font(.body)
-          .foregroundColor(completed ? .secondary : .primary)
-          .lineLimit(bookTitleLineLimit)
-
-        HStack(spacing: 4) {
-          if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
-            Label(releaseDate, systemImage: "calendar")
-          } else {
-            Label(book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
+        VStack(alignment: .leading, spacing: 4) {
+          if shouldShowSeriesTitle {
+            Text(book.seriesTitle)
+              .font(.footnote)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
           }
-          if let progress = book.readProgress {
-            Text("•")
-            if progress.completed {
-              Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
+
+          Text("#\(formatNumber(book.number)) - \(book.metadata.title)")
+            .font(.body)
+            .foregroundColor(completed ? .secondary : .primary)
+            .lineLimit(bookTitleLineLimit)
+
+          HStack(spacing: 4) {
+            if let releaseDate = book.metadata.releaseDate, !releaseDate.isEmpty {
+              Label(releaseDate, systemImage: "calendar")
             } else {
-              Text("Page \(progress.page + 1)")
-                .foregroundColor(.blue)
+              Label(
+                book.created.formatted(date: .abbreviated, time: .omitted), systemImage: "clock")
             }
-          }
-        }
-        .font(.caption)
-        .foregroundColor(.secondary)
-
-        Group {
-          if book.deleted {
-            Text("Unavailable")
-              .foregroundColor(.red)
-          } else {
-            HStack(spacing: 4) {
-              Label("\(book.media.pagesCount) pages", systemImage: "book.pages")
+            if let progress = book.readProgress {
               Text("•")
-              Label(book.size, systemImage: "doc")
-              if book.oneshot {
-                Text("•")
-                Text("Oneshot")
+              if progress.completed {
+                Image(systemName: "checkmark.circle.fill")
+                  .foregroundColor(.green)
+              } else {
+                Text("Page \(progress.page + 1)")
                   .foregroundColor(.blue)
               }
-            }.foregroundColor(.secondary)
+            }
           }
-        }.font(.footnote)
+          .font(.caption)
+          .foregroundColor(.secondary)
+
+          Group {
+            if book.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              HStack(spacing: 4) {
+                Label("\(book.media.pagesCount) pages", systemImage: "book.pages")
+                Text("•")
+                Label(book.size, systemImage: "doc")
+                if book.oneshot {
+                  Text("•")
+                  Text("Oneshot")
+                    .foregroundColor(.blue)
+                }
+              }.foregroundColor(.secondary)
+            }
+          }.font(.footnote)
+        }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundColor(.secondary)
       }
-
-      Spacer()
-
-      Image(systemName: "chevron.right")
-        .foregroundColor(.secondary)
+      .contentShape(Rectangle())
     }
-    .contentShape(Rectangle())
-    .onTapGesture {
-      onReadBook?(false)
-    }
+    .buttonStyle(.plain)
     .contextMenu {
       BookContextMenu(
         book: book,

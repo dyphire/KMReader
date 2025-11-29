@@ -32,8 +32,13 @@ struct DashboardSeriesSection: View {
             }
             .buttonStyle(.plain)
           }
-        }.padding()
+        }
+        .padding()
       }
+      #if os(tvOS)
+        .focusSection()
+      #endif
     }
+    .padding(.bottom, 16)
   }
 }

@@ -158,14 +158,7 @@ struct CollectionSeriesListView: View {
                 Group {
                   if isSelectionMode {
                     HStack(spacing: 12) {
-                      Image(
-                        systemName: selectedSeriesIds.contains(series.id)
-                          ? "checkmark.circle.fill" : "circle"
-                      )
-                      .foregroundColor(
-                        selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
-                      )
-                      .onTapGesture {
+                      Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                           if selectedSeriesIds.contains(series.id) {
                             selectedSeriesIds.remove(series.id)
@@ -173,7 +166,16 @@ struct CollectionSeriesListView: View {
                             selectedSeriesIds.insert(series.id)
                           }
                         }
+                      } label: {
+                        Image(
+                          systemName: selectedSeriesIds.contains(series.id)
+                            ? "checkmark.circle.fill" : "circle"
+                        )
+                        .foregroundColor(
+                          selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
+                        )
                       }
+                      .buttonStyle(.plain)
                       .transition(.scale.combined(with: .opacity))
                       .animation(
                         .spring(response: 0.3, dampingFraction: 0.7),

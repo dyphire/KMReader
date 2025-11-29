@@ -21,11 +21,13 @@ import SwiftUI
     var body: some View {
       ZStack {
         // Semi-transparent background
-        Color.black.opacity(0.5)
-          .ignoresSafeArea()
-          .onTapGesture {
-            onDismiss()
-          }
+        Button {
+          onDismiss()
+        } label: {
+          Color.black.opacity(0.5)
+            .ignoresSafeArea()
+        }
+        .buttonStyle(.plain)
 
         // Help content
         VStack(spacing: 20) {

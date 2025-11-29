@@ -60,55 +60,57 @@ struct BookCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      ThumbnailImage(url: thumbnailURL, width: cardWidth) {
-        if book.readProgress == nil {
-          UnreadIndicator()
-        }
-      }
-      .overlay(alignment: .bottom) {
-        if isInProgress {
-          ReadingProgressBar(progress: progress)
-        }
-      }
-
-      VStack(alignment: .leading, spacing: 2) {
-        if shouldShowSeriesTitle {
-          Text(book.seriesTitle)
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-        }
-        Text("\(book.metadata.number) - \(book.metadata.title)")
-          .font(.caption)
-          .foregroundColor(.primary)
-          .lineLimit(bookTitleLineLimit)
-
-        Group {
-          if book.deleted {
-            Text("Unavailable")
-              .foregroundColor(.red)
-          } else {
-            HStack(spacing: 4) {
-              Text("\(book.media.pagesCount) pages · \(book.size)")
-              if book.oneshot {
-                Text("•")
-                Text("Oneshot")
-                  .foregroundColor(.blue)
-              }
-            }
-            .foregroundColor(.secondary)
-            .lineLimit(1)
-          }
-        }.font(.caption2)
-      }
-      .frame(width: cardWidth, alignment: .leading)
-    }
-    .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .onTapGesture {
+    Button {
       readerState = BookReaderState(book: book, incognito: false)
+    } label: {
+      VStack(alignment: .leading, spacing: 6) {
+        ThumbnailImage(url: thumbnailURL, width: cardWidth) {
+          if book.readProgress == nil {
+            UnreadIndicator()
+          }
+        }
+        .overlay(alignment: .bottom) {
+          if isInProgress {
+            ReadingProgressBar(progress: progress)
+          }
+        }
+
+        VStack(alignment: .leading, spacing: 2) {
+          if shouldShowSeriesTitle {
+            Text(book.seriesTitle)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+          }
+          Text("\(book.metadata.number) - \(book.metadata.title)")
+            .font(.caption)
+            .foregroundColor(.primary)
+            .lineLimit(bookTitleLineLimit)
+
+          Group {
+            if book.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              HStack(spacing: 4) {
+                Text("\(book.media.pagesCount) pages · \(book.size)")
+                if book.oneshot {
+                  Text("•")
+                  Text("Oneshot")
+                    .foregroundColor(.blue)
+                }
+              }
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+            }
+          }.font(.caption2)
+        }
+        .frame(width: cardWidth, alignment: .leading)
+      }
+      .frame(maxHeight: .infinity, alignment: .top)
+      .contentShape(Rectangle())
     }
+    .buttonStyle(.plain)
     .contextMenu {
       BookContextMenu(
         book: book,

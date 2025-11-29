@@ -23,17 +23,37 @@ struct DashboardView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @State private var showLibraryPickerSheet = false
 
+  var hasContent: Bool {
+    return !keepReadingBooks.isEmpty || !onDeckBooks.isEmpty || !recentlyAddedBooks.isEmpty
+      || !recentlyAddedSeries.isEmpty || !recentlyUpdatedSeries.isEmpty
+  }
+
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading) {
-          if isLoading && keepReadingBooks.isEmpty && onDeckBooks.isEmpty
-            && recentlyAddedBooks.isEmpty
-          {
-            ProgressView()
+        VStack(alignment: .leading, spacing: 0) {
+          if !hasContent {
+            if isLoading {
+              ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding()
+                .transition(.opacity)
+            } else {
+              VStack(spacing: 16) {
+                Image(systemName: "book")
+                  .font(.system(size: 60))
+                  .foregroundColor(.secondary)
+                Text("Nothing to show")
+                  .font(.headline)
+                Text("Start reading to see recommendations here")
+                  .font(.subheadline)
+                  .foregroundColor(.secondary)
+                  .multilineTextAlignment(.center)
+              }
               .frame(maxWidth: .infinity)
               .padding()
               .transition(.opacity)
+            }
           } else {
             // Keep Reading Section
             if !keepReadingBooks.isEmpty {
@@ -89,50 +109,33 @@ struct DashboardView: View {
               )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
-
-            if keepReadingBooks.isEmpty && onDeckBooks.isEmpty && recentlyAddedBooks.isEmpty
-              && recentlyAddedSeries.isEmpty && recentlyUpdatedSeries.isEmpty
-            {
-              VStack(spacing: 16) {
-                Image(systemName: "book")
-                  .font(.system(size: 60))
-                  .foregroundColor(.secondary)
-                Text("Nothing to show")
-                  .font(.headline)
-                Text("Start reading to see recommendations here")
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-                  .multilineTextAlignment(.center)
-              }
-              .frame(maxWidth: .infinity)
-              .padding()
-              .transition(.opacity)
-            }
           }
         }
         .padding(.vertical)
       }
       .handleNavigation()
       .inlineNavigationBarTitle("Dashboard")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            showLibraryPickerSheet = true
-          } label: {
-            Image(systemName: "books.vertical")
-          }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            Task {
-              await loadAll()
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              showLibraryPickerSheet = true
+            } label: {
+              Image(systemName: "books.vertical")
             }
-          } label: {
-            Image(systemName: "arrow.clockwise.circle")
           }
-          .disabled(isLoading)
+          ToolbarItem(placement: .automatic) {
+            Button {
+              Task {
+                await loadAll()
+              }
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+            }
+            .disabled(isLoading)
+          }
         }
-      }
+      #endif
       .sheet(isPresented: $showLibraryPickerSheet) {
         LibraryPickerSheet()
       }

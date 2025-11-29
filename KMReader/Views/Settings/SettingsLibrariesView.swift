@@ -136,14 +136,16 @@ struct SettingsLibrariesView: View {
   private func libraryRowView(_ library: Library) -> some View {
     let isPerforming = performingLibraryIds.contains(library.id)
 
-    librarySummary(library, isPerforming: isPerforming)
-      .contentShape(Rectangle())
-      .onTapGesture {
-        if AppConfig.isAdmin {
-          operatingLibrary = library
-        }
+    Button {
+      if AppConfig.isAdmin {
+        operatingLibrary = library
       }
-      .disabled(!AppConfig.isAdmin)
+    } label: {
+      librarySummary(library, isPerforming: isPerforming)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .disabled(!AppConfig.isAdmin)
   }
 
   @ViewBuilder

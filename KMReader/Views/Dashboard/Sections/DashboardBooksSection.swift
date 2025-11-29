@@ -31,8 +31,10 @@ struct DashboardBooksSection: View {
               showSeriesTitle: true,
             )
           }
-        }.padding()
+        }
+        .padding()
       }
     }
+    .padding(.bottom, 16)
   }
 }

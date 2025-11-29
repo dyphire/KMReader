@@ -154,14 +154,7 @@ struct BooksListViewForReadList: View {
                 Group {
                   if isSelectionMode {
                     HStack(spacing: 12) {
-                      Image(
-                        systemName: selectedBookIds.contains(book.id)
-                          ? "checkmark.circle.fill" : "circle"
-                      )
-                      .foregroundColor(
-                        selectedBookIds.contains(book.id) ? .accentColor : .secondary
-                      )
-                      .onTapGesture {
+                      Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                           if selectedBookIds.contains(book.id) {
                             selectedBookIds.remove(book.id)
@@ -169,7 +162,16 @@ struct BooksListViewForReadList: View {
                             selectedBookIds.insert(book.id)
                           }
                         }
+                      } label: {
+                        Image(
+                          systemName: selectedBookIds.contains(book.id)
+                            ? "checkmark.circle.fill" : "circle"
+                        )
+                        .foregroundColor(
+                          selectedBookIds.contains(book.id) ? .accentColor : .secondary
+                        )
                       }
+                      .buttonStyle(.plain)
                       .transition(.scale.combined(with: .opacity))
                       .animation(
                         .spring(response: 0.3, dampingFraction: 0.7),
