@@ -5,14 +5,27 @@
 //  Created by Komga iOS Client
 //
 
+import SwiftData
 import SwiftUI
 
 struct SettingsLibrariesView: View {
-  @State private var viewModel = LibraryViewModel()
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
+    [KomgaLibrary]
   @State private var performingLibraryIds: Set<String> = []
-  @State private var libraryPendingDelete: Library?
-  @State private var operatingLibrary: Library?
+  @State private var libraryPendingDelete: KomgaLibrary?
   @State private var isPerformingGlobalAction = false
+  @State private var isLoading = false
+
+  private let libraryService = LibraryService.shared
+
+  private var libraries: [KomgaLibrary] {
+    guard !currentInstanceId.isEmpty else {
+      return []
+    }
+    return allLibraries.filter { $0.instanceId == currentInstanceId }
+  }
 
   private var isDeleteAlertPresented: Binding<Bool> {
     Binding(
@@ -23,7 +36,7 @@ struct SettingsLibrariesView: View {
 
   var body: some View {
     List {
-      if viewModel.isLoading && viewModel.libraries.isEmpty {
+      if isLoading && libraries.isEmpty {
         Section {
           HStack {
             Spacer()
@@ -31,7 +44,7 @@ struct SettingsLibrariesView: View {
             Spacer()
           }
         }
-      } else if viewModel.libraries.isEmpty {
+      } else if libraries.isEmpty {
         Section {
           VStack(spacing: 12) {
             Image(systemName: "books.vertical")
@@ -45,7 +58,7 @@ struct SettingsLibrariesView: View {
               .multilineTextAlignment(.center)
             Button("Retry") {
               Task {
-                await viewModel.loadLibraries()
+                await refreshLibraries()
               }
             }
           }
@@ -53,7 +66,8 @@ struct SettingsLibrariesView: View {
           .padding(.vertical, 16)
         }
       } else {
-        ForEach(viewModel.libraries) { library in
+        allLibrariesRowView()
+        ForEach(libraries) { library in
           libraryRowView(library)
         }
       }
@@ -75,91 +89,142 @@ struct SettingsLibrariesView: View {
       }
     }
     .refreshable {
-      await viewModel.loadLibraries()
+      await refreshLibraries()
     }
     .task {
-      await viewModel.loadLibraries()
+      await refreshLibraries()
     }
-    .sheet(item: $operatingLibrary) { library in
-      LibraryActionsSheet(
-        library: library,
-        isPerforming: performingLibraryIds.contains(library.id),
-        onScan: { scanLibrary(library) },
-        onScanDeep: { scanLibraryDeep(library) },
-        onAnalyze: { analyzeLibrary(library) },
-        onRefreshMetadata: { refreshMetadata(library) },
-        onEmptyTrash: { emptyTrash(library) },
-        onDelete: { libraryPendingDelete = library }
-      )
-    }
-    .toolbar {
-      ToolbarItem(placement: .automatic) {
-        Menu {
-          Button {
-            performGlobalAction {
-              try await scanAllLibraries(deep: false)
-            }
-          } label: {
-            Label("Scan All Libraries", systemImage: "arrow.clockwise")
-          }
-          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
+  }
 
-          Button {
-            performGlobalAction {
-              try await scanAllLibraries(deep: true)
-            }
-          } label: {
-            Label("Scan All Libraries (Deep)", systemImage: "arrow.triangle.2.circlepath")
-          }
-          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
+  private func refreshLibraries() async {
+    isLoading = true
+    await LibraryManager.shared.refreshLibraries()
+    isLoading = false
+  }
 
-          Button {
-            performGlobalAction {
-              try await emptyTrashAllLibraries()
-            }
-          } label: {
-            Label("Empty Trash for All Libraries", systemImage: "trash.slash")
-          }
-          .disabled(isPerformingGlobalAction || !AppConfig.isAdmin)
-        } label: {
-          if isPerformingGlobalAction {
-            ProgressView()
-          } else {
-            Image(systemName: "ellipsis.circle")
-          }
+  @ViewBuilder
+  private func allLibrariesRowView() -> some View {
+    let isSelected = selectedLibraryId.isEmpty
+
+    Button {
+      AppConfig.selectedLibraryId = ""
+    } label: {
+      HStack(spacing: 8) {
+        Image(systemName: "square.grid.2x2")
+        Text("All Libraries")
+        Spacer()
+        if isSelected {
+          Image(systemName: "checkmark")
+            .font(.footnote)
+            .foregroundColor(.accentColor)
         }
+      }
+      .padding(.vertical, 6)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .contextMenu {
+      if AppConfig.isAdmin {
+        Button {
+          performGlobalAction {
+            try await scanAllLibraries(deep: false)
+          }
+        } label: {
+          Label("Scan All Libraries", systemImage: "arrow.clockwise")
+        }
+        .disabled(isPerformingGlobalAction)
+
+        Button {
+          performGlobalAction {
+            try await scanAllLibraries(deep: true)
+          }
+        } label: {
+          Label("Scan All Libraries (Deep)", systemImage: "arrow.triangle.2.circlepath")
+        }
+        .disabled(isPerformingGlobalAction)
+
+        Button {
+          performGlobalAction {
+            try await emptyTrashAllLibraries()
+          }
+        } label: {
+          Label("Empty Trash for All Libraries", systemImage: "trash.slash")
+        }
+        .disabled(isPerformingGlobalAction)
       }
     }
   }
 
   @ViewBuilder
-  private func libraryRowView(_ library: Library) -> some View {
-    let isPerforming = performingLibraryIds.contains(library.id)
+  private func libraryRowView(_ library: KomgaLibrary) -> some View {
+    let isPerforming = performingLibraryIds.contains(library.libraryId)
+    let isSelected = selectedLibraryId == library.libraryId
 
     Button {
-      if AppConfig.isAdmin {
-        operatingLibrary = library
-      }
+      AppConfig.selectedLibraryId = library.libraryId
     } label: {
-      librarySummary(library, isPerforming: isPerforming)
+      librarySummary(library, isPerforming: isPerforming, isSelected: isSelected)
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .disabled(!AppConfig.isAdmin)
+    .contextMenu {
+      if AppConfig.isAdmin {
+        Button {
+          scanLibrary(library)
+        } label: {
+          Label("Scan Library Files", systemImage: "arrow.clockwise")
+        }
+        .disabled(isPerforming)
+
+        Button {
+          scanLibraryDeep(library)
+        } label: {
+          Label("Scan Library Files (Deep)", systemImage: "arrow.triangle.2.circlepath")
+        }
+        .disabled(isPerforming)
+
+        Button {
+          analyzeLibrary(library)
+        } label: {
+          Label("Analyze", systemImage: "waveform.path.ecg")
+        }
+        .disabled(isPerforming)
+
+        Button {
+          refreshMetadata(library)
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.triangle.branch")
+        }
+        .disabled(isPerforming)
+
+        Button {
+          emptyTrash(library)
+        } label: {
+          Label("Empty Trash", systemImage: "trash.slash")
+        }
+        .disabled(isPerforming)
+
+        Divider()
+
+        Button(role: .destructive) {
+          libraryPendingDelete = library
+        } label: {
+          Label("Delete Library", systemImage: "trash")
+        }
+        .disabled(isPerforming)
+      }
+    }
   }
 
   @ViewBuilder
-  private func librarySummary(_ library: Library, isPerforming: Bool) -> some View {
+  private func librarySummary(_ library: KomgaLibrary, isPerforming: Bool, isSelected: Bool)
+    -> some View
+  {
     VStack(alignment: .leading, spacing: 4) {
       HStack(spacing: 8) {
         Image(systemName: "books.vertical")
         VStack(alignment: .leading, spacing: 2) {
           Text(library.name)
-          if library.unavailable == true {
-            Label("Unavailable", systemImage: "exclamationmark.triangle")
-              .font(.caption)
-              .foregroundColor(.red)
-          }
         }
 
         Spacer()
@@ -167,22 +232,22 @@ struct SettingsLibrariesView: View {
         if isPerforming {
           ProgressView()
             .progressViewStyle(.circular)
-        } else {
-          Image(systemName: "chevron.right")
+        } else if isSelected {
+          Image(systemName: "checkmark")
             .font(.footnote)
-            .foregroundColor(.secondary)
+            .foregroundColor(.accentColor)
         }
       }
     }
     .padding(.vertical, 6)
   }
 
-  private func scanLibrary(_ library: Library) {
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+  private func scanLibrary(_ library: KomgaLibrary) {
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.scanLibrary(library)
+        try await libraryService.scanLibrary(id: library.libraryId)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Library scan started")
         }
@@ -192,17 +257,17 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
       }
     }
   }
 
-  private func scanLibraryDeep(_ library: Library) {
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+  private func scanLibraryDeep(_ library: KomgaLibrary) {
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.scanLibrary(library, deep: true)
+        try await libraryService.scanLibrary(id: library.libraryId, deep: true)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Library scan started")
         }
@@ -212,17 +277,17 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
       }
     }
   }
 
-  private func analyzeLibrary(_ library: Library) {
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+  private func analyzeLibrary(_ library: KomgaLibrary) {
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.analyzeLibrary(library)
+        try await libraryService.analyzeLibrary(id: library.libraryId)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Library analysis started")
         }
@@ -232,17 +297,17 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
       }
     }
   }
 
-  private func refreshMetadata(_ library: Library) {
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+  private func refreshMetadata(_ library: KomgaLibrary) {
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.refreshMetadata(library)
+        try await libraryService.refreshMetadata(id: library.libraryId)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Library metadata refresh started")
         }
@@ -252,17 +317,17 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
       }
     }
   }
 
-  private func emptyTrash(_ library: Library) {
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+  private func emptyTrash(_ library: KomgaLibrary) {
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.emptyTrash(library)
+        try await libraryService.emptyTrash(id: library.libraryId)
         await MainActor.run {
           ErrorManager.shared.notify(message: "Trash emptied")
         }
@@ -272,20 +337,19 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
       }
     }
   }
 
   private func deleteConfirmedLibrary() {
     guard let library = libraryPendingDelete else { return }
-    guard !performingLibraryIds.contains(library.id) else { return }
-    performingLibraryIds.insert(library.id)
+    guard !performingLibraryIds.contains(library.libraryId) else { return }
+    performingLibraryIds.insert(library.libraryId)
     Task {
       do {
-        try await viewModel.deleteLibrary(library)
-        await LibraryManager.shared.refreshLibraries()
-        await viewModel.loadLibraries()
+        try await libraryService.deleteLibrary(id: library.libraryId)
+        await refreshLibraries()
         await MainActor.run {
           ErrorManager.shared.notify(message: "Library deleted")
         }
@@ -295,21 +359,21 @@ struct SettingsLibrariesView: View {
         }
       }
       _ = await MainActor.run {
-        performingLibraryIds.remove(library.id)
+        performingLibraryIds.remove(library.libraryId)
         libraryPendingDelete = nil
       }
     }
   }
 
   private func scanAllLibraries(deep: Bool) async throws {
-    for library in viewModel.libraries {
-      try await viewModel.scanLibrary(library, deep: deep)
+    for library in libraries {
+      try await libraryService.scanLibrary(id: library.libraryId, deep: deep)
     }
   }
 
   private func emptyTrashAllLibraries() async throws {
-    for library in viewModel.libraries {
-      try await viewModel.emptyTrash(library)
+    for library in libraries {
+      try await libraryService.emptyTrash(id: library.libraryId)
     }
   }
 
@@ -328,87 +392,5 @@ struct SettingsLibrariesView: View {
         isPerformingGlobalAction = false
       }
     }
-  }
-}
-
-private struct LibraryActionsSheet: View {
-  let library: Library
-  let isPerforming: Bool
-  let onScan: () -> Void
-  let onScanDeep: () -> Void
-  let onAnalyze: () -> Void
-  let onRefreshMetadata: () -> Void
-  let onEmptyTrash: () -> Void
-  let onDelete: () -> Void
-
-  @Environment(\.dismiss) private var dismiss
-
-  var body: some View {
-    NavigationStack {
-      List {
-        Section {
-          actionButton(title: "Scan Library Files", systemImage: "arrow.clockwise", action: onScan)
-          actionButton(
-            title: "Scan Library Files (Deep)",
-            systemImage: "arrow.triangle.2.circlepath",
-            action: onScanDeep
-          )
-          actionButton(title: "Analyze", systemImage: "waveform.path.ecg", action: onAnalyze)
-          actionButton(
-            title: "Refresh Metadata",
-            systemImage: "arrow.triangle.branch",
-            action: onRefreshMetadata
-          )
-          actionButton(
-            title: "Empty Trash",
-            systemImage: "trash.slash",
-            tint: .orange,
-            action: onEmptyTrash
-          )
-          actionButton(
-            title: "Delete Library",
-            systemImage: "trash",
-            tint: .red,
-            role: .destructive,
-            action: onDelete
-          )
-        }
-        .disabled(isPerforming || !AppConfig.isAdmin)
-      }
-      .padding(PlatformHelper.sheetPadding)
-      .presentationDragIndicator(.visible)
-      #if canImport(UIKit)
-        .presentationDetents([.medium, .large])
-      #else
-        .frame(minWidth: 400, minHeight: 500)
-      #endif
-      .inlineNavigationBarTitle(library.name)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button(role: .cancel) {
-            dismiss()
-          } label: {
-            Label("Close", systemImage: "xmark")
-          }
-        }
-      }
-    }
-  }
-
-  private func actionButton(
-    title: String,
-    systemImage: String,
-    tint: Color? = nil,
-    role: ButtonRole? = nil,
-    action: @escaping () -> Void
-  ) -> some View {
-    Button(role: role) {
-      action()
-      dismiss()
-    } label: {
-      Label(title, systemImage: systemImage)
-        .foregroundColor(role == .destructive ? .red : .primary)
-    }
-    .tint(tint)
   }
 }
