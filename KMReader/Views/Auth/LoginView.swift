@@ -132,24 +132,17 @@ struct LoginView: View {
             HStack {
               if authViewModel.isLoading {
                 ProgressView()
-                  .tint(.white)
               } else {
-                Image(systemName: "arrow.right.circle.fill")
-                  .font(.title3)
                 Text("Login")
                   .fontWeight(.semibold)
+                Image(systemName: "arrow.right.circle.fill")
+                  .font(.title3)
               }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 56)
-            .foregroundStyle(.white)
-            .background(
-              isFormValid
-                ? themeColor.color
-                : Color.gray.opacity(0.3)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
           }
+          .buttonStyle(.borderedProminent)
           .disabled(!isFormValid || authViewModel.isLoading)
           .padding(.top, 8)
         }

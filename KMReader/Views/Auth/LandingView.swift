@@ -47,10 +47,8 @@ struct LandingView: View {
           }
           .frame(maxWidth: .infinity)
           .frame(height: 56)
-          .foregroundStyle(.white)
-          .background(themeColor.color)
-          .clipShape(RoundedRectangle(cornerRadius: 16))
         }
+        .buttonStyle(.borderedProminent)
         .padding(.horizontal, 40)
         .padding(.bottom, 60)
       }
