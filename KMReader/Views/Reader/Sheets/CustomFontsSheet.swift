@@ -5,30 +5,25 @@
 //  Created by Komga iOS Client
 //
 
-import CoreText
-import SwiftData
-import SwiftUI
-
 #if canImport(UIKit)
+  import CoreText
+  import SwiftData
+  import SwiftUI
   import UIKit
-#elseif canImport(AppKit)
-  import AppKit
-#endif
 
-struct CustomFontsSheet: View {
-  @State private var customFontInput: String = ""
-  @State private var showFontInputError: Bool = false
-  @State private var fontInputErrorMessage: String = ""
-  @State private var showFontPicker: Bool = false
+  struct CustomFontsSheet: View {
+    @State private var customFontInput: String = ""
+    @State private var showFontInputError: Bool = false
+    @State private var fontInputErrorMessage: String = ""
+    @State private var showFontPicker: Bool = false
 
-  @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
-  @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
+    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
-  var body: some View {
-    NavigationStack {
-      Form {
-        #if canImport(UIKit)
+    var body: some View {
+      NavigationStack {
+        Form {
           Section {
             Button {
               showFontPicker = true
@@ -46,186 +41,182 @@ struct CustomFontsSheet: View {
           } footer: {
             Text("Select from the system preinstalled fonts")
           }
-        #endif
 
-        Section {
-          VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-              TextField("Font name", text: $customFontInput)
-                .textFieldStyle(.plain)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .onSubmit {
-                  addCustomFont()
-                }
-              Button {
-                addCustomFont()
-              } label: {
-                HStack(spacing: 4) {
-                  Image(systemName: "plus.circle.fill")
-                  Text("Add")
-                }.foregroundStyle(.white)
-              }
-              .buttonStyle(.borderedProminent)
-            }
-            if showFontInputError {
-              Text(fontInputErrorMessage)
-                .font(.caption)
-                .foregroundStyle(.red)
-            }
-          }
-          .padding(.vertical, 4)
-        } header: {
-          Text("Manual Entry")
-        } footer: {
-          Text(
-            "To find font names, go to Settings > General > Fonts on your device. All fonts, including profile-installed fonts, are available."
-          )
-        }
-
-        if !customFonts.isEmpty {
           Section {
-            ForEach(customFonts) { font in
-              Text(font.name)
-                .font(.system(size: 14, design: .monospaced))
-                .textSelection(.enabled)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                  Button(role: .destructive) {
-                    removeCustomFont(font)
-                  } label: {
-                    Label("Delete", systemImage: "trash")
+            VStack(alignment: .leading, spacing: 8) {
+              HStack(spacing: 8) {
+                TextField("Font name", text: $customFontInput)
+                  .textFieldStyle(.plain)
+                  .autocorrectionDisabled()
+                  .textInputAutocapitalization(.never)
+                  .padding(.horizontal, 12)
+                  .padding(.vertical, 10)
+                  .background(Color(.systemGray6))
+                  .cornerRadius(10)
+                  .onSubmit {
+                    addCustomFont()
                   }
+                Button {
+                  addCustomFont()
+                } label: {
+                  HStack(spacing: 4) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add")
+                  }.foregroundStyle(.white)
                 }
+                .buttonStyle(.borderedProminent)
+              }
+              if showFontInputError {
+                Text(fontInputErrorMessage)
+                  .font(.caption)
+                  .foregroundStyle(.red)
+              }
             }
+            .padding(.vertical, 4)
           } header: {
-            Text("Custom Fonts")
+            Text("Manual Entry")
           } footer: {
-            Text("\(customFonts.count) custom font\(customFonts.count == 1 ? "" : "s") added")
+            Text(
+              "To find font names, go to Settings > General > Fonts on your device. All fonts, including profile-installed fonts, are available."
+            )
+          }
+
+          if !customFonts.isEmpty {
+            Section {
+              ForEach(customFonts) { font in
+                Text(font.name)
+                  .font(.system(size: 14, design: .monospaced))
+                  .textSelection(.enabled)
+                  .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                      removeCustomFont(font)
+                    } label: {
+                      Label("Delete", systemImage: "trash")
+                    }
+                  }
+              }
+            } header: {
+              Text("Custom Fonts")
+            } footer: {
+              Text("\(customFonts.count) custom font\(customFonts.count == 1 ? "" : "s") added")
+            }
           }
         }
-      }
-      .navigationTitle("Custom Fonts")
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) {
-          Button {
-            dismiss()
-          } label: {
-            Label("Done", systemImage: "checkmark")
+        .navigationTitle("Custom Fonts")
+        .toolbar {
+          ToolbarItem(placement: .cancellationAction) {
+            Button {
+              dismiss()
+            } label: {
+              Label("Done", systemImage: "checkmark")
+            }
           }
         }
-      }
-      #if canImport(UIKit)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showFontPicker) {
           FontPickerView(isPresented: $showFontPicker) { selectedFont in
             handleFontPickerSelection(selectedFont)
           }
         }
-      #endif
+      }
     }
-  }
 
-  private func handleFontPickerSelection(_ font: UIFont) {
-    // Get font family name
-    let familyName = font.familyName
+    private func handleFontPickerSelection(_ font: UIFont) {
+      // Get font family name
+      let familyName = font.familyName
 
-    // Check if font already exists in custom fonts
-    if customFonts.contains(where: { $0.name == familyName }) {
-      // Font already added, just clear any error
+      // Check if font already exists in custom fonts
+      if customFonts.contains(where: { $0.name == familyName }) {
+        // Font already added, just clear any error
+        showFontInputError = false
+        fontInputErrorMessage = ""
+        return
+      }
+
+      // Add font to custom fonts list (even if it's in system fonts,
+      // because it might be a profile-installed font that we want to ensure is available)
+      let customFont = CustomFont(name: familyName)
+      modelContext.insert(customFont)
+      do {
+        try modelContext.save()
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+        return
+      }
+
+      // Refresh font provider
+      FontProvider.refresh()
+
+      // Clear any error
       showFontInputError = false
       fontInputErrorMessage = ""
-      return
     }
 
-    // Add font to custom fonts list (even if it's in system fonts,
-    // because it might be a profile-installed font that we want to ensure is available)
-    let customFont = CustomFont(name: familyName)
-    modelContext.insert(customFont)
-    do {
-      try modelContext.save()
-    } catch {
-      showFontInputError = true
-      fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
-      return
+    private func addCustomFont() {
+      let fontName = customFontInput.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !fontName.isEmpty else {
+        showFontInputError = true
+        fontInputErrorMessage = "Font name cannot be empty"
+        return
+      }
+
+      // Check if font already exists in custom fonts
+      if customFonts.contains(where: { $0.name == fontName }) {
+        showFontInputError = true
+        fontInputErrorMessage = "Font already added"
+        return
+      }
+
+      // Check if font already exists in system fonts
+      if FontProvider.allChoices.contains(where: { $0.rawValue == fontName }) {
+        showFontInputError = true
+        fontInputErrorMessage = "Font already available in system fonts"
+        return
+      }
+
+      // Verify font exists by trying to create it
+      if !isFontAvailable(fontName) {
+        showFontInputError = true
+        fontInputErrorMessage = "Font not found. Make sure the font name is correct."
+        return
+      }
+
+      // Add font to custom fonts list
+      let customFont = CustomFont(name: fontName)
+      modelContext.insert(customFont)
+      do {
+        try modelContext.save()
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+        return
+      }
+
+      // Clear input and error
+      customFontInput = ""
+      showFontInputError = false
+      fontInputErrorMessage = ""
+
+      // Refresh font provider
+      FontProvider.refresh()
     }
 
-    // Refresh font provider
-    FontProvider.refresh()
+    private func removeCustomFont(_ font: CustomFont) {
+      modelContext.delete(font)
+      do {
+        try modelContext.save()
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
+        return
+      }
 
-    // Clear any error
-    showFontInputError = false
-    fontInputErrorMessage = ""
-  }
-
-  private func addCustomFont() {
-    let fontName = customFontInput.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !fontName.isEmpty else {
-      showFontInputError = true
-      fontInputErrorMessage = "Font name cannot be empty"
-      return
+      // Refresh font provider
+      FontProvider.refresh()
     }
 
-    // Check if font already exists in custom fonts
-    if customFonts.contains(where: { $0.name == fontName }) {
-      showFontInputError = true
-      fontInputErrorMessage = "Font already added"
-      return
-    }
-
-    // Check if font already exists in system fonts
-    if FontProvider.allChoices.contains(where: { $0.rawValue == fontName }) {
-      showFontInputError = true
-      fontInputErrorMessage = "Font already available in system fonts"
-      return
-    }
-
-    // Verify font exists by trying to create it
-    if !isFontAvailable(fontName) {
-      showFontInputError = true
-      fontInputErrorMessage = "Font not found. Make sure the font name is correct."
-      return
-    }
-
-    // Add font to custom fonts list
-    let customFont = CustomFont(name: fontName)
-    modelContext.insert(customFont)
-    do {
-      try modelContext.save()
-    } catch {
-      showFontInputError = true
-      fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
-      return
-    }
-
-    // Clear input and error
-    customFontInput = ""
-    showFontInputError = false
-    fontInputErrorMessage = ""
-
-    // Refresh font provider
-    FontProvider.refresh()
-  }
-
-  private func removeCustomFont(_ font: CustomFont) {
-    modelContext.delete(font)
-    do {
-      try modelContext.save()
-    } catch {
-      showFontInputError = true
-      fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
-      return
-    }
-
-    // Refresh font provider
-    FontProvider.refresh()
-  }
-
-  private func isFontAvailable(_ fontName: String) -> Bool {
-    #if canImport(UIKit)
+    private func isFontAvailable(_ fontName: String) -> Bool {
       // Try to create a UIFont with the name
       if let font = UIFont(name: fontName, size: 12) {
         return font.familyName == fontName || font.fontName == fontName
@@ -241,16 +232,10 @@ struct CustomFontsSheet: View {
       if let postScriptName = postScriptName, postScriptName == fontName {
         return true
       }
-    #elseif canImport(AppKit)
-      if let font = NSFont(name: fontName, size: 12) {
-        return font.familyName == fontName || font.fontName == fontName
-      }
-    #endif
-    return false
+      return false
+    }
   }
-}
 
-#if canImport(UIKit)
   struct FontPickerView: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     let onFontSelected: (UIFont) -> Void

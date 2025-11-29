@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = 19600B382ED616010066E8A4 /* ReadiumShared */; };
-		19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = 19600B3A2ED616080066E8A4 /* ReadiumStreamer */; };
-		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
-		19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = 19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */; };
+		19600B392ED616010066E8A4 /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B382ED616010066E8A4 /* ReadiumShared */; };
+		19600B3B2ED616080066E8A4 /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3A2ED616080066E8A4 /* ReadiumStreamer */; };
+		19600B3D2ED6160E0066E8A4 /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3C2ED6160E0066E8A4 /* ReadiumNavigator */; };
+		19600B3F2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 19600B3E2ED6191F0066E8A4 /* ReadiumAdapterGCDWebServer */; };
 		196028592ED9F7980066E8A4 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 196028582ED9F7980066E8A4 /* SwiftSoup */; };
 		19FDF1152EC9DDC700F7C3D9 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6ACB831E4AA344E7B2C3D4DB1846B6A4 /* SDWebImageSwiftUI */; };
 		19FDF1162EC9DDC700F7C3D9 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 585D1923D403492AAB307C02B56DBF71 /* SDWebImage */; };

@@ -54,7 +54,38 @@ struct BookReaderView: View {
           if shouldUseDivinaReader {
             DivinaReaderView(bookId: book.id, incognito: incognito)
           } else {
-            EpubReaderView(bookId: book.id, incognito: incognito)
+            #if canImport(UIKit)
+              EpubReaderView(bookId: book.id, incognito: incognito)
+            #else
+              VStack(spacing: 24) {
+                Image(systemName: "exclamationmark.triangle")
+                  .font(.system(size: 60))
+                  .foregroundColor(.secondary)
+
+                VStack(spacing: 8) {
+                  Text("EPUB Reader Not Available")
+                    .font(.headline)
+                  Text(
+                    "EPUB reading is only supported on iOS. Please use Divina reader for this book."
+                  )
+                  .font(.subheadline)
+                  .foregroundColor(.secondary)
+                  .multilineTextAlignment(.center)
+                }
+
+                Button {
+                  dismiss()
+                } label: {
+                  Label("Close", systemImage: "xmark.circle.fill")
+                    .font(.headline)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+              }
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+              .padding()
+            #endif
           }
         default:
           VStack(spacing: 24) {
