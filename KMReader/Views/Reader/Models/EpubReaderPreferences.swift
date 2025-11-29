@@ -5,7 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS) && !os(tvOS)
   import Foundation
   import ReadiumNavigator
   import SwiftUI

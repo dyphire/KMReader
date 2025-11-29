@@ -26,9 +26,7 @@ struct SimpleSortOptionsSheet: View {
         )
       }
       .navigationTitle("Sort")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

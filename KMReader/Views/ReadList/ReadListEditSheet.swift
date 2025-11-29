@@ -34,9 +34,7 @@ struct ReadListEditSheet: View {
         }
       }
       .navigationTitle("Edit Read List")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

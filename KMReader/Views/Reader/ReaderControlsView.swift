@@ -64,9 +64,7 @@ struct ReaderControlsView: View {
   let onDismiss: () -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
-  #if canImport(AppKit)
-    @Binding var showingKeyboardHelp: Bool
-  #endif
+  @Binding var showingKeyboardHelp: Bool
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 

@@ -5,7 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS) && !os(tvOS)
   import CoreText
   import SwiftData
   import SwiftUI
@@ -112,7 +112,7 @@
             }
           }
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationBarTitle()
         .sheet(isPresented: $showFontPicker) {
           FontPickerView(isPresented: $showFontPicker) { selectedFont in
             handleFontPickerSelection(selectedFont)

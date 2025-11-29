@@ -265,9 +265,7 @@ struct BookDetailView: View {
       .padding()
     }
     .navigationTitle("Book")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
     #if canImport(UIKit)
       .fullScreenCover(
         isPresented: isBookReaderPresented,

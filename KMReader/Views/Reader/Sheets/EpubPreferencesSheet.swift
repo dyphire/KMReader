@@ -5,7 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS) && !os(tvOS)
   import CoreText
   import ReadiumNavigator
   import SwiftData
@@ -166,7 +166,7 @@
             }
           }
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationBarTitle()
         .sheet(isPresented: $showCustomFontsSheet) {
           CustomFontsSheet()
             .onDisappear {

@@ -33,12 +33,14 @@ struct BookDownloadSheet: View {
         Text("Download complete")
           .font(.caption)
           .foregroundColor(.secondary)
-        Button {
-          presentExporter()
-        } label: {
-          Label("Save to Files", systemImage: "square.and.arrow.up")
-        }
-        .buttonStyle(.borderedProminent)
+        #if os(iOS) || os(macOS)
+          Button {
+            presentExporter()
+          } label: {
+            Label("Save to Files", systemImage: "square.and.arrow.up")
+          }
+          .buttonStyle(.borderedProminent)
+        #endif
       } else {
         Text("Ready to download this book file.")
           .font(.caption)
@@ -58,21 +60,23 @@ struct BookDownloadSheet: View {
     #else
       .frame(minWidth: 400, minHeight: 300)
     #endif
-    .fileExporter(
-      isPresented: $showFileExporter,
-      document: exportURL.map { CachedFileDocument(url: $0) },
-      contentType: .item,
-      defaultFilename: book.downloadFileName
-    ) { result in
-      switch result {
-      case .success:
-        ErrorManager.shared.notify(message: "Book saved to Files")
-        dismiss()
-      case .failure(let error):
-        ErrorManager.shared.alert(error: error)
+    #if os(iOS) || os(macOS)
+      .fileExporter(
+        isPresented: $showFileExporter,
+        document: exportURL.map { CachedFileDocument(url: $0) },
+        contentType: .item,
+        defaultFilename: book.downloadFileName
+      ) { result in
+        switch result {
+        case .success:
+          ErrorManager.shared.notify(message: "Book saved to Files")
+          dismiss()
+        case .failure(let error):
+          ErrorManager.shared.alert(error: error)
+        }
+        exportURL = nil
       }
-      exportURL = nil
-    }
+    #endif
     .task(id: book.id) {
       hasInitialized = false
       await initialize()

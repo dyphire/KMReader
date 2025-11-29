@@ -33,9 +33,7 @@ struct BrowseView: View {
         }
         .handleNavigation()
         .navigationTitle("Browse")
-        #if canImport(UIKit)
-          .navigationBarTitleDisplayMode(.inline)
-        #endif
+        .inlineNavigationBarTitle()
         .toolbar {
           ToolbarItem(placement: .automatic) {
             Button {

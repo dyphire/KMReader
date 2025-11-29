@@ -131,9 +131,7 @@ struct SettingsCacheView: View {
       }
     }
     .navigationTitle("Cache")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
     .alert("Clear Page", isPresented: $showClearImageCacheConfirmation) {
       Button("Clear", role: .destructive) {
         Task {

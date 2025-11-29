@@ -51,9 +51,7 @@ struct CollectionPickerSheet: View {
         }
       }
       .navigationTitle("Select Collection")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .searchable(text: $searchText)
       .toolbar {
         ToolbarItem(placement: .automatic) {
@@ -140,9 +138,7 @@ struct CreateCollectionSheet: View {
         }
       }
       .navigationTitle("Create Collection")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

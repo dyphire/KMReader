@@ -204,9 +204,7 @@ struct SeriesEditSheet: View {
         }
       }
       .navigationTitle("Edit Series")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

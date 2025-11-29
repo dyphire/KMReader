@@ -69,8 +69,8 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -80,8 +80,8 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -94,8 +94,8 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -105,8 +105,8 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -119,8 +119,8 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -130,15 +130,15 @@ struct DivinaReaderView: View {
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
               }
 
             case .webtoon:
-              #if canImport(UIKit)
+              #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
                 WebtoonPageView(
                   viewModel: viewModel,
                   isAtBottom: $isAtBottom,
@@ -149,14 +149,14 @@ struct DivinaReaderView: View {
                   screenSize: geometry.size
                 ).ignoresSafeArea()
               #else
-                // Webtoon requires UIKit, fallback to vertical
+                // Webtoon requires UIKit on iOS/iPadOS, fallback to vertical
                 VerticalPageView(
                   viewModel: viewModel,
                   nextBook: nextBook,
                   onDismiss: { dismiss() },
                   onNextBook: { openNextBook(nextBookId: $0) },
-                  goToNextPage: goToNextPage,
-                  goToPreviousPage: goToPreviousPage,
+                  goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+                  goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
                   toggleControls: toggleControls,
                   screenSize: geometry.size
                 ).ignoresSafeArea()
@@ -192,10 +192,10 @@ struct DivinaReaderView: View {
           case .vertical:
             VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
           case .webtoon:
-            #if canImport(UIKit)
+            #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
               WebtoonTapZoneOverlay(isVisible: $showTapZoneOverlay)
             #else
-              // Webtoon requires UIKit, fallback to vertical
+              // Webtoon requires UIKit on iOS/iPadOS, fallback to vertical
               VerticalTapZoneOverlay(isVisible: $showTapZoneOverlay)
             #endif
           }
@@ -231,9 +231,9 @@ struct DivinaReaderView: View {
           bookId: currentBookId,
           dualPage: useDualPage,
           onDismiss: { dismiss() },
-          goToNextPage: goToNextPage,
-          goToPreviousPage: goToPreviousPage,
-          showingKeyboardHelp: $showingKeyboardHelp,
+          goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
+          goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+          showingKeyboardHelp: $showingKeyboardHelp
         )
         .padding(.vertical, 24)
         .padding(.horizontal, 8)
@@ -269,7 +269,7 @@ struct DivinaReaderView: View {
       )
     #endif
     .ignoresSafeArea()
-    #if canImport(UIKit)
+    #if os(iOS)
       .statusBar(hidden: !shouldShowControls)
     #endif
     #if canImport(AppKit)
@@ -339,18 +339,25 @@ struct DivinaReaderView: View {
     resetControlsTimer()
   }
 
-  private func goToNextPage() {
+  private func goToNextPage(dualPageEnabled: Bool) {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
-      // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
-      let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-      if let currentPair = currentPair, shouldUseDualPage(screenSize: getCurrentScreenSize()) {
-        // Dual page mode: calculate next page based on current pair
-        if let second = currentPair.second {
-          viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
+      // Use dual-page logic only when enabled
+      if dualPageEnabled {
+        // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
+        let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
+        if let currentPair = currentPair {
+          // Dual page mode: calculate next page based on current pair
+          if let second = currentPair.second {
+            viewModel.targetPageIndex = min(viewModel.pages.count, second + 1)
+          } else {
+            viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
+          }
         } else {
-          viewModel.targetPageIndex = min(viewModel.pages.count, currentPair.first + 1)
+          // If pair info is missing, fallback to single-page increment
+          let next = min(viewModel.currentPageIndex + 1, viewModel.pages.count)
+          viewModel.targetPageIndex = next
         }
       } else {
         // Single page mode: simple increment
@@ -366,16 +373,22 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func goToPreviousPage() {
+  private func goToPreviousPage(dualPageEnabled: Bool) {
     guard !viewModel.pages.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
       guard viewModel.currentPageIndex > 0 else { return }
-      // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
-      let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
-      if let currentPair = currentPair, shouldUseDualPage(screenSize: getCurrentScreenSize()) {
-        // Dual page mode: go to previous pair's first page
-        viewModel.targetPageIndex = max(0, currentPair.first - 1)
+      if dualPageEnabled {
+        // Check if we're in dual page mode by checking if currentPageIndex has a PagePair
+        let currentPair = viewModel.dualPageIndices[viewModel.currentPageIndex]
+        if let currentPair = currentPair {
+          // Dual page mode: go to previous pair's first page
+          viewModel.targetPageIndex = max(0, currentPair.first - 1)
+        } else {
+          // If pair info is missing, fallback to single-page decrement
+          let previous = viewModel.currentPageIndex - 1
+          viewModel.targetPageIndex = previous
+        }
       } else {
         // Single page mode: simple decrement
         let previous = viewModel.currentPageIndex - 1
@@ -388,20 +401,6 @@ struct DivinaReaderView: View {
       }
     }
   }
-
-  #if canImport(UIKit)
-    private func getCurrentScreenSize() -> CGSize {
-      return UIScreen.main.bounds.size
-    }
-  #elseif canImport(AppKit)
-    private func getCurrentScreenSize() -> CGSize {
-      return NSScreen.main?.frame.size ?? CGSize(width: 1024, height: 768)
-    }
-  #else
-    private func getCurrentScreenSize() -> CGSize {
-      return CGSize(width: 1024, height: 768)
-    }
-  #endif
 
   private func toggleControls() {
     // Don't hide controls when at end page or webtoon at bottom

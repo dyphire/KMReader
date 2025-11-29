@@ -81,9 +81,7 @@ struct SettingsServersView: View {
       }
     }
     .navigationTitle(navigationTitle)
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)
     }

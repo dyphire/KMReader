@@ -114,9 +114,7 @@ struct DashboardView: View {
       }
       .handleNavigation()
       .navigationTitle("Dashboard")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

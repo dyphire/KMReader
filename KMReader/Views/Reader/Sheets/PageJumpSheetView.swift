@@ -268,12 +268,32 @@ struct PageJumpSheetView: View {
               }
               .frame(minHeight: 200, maxHeight: 360)
 
-              Slider(
-                value: sliderBinding,
-                in: 1...Double(maxPage),
-                step: 1
-              )
-              .scaleEffect(x: sliderScaleX, y: 1)
+              #if os(tvOS)
+                // TODO: switch to UIPanGestureRecognizer later for better UX
+                HStack(spacing: 16) {
+                  Button {
+                    pageValue = max(1, pageValue - 1)
+                  } label: {
+                    Image(systemName: "minus.circle.fill")
+                  }
+
+                  Text("Page \(pageValue)")
+                    .font(.body)
+
+                  Button {
+                    pageValue = min(maxPage, pageValue + 1)
+                  } label: {
+                    Image(systemName: "plus.circle.fill")
+                  }
+                }
+              #else
+                Slider(
+                  value: sliderBinding,
+                  in: 1...Double(maxPage),
+                  step: 1
+                )
+                .scaleEffect(x: sliderScaleX, y: 1)
+              #endif
 
               HStack {
                 Text(pageLabels.left)
@@ -291,9 +311,7 @@ struct PageJumpSheetView: View {
       }
       .padding()
       .navigationTitle("Go to Page")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .confirmationAction) {
           Button {

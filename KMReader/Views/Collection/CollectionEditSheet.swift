@@ -30,9 +30,7 @@ struct CollectionEditSheet: View {
         }
       }
       .navigationTitle("Edit Collection")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

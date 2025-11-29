@@ -5,7 +5,7 @@
 //  Created by Komga iOS Client
 //
 
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS) && !os(tvOS)
   import ReadiumShared
   import SwiftUI
 
@@ -49,7 +49,7 @@
           }
         }
         .navigationTitle("Chapters")
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationBarTitle()
       }
       .presentationDragIndicator(.visible)
     }

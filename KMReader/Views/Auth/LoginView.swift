@@ -158,9 +158,7 @@ struct LoginView: View {
       .padding(.bottom, 40)
     }
     .navigationTitle("")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
   }
 
   private var isFormValid: Bool {

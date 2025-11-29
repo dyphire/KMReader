@@ -84,9 +84,7 @@ struct SettingsView: View {
 
       .handleNavigation()
       .navigationTitle("Settings")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
     }
   }
 

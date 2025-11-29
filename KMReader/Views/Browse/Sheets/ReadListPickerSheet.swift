@@ -51,9 +51,7 @@ struct ReadListPickerSheet: View {
         }
       }
       .navigationTitle("Select Read List")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .searchable(text: $searchText)
       .toolbar {
         ToolbarItem(placement: .automatic) {
@@ -143,9 +141,7 @@ struct CreateReadListSheet: View {
         }
       }
       .navigationTitle("Create Read List")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

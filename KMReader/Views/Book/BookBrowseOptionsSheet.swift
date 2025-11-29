@@ -35,9 +35,7 @@ struct BookBrowseOptionsSheet: View {
         )
       }
       .navigationTitle("Filter & Sort")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Button {

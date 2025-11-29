@@ -60,9 +60,7 @@ struct SettingsServerEditView: View {
         }
       }
       .navigationTitle("Edit Server")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button("Cancel") {

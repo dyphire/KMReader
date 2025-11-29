@@ -137,9 +137,7 @@ struct AuthenticationActivityView: View {
       }
     }
     .navigationTitle("Authentication Activity")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
     .task {
       if isAdmin {
         await loadActivities(refresh: true)

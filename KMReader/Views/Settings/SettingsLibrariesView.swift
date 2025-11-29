@@ -64,9 +64,7 @@ struct SettingsLibrariesView: View {
       .listStyle(.sidebar)
     #endif
     .navigationTitle("Libraries")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
     .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
       Button("Delete", role: .destructive) {
         deleteConfirmedLibrary()
@@ -377,9 +375,7 @@ private struct LibraryActionsSheet: View {
         .disabled(isPerforming || !AppConfig.isAdmin)
       }
       .navigationTitle(library.name)
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button(role: .cancel) {

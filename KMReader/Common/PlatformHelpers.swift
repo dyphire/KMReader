@@ -11,10 +11,14 @@ import SwiftUI
 #if canImport(UIKit)
   import UIKit
   public typealias PlatformImage = UIImage
-  public typealias PlatformPasteboard = UIPasteboard
+  #if os(iOS)
+    /// Pasteboard type for iOS platforms
+    public typealias PlatformPasteboard = UIPasteboard
+  #endif
 #elseif canImport(AppKit)
   import AppKit
   public typealias PlatformImage = NSImage
+  /// Pasteboard type for macOS platforms
   public typealias PlatformPasteboard = NSPasteboard
 #endif
 
@@ -89,9 +93,14 @@ struct PlatformHelper {
     #endif
   }
 
-  /// Get device orientation (iOS only, returns portrait for macOS)
+  /// Get device orientation
+  /// - iOS: use `UIDevice.current.orientation`
+  /// - tvOS / macOS: always return `.landscape`
+  /// - Others: `.unknown`
   static var deviceOrientation: DeviceOrientation {
-    #if canImport(UIKit)
+    #if os(tvOS) || os(macOS)
+      return .landscape
+    #elseif canImport(UIKit)
       let orientation = UIDevice.current.orientation
       if orientation.isLandscape {
         return .landscape
@@ -105,16 +114,16 @@ struct PlatformHelper {
     #endif
   }
 
-  /// Get pasteboard for copying text
-  static var generalPasteboard: PlatformPasteboard {
-    #if canImport(UIKit)
-      return UIPasteboard.general
-    #elseif canImport(AppKit)
-      return NSPasteboard.general
-    #else
-      fatalError("Unsupported platform")
-    #endif
-  }
+  #if os(iOS) || os(macOS)
+    /// Get pasteboard for copying text (iOS and macOS only)
+    static var generalPasteboard: PlatformPasteboard {
+      #if os(iOS)
+        return UIPasteboard.general
+      #elseif os(macOS)
+        return NSPasteboard.general
+      #endif
+    }
+  #endif
 
   /// Convert SwiftUI Color to CGColor
   /// - Parameter color: SwiftUI Color to convert
@@ -133,7 +142,7 @@ struct PlatformHelper {
   /// Get system background color
   /// - Returns: System background color appropriate for the platform
   static var systemBackgroundColor: Color {
-    #if canImport(UIKit)
+    #if canImport(UIKit) && !os(tvOS)
       return Color(.systemBackground)
     #elseif canImport(AppKit)
       return Color(NSColor.controlBackgroundColor)
@@ -145,7 +154,7 @@ struct PlatformHelper {
   /// Get secondary system background color
   /// - Returns: Secondary system background color appropriate for the platform
   static var secondarySystemBackgroundColor: Color {
-    #if canImport(UIKit)
+    #if canImport(UIKit) && !os(tvOS)
       return Color(.secondarySystemBackground)
     #elseif canImport(AppKit)
       return Color(NSColor.controlBackgroundColor).opacity(0.5)

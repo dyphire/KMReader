@@ -65,10 +65,12 @@ struct ContentView: View {
       Button("OK") {
         ErrorManager.shared.vanishError()
       }
-      Button("Copy") {
-        PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
-        ErrorManager.shared.notify(message: "Copied")
-      }
+      #if os(iOS) || os(macOS)
+        Button("Copy") {
+          PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
+          ErrorManager.shared.notify(message: "Copied")
+        }
+      #endif
     } message: {
       if let error = errorManager.currentError {
         Text(verbatim: error.description)

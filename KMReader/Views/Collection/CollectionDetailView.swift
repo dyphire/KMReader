@@ -93,9 +93,7 @@ struct CollectionDetailView: View {
         .padding(.horizontal)
       }
       .navigationTitle("Collection")
-      #if canImport(UIKit)
-        .navigationBarTitleDisplayMode(.inline)
-      #endif
+      .inlineNavigationBarTitle()
       .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
         Button("Delete", role: .destructive) {
           Task {

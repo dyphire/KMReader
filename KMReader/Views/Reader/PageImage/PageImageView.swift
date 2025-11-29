@@ -57,28 +57,32 @@ struct PageImageView: View {
             }
             .disabled(isSaving)
 
-            Button {
-              Task {
-                await prepareSaveToFile(page: page)
+            #if os(iOS) || os(macOS)
+              Button {
+                Task {
+                  await prepareSaveToFile(page: page)
+                }
+              } label: {
+                Label("Save to Files", systemImage: "folder")
               }
-            } label: {
-              Label("Save to Files", systemImage: "folder")
+              .disabled(isSaving)
+            #endif
+          }
+        }
+        #if os(iOS) || os(macOS)
+          .fileExporter(
+            isPresented: $showDocumentPicker,
+            document: fileToSave.map { CachedFileDocument(url: $0) },
+            contentType: .item,
+            defaultFilename: fileToSave?.lastPathComponent ?? "page"
+          ) { result in
+            // Clean up temporary file after export
+            if let tempURL = fileToSave {
+              try? FileManager.default.removeItem(at: tempURL)
             }
-            .disabled(isSaving)
+            fileToSave = nil
           }
-        }
-        .fileExporter(
-          isPresented: $showDocumentPicker,
-          document: fileToSave.map { CachedFileDocument(url: $0) },
-          contentType: .item,
-          defaultFilename: fileToSave?.lastPathComponent ?? "page"
-        ) { result in
-          // Clean up temporary file after export
-          if let tempURL = fileToSave {
-            try? FileManager.default.removeItem(at: tempURL)
-          }
-          fileToSave = nil
-        }
+        #endif
       } else if let error = loadError {
         VStack(spacing: 16) {
           Image(systemName: "exclamationmark.triangle")

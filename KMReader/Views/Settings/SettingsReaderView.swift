@@ -86,8 +86,6 @@ struct SettingsReaderView: View {
       #endif
     }
     .navigationTitle("Reader")
-    #if canImport(UIKit)
-      .navigationBarTitleDisplayMode(.inline)
-    #endif
+    .inlineNavigationBarTitle()
   }
 }
