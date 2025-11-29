@@ -67,29 +67,31 @@ struct HistoryView: View {
       }
       .handleNavigation()
       .inlineNavigationBarTitle("History")
-      .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Button {
-            showLibraryPickerSheet = true
-          } label: {
-            Image(systemName: "books.vertical")
-          }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button {
-            Task {
-              await bookViewModel.loadRecentlyReadBooks(
-                libraryId: selectedLibraryId, refresh: true)
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              showLibraryPickerSheet = true
+            } label: {
+              Image(systemName: "books.vertical")
             }
-          } label: {
-            Image(systemName: "arrow.clockwise.circle")
           }
-          .disabled(bookViewModel.isLoading)
+          ToolbarItem(placement: .automatic) {
+            Button {
+              Task {
+                await bookViewModel.loadRecentlyReadBooks(
+                  libraryId: selectedLibraryId, refresh: true)
+              }
+            } label: {
+              Image(systemName: "arrow.clockwise.circle")
+            }
+            .disabled(bookViewModel.isLoading)
+          }
         }
-      }
-      .sheet(isPresented: $showLibraryPickerSheet) {
-        LibraryPickerSheet()
-      }
+        .sheet(isPresented: $showLibraryPickerSheet) {
+          LibraryPickerSheet()
+        }
+      #endif
       .onChange(of: selectedLibraryId) {
         refreshRecentlyReadBooks()
       }

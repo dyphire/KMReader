@@ -33,30 +33,32 @@ struct BrowseView: View {
         }
         .handleNavigation()
         .inlineNavigationBarTitle("Browse")
-        .toolbar {
-          ToolbarItem(placement: .automatic) {
-            Button {
-              showLibraryPickerSheet = true
-            } label: {
-              Image(systemName: "books.vertical")
-            }
-          }
-          ToolbarItem(placement: .automatic) {
-            Menu {
-              Picker("Layout", selection: $browseLayout) {
-                ForEach(BrowseLayoutMode.allCases) { mode in
-                  Label(mode.displayName, systemImage: mode.iconName).tag(mode)
-                }
+        #if !os(tvOS)
+          .toolbar {
+            ToolbarItem(placement: .automatic) {
+              Button {
+                showLibraryPickerSheet = true
+              } label: {
+                Image(systemName: "books.vertical")
               }
-              .pickerStyle(.inline)
-            } label: {
-              Image(systemName: browseLayout.iconName)
+            }
+            ToolbarItem(placement: .automatic) {
+              Menu {
+                Picker("Layout", selection: $browseLayout) {
+                  ForEach(BrowseLayoutMode.allCases) { mode in
+                    Label(mode.displayName, systemImage: mode.iconName).tag(mode)
+                  }
+                }
+                .pickerStyle(.inline)
+              } label: {
+                Image(systemName: browseLayout.iconName)
+              }
             }
           }
-        }
-        .sheet(isPresented: $showLibraryPickerSheet) {
-          LibraryPickerSheet()
-        }
+          .sheet(isPresented: $showLibraryPickerSheet) {
+            LibraryPickerSheet()
+          }
+        #endif
         .searchable(text: $searchQuery)
         .onSubmit(of: .search) {
           activeSearchText = searchQuery

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+  @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("showSeriesCardTitle") private var showSeriesCardTitle: Bool = true
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
@@ -91,6 +92,12 @@ struct SettingsAppearanceView: View {
       }
 
       Section(header: Text("Browse")) {
+        Picker("Layout", selection: $browseLayout) {
+          ForEach(BrowseLayoutMode.allCases) { mode in
+            Label(mode.displayName, systemImage: mode.iconName).tag(mode)
+          }
+        }
+
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
             Stepper(

@@ -135,10 +135,10 @@ struct DashboardView: View {
             .disabled(isLoading)
           }
         }
+        .sheet(isPresented: $showLibraryPickerSheet) {
+          LibraryPickerSheet()
+        }
       #endif
-      .sheet(isPresented: $showLibraryPickerSheet) {
-        LibraryPickerSheet()
-      }
       .onChange(of: selectedLibraryId) {
         Task {
           await loadAll()
