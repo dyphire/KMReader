@@ -45,7 +45,7 @@ struct SettingsReaderView: View {
               Text(background.displayName).tag(background)
             }
           }
-          .pickerStyle(.menu)
+          .pickerStyle(.segmented)
           Text("The background color of the reader")
             .font(.caption)
             .foregroundColor(.secondary)
@@ -60,7 +60,7 @@ struct SettingsReaderView: View {
                 .tag(mode)
             }
           }
-          .pickerStyle(.menu)
+          .pickerStyle(.segmented)
           Text("Single page or dual page (only in landscape)")
             .font(.caption)
             .foregroundColor(.secondary)

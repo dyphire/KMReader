@@ -54,6 +54,14 @@ struct SettingsAppearanceView: View {
       let presetHex = ThemeColor(color: color).rawValue
       return currentHex == presetHex
     }
+
+    private enum ColumnButtonFocus: Hashable {
+      case portraitMinus
+      case portraitPlus
+      case landscapeMinus
+      case landscapePlus
+    }
+    @FocusState private var focusedButton: ColumnButtonFocus?
   #endif
 
   var body: some View {
@@ -96,7 +104,7 @@ struct SettingsAppearanceView: View {
           ForEach(BrowseLayoutMode.allCases) { mode in
             Label(mode.displayName, systemImage: mode.iconName).tag(mode)
           }
-        }.pickerStyle(.menu)
+        }.pickerStyle(.segmented)
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
@@ -143,7 +151,12 @@ struct SettingsAppearanceView: View {
                     1, portraitColumnsBinding.wrappedValue - 1)
                 } label: {
                   Image(systemName: "minus.circle.fill")
+                    .font(.title2)
                 }
+                #if os(tvOS)
+                  .focused($focusedButton, equals: .portraitMinus)
+                  .buttonStyle(.plain)
+                #endif
                 Text("\(browseColumns.portrait)")
                   .font(.body)
                   .frame(minWidth: 30)
@@ -152,7 +165,12 @@ struct SettingsAppearanceView: View {
                     8, portraitColumnsBinding.wrappedValue + 1)
                 } label: {
                   Image(systemName: "plus.circle.fill")
+                    .font(.title2)
                 }
+                #if os(tvOS)
+                  .focused($focusedButton, equals: .portraitPlus)
+                  .buttonStyle(.plain)
+                #endif
               }
             }
             Text("Number of columns in portrait orientation")
@@ -170,7 +188,12 @@ struct SettingsAppearanceView: View {
                     1, landscapeColumnsBinding.wrappedValue - 1)
                 } label: {
                   Image(systemName: "minus.circle.fill")
+                    .font(.title2)
                 }
+                #if os(tvOS)
+                  .focused($focusedButton, equals: .landscapeMinus)
+                  .buttonStyle(.plain)
+                #endif
                 Text("\(browseColumns.landscape)")
                   .font(.body)
                   .frame(minWidth: 30)
@@ -179,7 +202,12 @@ struct SettingsAppearanceView: View {
                     16, landscapeColumnsBinding.wrappedValue + 1)
                 } label: {
                   Image(systemName: "plus.circle.fill")
+                    .font(.title2)
                 }
+                #if os(tvOS)
+                  .focused($focusedButton, equals: .landscapePlus)
+                  .buttonStyle(.plain)
+                #endif
               }
             }
             Text("Number of columns in landscape orientation")

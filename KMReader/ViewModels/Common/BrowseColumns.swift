@@ -49,17 +49,25 @@ struct BrowseColumns: Equatable, RawRepresentable {
 }
 
 private func getDefaultPortraitColumns() -> Int {
-  if PlatformHelper.isPad {
-    return 4
-  } else {
-    return 2
-  }
+  #if os(tvOS) || os(macOS)
+    return 6
+  #else
+    if PlatformHelper.isPad {
+      return 4
+    } else {
+      return 2
+    }
+  #endif
 }
 
 private func getDefaultLandscapeColumns() -> Int {
-  if PlatformHelper.isPad {
+  #if os(tvOS) || os(macOS)
     return 6
-  } else {
-    return 4
-  }
+  #else
+    if PlatformHelper.isPad {
+      return 6
+    } else {
+      return 4
+    }
+  #endif
 }
