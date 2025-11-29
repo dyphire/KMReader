@@ -13,6 +13,8 @@ struct LoginView: View {
   @AppStorage("serverURL") private var serverURL: String = "https://demo.komga.org"
   @AppStorage("username") private var username: String = ""
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+  @State private var serverURLText: String = ""
+  @State private var usernameText: String = ""
   @State private var password = ""
   @State private var instanceName = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -53,7 +55,7 @@ struct LoginView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
 
-              TextField("Enter your server URL", text: $serverURL)
+              TextField("Enter your server URL", text: $serverURLText)
                 .textContentType(.URL)
                 #if canImport(UIKit)
                   .autocapitalization(.none)
@@ -96,7 +98,7 @@ struct LoginView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
 
-              TextField("Enter your username", text: $username)
+              TextField("Enter your username", text: $usernameText)
                 .textContentType(.username)
                 #if canImport(UIKit)
                   .autocapitalization(.none)
@@ -151,20 +153,27 @@ struct LoginView: View {
       .padding(.bottom, 40)
     }
     .inlineNavigationBarTitle("")
+    .task {
+      serverURLText = serverURL
+      usernameText = username
+    }
   }
 
   private var isFormValid: Bool {
-    !serverURL.isEmpty && !username.isEmpty && !password.isEmpty
+    !serverURLText.isEmpty && !usernameText.isEmpty && !password.isEmpty
   }
 
   private func login() {
     Task {
       let trimmedName = instanceName.trimmingCharacters(in: .whitespacesAndNewlines)
       let displayName = trimmedName.isEmpty ? nil : trimmedName
+      // Save to AppStorage
+      serverURL = serverURLText
+      username = usernameText
       await authViewModel.login(
-        username: username,
+        username: usernameText,
         password: password,
-        serverURL: serverURL,
+        serverURL: serverURLText,
         displayName: displayName
       )
       if isLoggedIn {
