@@ -40,8 +40,8 @@ struct MangaPageView: View {
             )
           }
           .frame(width: screenSize.width, height: screenSize.height)
-          .contentShape(Rectangle())
           #if os(iOS)
+            .contentShape(Rectangle())
             .simultaneousGesture(
               horizontalTapGesture(width: screenSize.width, proxy: proxy)
             )
@@ -57,8 +57,8 @@ struct MangaPageView: View {
               isZoomed: $isZoomed
             )
             .frame(width: screenSize.width, height: screenSize.height)
-            .contentShape(Rectangle())
             #if os(iOS)
+              .contentShape(Rectangle())
               .simultaneousGesture(
                 horizontalTapGesture(width: screenSize.width, proxy: proxy)
               )

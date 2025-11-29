@@ -259,7 +259,9 @@ struct DivinaReaderView: View {
           onDismiss: { dismiss() },
           goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
           goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-          showingKeyboardHelp: $showHelperOverlay
+          showingKeyboardHelp: $showHelperOverlay,
+          nextBook: nextBook,
+          onNextBook: { openNextBook(nextBookId: $0) }
         )
         .padding(.vertical, 24)
         .padding(.horizontal, 8)
@@ -272,6 +274,7 @@ struct DivinaReaderView: View {
           KeyboardHelpOverlay(
             readingDirection: readingDirection,
             hasTOC: !viewModel.tableOfContents.isEmpty,
+            hasNextBook: nextBook != nil,
             onDismiss: {
               showHelperOverlay = false
             }

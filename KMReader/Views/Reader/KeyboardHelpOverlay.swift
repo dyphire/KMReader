@@ -14,6 +14,7 @@ import SwiftUI
   struct KeyboardHelpOverlay: View {
     let readingDirection: ReadingDirection
     let hasTOC: Bool
+    let hasNextBook: Bool
     let onDismiss: () -> Void
 
     @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -49,6 +50,9 @@ import SwiftUI
               HelpRow(key: "T", description: "Table of Contents")
             }
             HelpRow(key: "J", description: "Jump to page")
+            if hasNextBook {
+              HelpRow(key: "N", description: "Next book")
+            }
 
             Divider()
               .background(Color.white.opacity(0.3))

@@ -35,8 +35,8 @@ struct VerticalPageView: View {
               isZoomed: $isZoomed
             )
             .frame(width: screenSize.width, height: screenSize.height)
-            .contentShape(Rectangle())
             #if os(iOS)
+              .contentShape(Rectangle())
               .simultaneousGesture(
                 verticalTapGesture(height: screenSize.height, proxy: proxy)
               )
@@ -58,8 +58,8 @@ struct VerticalPageView: View {
           }
           // IMPORTANT: Add 100 to the height to prevent the bounce behavior
           .frame(width: screenSize.width, height: screenSize.height + 100)
-          .contentShape(Rectangle())
           #if os(iOS)
+            .contentShape(Rectangle())
             .simultaneousGesture(
               verticalTapGesture(height: screenSize.height, proxy: proxy)
             )

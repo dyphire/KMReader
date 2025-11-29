@@ -63,6 +63,8 @@ struct ReaderControlsView: View {
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
   @Binding var showingKeyboardHelp: Bool
+  let nextBook: Book?
+  let onNextBook: ((String) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
@@ -366,6 +368,14 @@ struct ReaderControlsView: View {
       // Handle C key for toggle controls
       if keyCode == 8 {  // C key
         showingControls.toggle()
+        return
+      }
+
+      // Handle N key for next book
+      if keyCode == 45 {  // N key
+        if let nextBook = nextBook, let onNextBook = onNextBook {
+          onNextBook(nextBook.id)
+        }
         return
       }
 
