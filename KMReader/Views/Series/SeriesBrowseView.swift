@@ -64,6 +64,7 @@ struct SeriesBrowseView: View {
                   }
                 )
               }
+              .focusPadding()
               .buttonStyle(.plain)
               .onAppear {
                 if index >= viewModel.series.count - 3 {

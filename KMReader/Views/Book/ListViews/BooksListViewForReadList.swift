@@ -92,6 +92,7 @@ struct BooksListViewForReadList: View {
                       },
                       showSeriesTitle: true,
                     )
+                    .focusPadding()
                     .allowsHitTesting(false)
                     .overlay(alignment: .topTrailing) {
                       Image(
@@ -135,6 +136,7 @@ struct BooksListViewForReadList: View {
                       },
                       showSeriesTitle: true,
                     )
+                    .focusPadding()
                   }
                 }
                 .onAppear {

@@ -20,7 +20,7 @@ struct UnreadCountBadge: View {
 
   var body: some View {
     Text("\(count)")
-      .font(.system(size: size).weight(.bold))
+      .font(.system(size: size))
       .foregroundColor(.white)
       .padding(.horizontal, 4)
       .padding(.vertical, 2)

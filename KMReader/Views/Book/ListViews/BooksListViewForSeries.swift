@@ -48,6 +48,7 @@ struct BooksListViewForSeries: View {
                   },
                   showSeriesTitle: false,
                 )
+                .focusPadding()
                 .onAppear {
                   if book.id == bookViewModel.books.last?.id {
                     Task {

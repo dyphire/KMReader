@@ -13,6 +13,8 @@ struct BookReaderView: View {
 
   @Environment(\.dismiss) private var dismiss
 
+  @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
+
   private var shouldUseDivinaReader: Bool {
     guard let profile = book.media.mediaProfile else { return true }
     switch profile {
@@ -24,84 +26,19 @@ struct BookReaderView: View {
   }
 
   var body: some View {
-    Group {
-      if book.deleted {
-        VStack(spacing: 24) {
-          Image(systemName: "trash.circle")
-            .font(.system(size: 60))
-            .foregroundColor(.secondary)
+    ZStack {
+      readerBackground.color.ignoresSafeArea()
 
-          VStack(spacing: 8) {
-            Text("Book has been deleted")
-              .font(.headline)
-          }
-
-          Button {
-            dismiss()
-          } label: {
-            Label("Close", systemImage: "xmark.circle.fill")
-              .font(.headline)
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-          }
-          .buttonStyle(.borderedProminent)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-      } else {
-        switch book.media.status {
-        case .ready:
-          if shouldUseDivinaReader {
-            DivinaReaderView(bookId: book.id, incognito: incognito)
-          } else {
-            #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
-              EpubReaderView(bookId: book.id, incognito: incognito)
-            #else
-              VStack(spacing: 24) {
-                Image(systemName: "exclamationmark.triangle")
-                  .font(.system(size: 60))
-                  .foregroundColor(.secondary)
-
-                VStack(spacing: 8) {
-                  Text("EPUB Reader Not Available")
-                    .font(.headline)
-                  Text(
-                    "EPUB reading is only supported on iOS. Please use Divina reader for this book."
-                  )
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-                  .multilineTextAlignment(.center)
-                }
-
-                Button {
-                  dismiss()
-                } label: {
-                  Label("Close", systemImage: "xmark.circle.fill")
-                    .font(.headline)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-              }
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
-              .padding()
-            #endif
-          }
-        default:
+      Group {
+        if book.deleted {
           VStack(spacing: 24) {
-            Image(systemName: book.media.status.icon)
+            Image(systemName: "trash.circle")
               .font(.system(size: 60))
               .foregroundColor(.secondary)
 
             VStack(spacing: 8) {
-              Text(book.media.status.message)
+              Text("Book has been deleted")
                 .font(.headline)
-              if let comment = book.media.comment, !comment.isEmpty {
-                Text(comment)
-                  .font(.subheadline)
-                  .foregroundColor(.secondary)
-                  .multilineTextAlignment(.center)
-              }
             }
 
             Button {
@@ -116,6 +53,75 @@ struct BookReaderView: View {
           }
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .padding()
+        } else {
+          switch book.media.status {
+          case .ready:
+            if shouldUseDivinaReader {
+              DivinaReaderView(bookId: book.id, incognito: incognito)
+            } else {
+              #if canImport(UIKit) && !os(watchOS) && !os(tvOS)
+                EpubReaderView(bookId: book.id, incognito: incognito)
+              #else
+                VStack(spacing: 24) {
+                  Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.secondary)
+
+                  VStack(spacing: 8) {
+                    Text("EPUB Reader Not Available")
+                      .font(.headline)
+                    Text(
+                      "EPUB reading is only supported on iOS. Please use Divina reader for this book."
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                  }
+
+                  Button {
+                    dismiss()
+                  } label: {
+                    Label("Close", systemImage: "xmark.circle.fill")
+                      .font(.headline)
+                      .padding(.horizontal, 16)
+                      .padding(.vertical, 8)
+                  }
+                  .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+              #endif
+            }
+          default:
+            VStack(spacing: 24) {
+              Image(systemName: book.media.status.icon)
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+
+              VStack(spacing: 8) {
+                Text(book.media.status.message)
+                  .font(.headline)
+                if let comment = book.media.comment, !comment.isEmpty {
+                  Text(comment)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                }
+              }
+
+              Button {
+                dismiss()
+              } label: {
+                Label("Close", systemImage: "xmark.circle.fill")
+                  .font(.headline)
+                  .padding(.horizontal, 16)
+                  .padding(.vertical, 8)
+              }
+              .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
+          }
         }
       }
     }

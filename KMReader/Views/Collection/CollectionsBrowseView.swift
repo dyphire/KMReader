@@ -61,6 +61,7 @@ struct CollectionsBrowseView: View {
                   }
                 }
               )
+              .focusPadding()
               .onAppear {
                 if index >= viewModel.collections.count - 3 {
                   Task {

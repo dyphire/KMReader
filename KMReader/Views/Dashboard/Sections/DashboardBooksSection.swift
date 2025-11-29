@@ -30,6 +30,7 @@ struct DashboardBooksSection: View {
               onBookUpdated: onBookUpdated,
               showSeriesTitle: true,
             )
+            .focusPadding()
           }
         }
         .padding()

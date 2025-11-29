@@ -99,6 +99,7 @@ struct BooksBrowseView: View {
           },
           showSeriesTitle: true,
         )
+        .focusPadding()
         .onAppear {
           if index >= viewModel.books.count - 3 {
             Task {

@@ -60,6 +60,7 @@ struct ReadListsBrowseView: View {
                   }
                 }
               )
+              .focusPadding()
               .onAppear {
                 if index >= viewModel.readLists.count - 3 {
                   Task {

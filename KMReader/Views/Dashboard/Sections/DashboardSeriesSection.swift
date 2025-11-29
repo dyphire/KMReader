@@ -30,6 +30,7 @@ struct DashboardSeriesSection: View {
                 onActionCompleted: onSeriesUpdated
               )
             }
+            .focusPadding()
             .buttonStyle(.plain)
           }
         }

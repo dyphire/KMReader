@@ -92,6 +92,7 @@ struct CollectionSeriesListView: View {
                         }
                       }
                     )
+                    .focusPadding()
                     .allowsHitTesting(false)
                     .overlay(alignment: .topTrailing) {
                       Image(
@@ -138,6 +139,7 @@ struct CollectionSeriesListView: View {
                         }
                       )
                     }
+                    .focusPadding()
                     .buttonStyle(.plain)
                   }
                 }
