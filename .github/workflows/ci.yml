@@ -34,6 +34,7 @@ jobs:
       - name: Build iOS
         run: |
           xcodebuild clean build \
+            -quiet \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk iphonesimulator \
@@ -68,6 +69,7 @@ jobs:
       - name: Build macOS
         run: |
           xcodebuild clean build \
+            -quiet \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk macosx \
@@ -102,6 +104,7 @@ jobs:
       - name: Build tvOS
         run: |
           xcodebuild clean build \
+            -quiet \
             -project KMReader.xcodeproj \
             -scheme KMReader \
             -sdk appletvsimulator \

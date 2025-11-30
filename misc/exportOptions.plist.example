@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <!-- REQUIRED: Distribution method -->
-    <!-- Options: app-store, ad-hoc, enterprise, development, developer-id (for macOS) -->
+    <!-- Options: app-store-connect, ad-hoc, enterprise, development, developer-id (for macOS) -->
     <key>method</key>
-    <string>app-store</string>
+    <string>app-store-connect</string>
 
     <!-- RECOMMENDED: Your Apple Developer Team ID -->
     <!-- Find it in: Xcode > Preferences > Accounts > Select your team -->
@@ -25,11 +25,11 @@
     <!--     <string>Your Provisioning Profile Name</string> -->
     <!-- </dict> -->
 
-    <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store method) -->
+    <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store-connect method) -->
     <!-- <key>uploadToAppStore</key> -->
     <!-- <true/> -->
 
-    <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store) -->
+    <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store-connect) -->
     <!-- <key>uploadSymbols</key> -->
     <!-- <true/> -->
 
