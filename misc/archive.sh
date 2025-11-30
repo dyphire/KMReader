@@ -21,7 +21,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # Configuration
 SCHEME="KMReader"
 PROJECT="$PROJECT_ROOT/KMReader.xcodeproj"
-BUNDLE_ID="com.everpcpc.Komga"
+# BUNDLE_ID="com.everpcpc.Komga"
 
 # Parse arguments
 SHOW_IN_ORGANIZER=false
