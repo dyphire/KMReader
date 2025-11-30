@@ -43,6 +43,8 @@ extension View {
           SettingsCacheView()
         case .settingsReader:
           SettingsReaderView()
+        case .settingsDashboard:
+          SettingsDashboardView()
         case .settingsServerInfo:
           SettingsServerInfoView()
         case .settingsMetrics:

@@ -9,11 +9,7 @@ import Combine
 import SwiftUI
 
 struct DashboardView: View {
-  @State private var keepReadingBooks: [Book] = []
-  @State private var onDeckBooks: [Book] = []
-  @State private var recentlyAddedBooks: [Book] = []
-  @State private var recentlyAddedSeries: [Series] = []
-  @State private var recentlyUpdatedSeries: [Series] = []
+  @State private var sectionData: [DashboardSection: Any] = [:]
   @State private var isLoading = false
 
   @State private var bookViewModel = BookViewModel()
@@ -22,9 +18,25 @@ struct DashboardView: View {
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
-  var hasContent: Bool {
-    return !keepReadingBooks.isEmpty || !onDeckBooks.isEmpty || !recentlyAddedBooks.isEmpty
-      || !recentlyAddedSeries.isEmpty || !recentlyUpdatedSeries.isEmpty
+  private var visibleSections: [DashboardSection] {
+    return AppConfig.dashboardSections
+  }
+
+  private var hasContent: Bool {
+    return visibleSections.contains { section in
+      switch section {
+      case .keepReading, .onDeck, .recentlyReadBooks, .recentlyReleasedBooks, .recentlyAddedBooks:
+        if let books = sectionData[section] as? [Book] {
+          return !books.isEmpty
+        }
+        return false
+      case .recentlyUpdatedSeries, .recentlyAddedSeries:
+        if let series = sectionData[section] as? [Series] {
+          return !series.isEmpty
+        }
+        return false
+      }
+    }
   }
 
   var body: some View {
@@ -54,59 +66,24 @@ struct DashboardView: View {
               .transition(.opacity)
             }
           } else {
-            // Keep Reading Section
-            if !keepReadingBooks.isEmpty {
-              DashboardBooksSection(
-                title: "Keep Reading",
-                books: keepReadingBooks,
-                bookViewModel: bookViewModel,
-                onBookUpdated: refreshDashboardData
-              )
-              .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            // On Deck Section
-            if !onDeckBooks.isEmpty {
-              DashboardBooksSection(
-                title: "On Deck",
-                books: onDeckBooks,
-                bookViewModel: bookViewModel,
-                onBookUpdated: refreshDashboardData
-              )
-              .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            // Recently Added Books
-            if !recentlyAddedBooks.isEmpty {
-              DashboardBooksSection(
-                title: "Recently Added Books",
-                books: recentlyAddedBooks,
-                bookViewModel: bookViewModel,
-                onBookUpdated: refreshDashboardData
-              )
-              .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            // Recently Updated Series
-            if !recentlyUpdatedSeries.isEmpty {
-              DashboardSeriesSection(
-                title: "Recently Updated Series",
-                series: recentlyUpdatedSeries,
-                seriesViewModel: seriesViewModel,
-                onSeriesUpdated: refreshDashboardData
-              )
-              .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            // Recently Added Series
-            if !recentlyAddedSeries.isEmpty {
-              DashboardSeriesSection(
-                title: "Recently Added Series",
-                series: recentlyAddedSeries,
-                seriesViewModel: seriesViewModel,
-                onSeriesUpdated: refreshDashboardData
-              )
-              .transition(.move(edge: .top).combined(with: .opacity))
+            ForEach(visibleSections, id: \.id) { section in
+              if let books = sectionData[section] as? [Book], !books.isEmpty {
+                DashboardBooksSection(
+                  title: section.displayName,
+                  books: books,
+                  bookViewModel: bookViewModel,
+                  onBookUpdated: refreshDashboardData
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+              } else if let series = sectionData[section] as? [Series], !series.isEmpty {
+                DashboardSeriesSection(
+                  title: section.displayName,
+                  series: series,
+                  seriesViewModel: seriesViewModel,
+                  onSeriesUpdated: refreshDashboardData
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+              }
             }
           }
         }
@@ -137,20 +114,46 @@ struct DashboardView: View {
     .task {
       await loadAll()
     }
+    .onAppear {
+      // Refresh when view appears (e.g., returning from settings)
+      Task {
+        await loadAll()
+      }
+    }
   }
 
   private func loadAll() async {
     isLoading = true
 
+    let sectionsToLoad = visibleSections
     await withTaskGroup(of: Void.self) { group in
-      group.addTask { await self.loadKeepReading() }
-      group.addTask { await self.loadOnDeck() }
-      group.addTask { await self.loadRecentlyAddedBooks() }
-      group.addTask { await self.loadRecentlyAddedSeries() }
-      group.addTask { await self.loadRecentlyUpdatedSeries() }
+      for section in sectionsToLoad {
+        group.addTask {
+          await self.loadSection(section)
+        }
+      }
     }
 
     isLoading = false
+  }
+
+  private func loadSection(_ section: DashboardSection) async {
+    switch section {
+    case .keepReading:
+      await loadKeepReading()
+    case .onDeck:
+      await loadOnDeck()
+    case .recentlyReadBooks:
+      await loadRecentlyReadBooks()
+    case .recentlyReleasedBooks:
+      await loadRecentlyReleasedBooks()
+    case .recentlyAddedBooks:
+      await loadRecentlyAddedBooks()
+    case .recentlyAddedSeries:
+      await loadRecentlyAddedSeries()
+    case .recentlyUpdatedSeries:
+      await loadRecentlyUpdatedSeries()
+    }
   }
 
   private func loadKeepReading() async {
@@ -169,7 +172,7 @@ struct DashboardView: View {
         sort: "readProgress.readDate,desc"
       )
       withAnimation {
-        keepReadingBooks = page.content
+        sectionData[.keepReading] = page.content
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -181,7 +184,35 @@ struct DashboardView: View {
       let page = try await BookService.shared.getBooksOnDeck(
         libraryId: selectedLibraryId, size: 20)
       withAnimation {
-        onDeckBooks = page.content
+        sectionData[.onDeck] = page.content
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadRecentlyReadBooks() async {
+    do {
+      let page = try await BookService.shared.getRecentlyReadBooks(
+        libraryId: selectedLibraryId, size: 20)
+      withAnimation {
+        sectionData[.recentlyReadBooks] = page.content
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadRecentlyReleasedBooks() async {
+    do {
+      let page = try await BookService.shared.getRecentlyReleasedBooks(
+        libraryId: selectedLibraryId, size: 20)
+      // Filter out books without release dates
+      let booksWithReleaseDate = page.content.filter {
+        $0.metadata.releaseDate != nil && !$0.metadata.releaseDate!.isEmpty
+      }
+      withAnimation {
+        sectionData[.recentlyReleasedBooks] = booksWithReleaseDate
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -193,7 +224,7 @@ struct DashboardView: View {
       let page = try await BookService.shared.getRecentlyAddedBooks(
         libraryId: selectedLibraryId, size: 20)
       withAnimation {
-        recentlyAddedBooks = page.content
+        sectionData[.recentlyAddedBooks] = page.content
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -203,14 +234,14 @@ struct DashboardView: View {
   private func loadRecentlyAddedSeries() async {
     await seriesViewModel.loadNewSeries(libraryId: selectedLibraryId)
     withAnimation {
-      recentlyAddedSeries = seriesViewModel.series
+      sectionData[.recentlyAddedSeries] = seriesViewModel.series
     }
   }
 
   private func loadRecentlyUpdatedSeries() async {
     await seriesViewModel.loadUpdatedSeries(libraryId: selectedLibraryId)
     withAnimation {
-      recentlyUpdatedSeries = seriesViewModel.series
+      sectionData[.recentlyUpdatedSeries] = seriesViewModel.series
     }
   }
 

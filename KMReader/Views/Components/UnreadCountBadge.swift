@@ -13,7 +13,7 @@ struct UnreadCountBadge: View {
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
-  init(count: Int, size: CGFloat = 14) {
+  init(count: Int, size: CGFloat = 13) {
     self.count = count
     self.size = size
   }
@@ -22,8 +22,8 @@ struct UnreadCountBadge: View {
     Text("\(count)")
       .font(.system(size: size))
       .foregroundColor(.white)
-      .padding(.horizontal, 4)
-      .padding(.vertical, 2)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 3)
       .background(themeColor.color)
       .clipShape(Capsule())
       .padding(2)

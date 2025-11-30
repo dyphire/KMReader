@@ -281,6 +281,27 @@ class BookService {
     )
   }
 
+  func getRecentlyReleasedBooks(
+    libraryId: String = "",
+    page: Int = 0,
+    size: Int = 20
+  ) async throws -> Page<Book> {
+    // Get books sorted by release date (most recent first)
+    // Only include books that have a release date
+    let condition = BookSearch.buildCondition(
+      libraryId: libraryId.isEmpty ? nil : libraryId
+    )
+
+    let search = BookSearch(condition: condition)
+
+    return try await getBooksList(
+      search: search,
+      page: page,
+      size: size,
+      sort: "metadata.releaseDate,desc"
+    )
+  }
+
   func updateBookMetadata(bookId: String, metadata: [String: Any]) async throws {
     let jsonData = try JSONSerialization.data(withJSONObject: metadata)
     let _: EmptyResponse = try await apiClient.request(

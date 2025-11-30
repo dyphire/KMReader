@@ -19,6 +19,9 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsAppearance) {
             Label("Appearance", systemImage: "paintbrush")
           }
+          NavigationLink(value: NavDestination.settingsDashboard) {
+            Label("Dashboard", systemImage: "house")
+          }
           NavigationLink(value: NavDestination.settingsCache) {
             Label("Cache", systemImage: "externaldrive")
           }
