@@ -227,15 +227,14 @@ struct DivinaReaderView: View {
           .ignoresSafeArea()
           .onChange(of: screenKey) {
             // Show helper overlay when screen orientation changes
-            if !viewModel.pages.isEmpty {
-              triggerHelperOverlay()
-            }
+            triggerHelperOverlay(timeout: 1)
           }
         #endif
 
         // Controls overlay (always rendered, use opacity to control visibility)
         ReaderControlsView(
           showingControls: $showingControls,
+          showingKeyboardHelp: $showHelperOverlay,
           showingReadingDirectionPicker: $showingReadingDirectionPicker,
           readingDirection: $readingDirection,
           viewModel: viewModel,
@@ -245,7 +244,6 @@ struct DivinaReaderView: View {
           onDismiss: { dismiss() },
           goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
           goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
-          showingKeyboardHelp: $showHelperOverlay,
           nextBook: nextBook,
           onNextBook: { openNextBook(nextBookId: $0) }
         )
@@ -341,7 +339,7 @@ struct DivinaReaderView: View {
               if showHelperOverlay {
                 hideOverlay()
               } else {
-                showOverlay()
+                showOverlay(timeout: 3)
               }
             }
           }
@@ -358,7 +356,7 @@ struct DivinaReaderView: View {
     .onChange(of: viewModel.pages.count) { oldCount, newCount in
       // Show helper overlay when pages are first loaded (iOS and macOS)
       if oldCount == 0 && newCount > 0 {
-        triggerHelperOverlay()
+        triggerHelperOverlay(timeout: 1)
       }
     }
     .onDisappear {
@@ -428,7 +426,7 @@ struct DivinaReaderView: View {
     }
     await viewModel.preloadPages()
     // Start timer to auto-hide controls after 3 seconds when entering reader
-    resetControlsTimer()
+    resetControlsTimer(timeout: 1)
   }
 
   private func goToNextPage(dualPageEnabled: Bool) {
@@ -514,7 +512,7 @@ struct DivinaReaderView: View {
       // Only auto-hide if autoHide is true
       // On macOS and tvOS, manual toggle should not auto-hide
       if autoHide {
-        resetControlsTimer()
+        resetControlsTimer(timeout: 3)
       } else {
         // Cancel any existing timer when manually opened
         controlsTimer?.invalidate()
@@ -522,7 +520,7 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func resetControlsTimer() {
+  private func resetControlsTimer(timeout: TimeInterval) {
     #if os(tvOS)
       // On tvOS, allow timer to hide controls even at endpage
       // Only prevent for webtoon at bottom
@@ -536,27 +534,12 @@ struct DivinaReaderView: View {
       }
     #endif
 
-    let timeout: TimeInterval
-    #if os(iOS)
-      timeout = 1.5
-    #elseif os(macOS)
-      timeout = 1.0
-    #else
-      timeout = 1.5
-    #endif
-
     controlsTimer?.invalidate()
     controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
       withAnimation {
         showingControls = false
       }
     }
-  }
-
-  /// Show helper overlay with animation and auto-hide timer
-  private func showOverlay() {
-    showHelperOverlay = true
-    resetHelperOverlayTimer()
   }
 
   /// Hide helper overlay and cancel timer
@@ -566,27 +549,19 @@ struct DivinaReaderView: View {
   }
 
   /// Show reader helper overlay (Tap zones on iOS, keyboard help on macOS)
-  private func triggerHelperOverlay() {
+  private func triggerHelperOverlay(timeout: TimeInterval) {
     // Respect user preference and ensure we have content
     guard showReaderHelperOverlay, !viewModel.pages.isEmpty else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-      self.showOverlay()
+      self.showHelperOverlay = true
+      self.resetHelperOverlayTimer(timeout: timeout)
     }
   }
 
   /// Auto-hide helper overlay after a platform-specific delay
-  private func resetHelperOverlayTimer() {
+  private func resetHelperOverlayTimer(timeout: TimeInterval) {
     helperOverlayTimer?.invalidate()
-    let timeout: TimeInterval
-    #if os(iOS)
-      timeout = 1.5
-    #elseif os(macOS)
-      timeout = 1.0
-    #else
-      timeout = 1.5
-    #endif
-
     helperOverlayTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
       DispatchQueue.main.async {
         withAnimation {

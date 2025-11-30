@@ -58,6 +58,7 @@ import UniformTypeIdentifiers
 
 struct ReaderControlsView: View {
   @Binding var showingControls: Bool
+  @Binding var showingKeyboardHelp: Bool
   @Binding var showingReadingDirectionPicker: Bool
   @Binding var readingDirection: ReadingDirection
   let viewModel: ReaderViewModel
@@ -67,7 +68,6 @@ struct ReaderControlsView: View {
   let onDismiss: () -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
-  @Binding var showingKeyboardHelp: Bool
   let nextBook: Book?
   let onNextBook: ((String) -> Void)?
 

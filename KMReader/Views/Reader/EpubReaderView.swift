@@ -43,7 +43,7 @@
       readerBody
         .task(id: bookId) {
           await loadBook()
-          resetControlsTimer()
+          resetControlsTimer(timeout: 1)
           triggerTapZoneDisplay()
         }
         .task(id: readerPrefs) {
@@ -253,13 +253,13 @@
         showingControls.toggle()
       }
       if showingControls {
-        resetControlsTimer()
+        resetControlsTimer(timeout: 3)
       }
     }
 
-    private func resetControlsTimer() {
+    private func resetControlsTimer(timeout: TimeInterval) {
       controlsTimer?.invalidate()
-      controlsTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
+      controlsTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { _ in
         withAnimation {
           showingControls = false
         }
