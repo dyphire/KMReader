@@ -64,7 +64,7 @@ struct SettingsDashboardView: View {
       else { return }
       var newSections = dashboard.sections
       newSections.swapAt(index, index - 1)
-      dashboard = DashboardSections(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections)
     }
 
     private func moveSectionDown(_ section: DashboardSection) {
@@ -73,7 +73,7 @@ struct SettingsDashboardView: View {
       else { return }
       var newSections = dashboard.sections
       newSections.swapAt(index, index + 1)
-      dashboard = DashboardSections(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections)
     }
   #endif
 
