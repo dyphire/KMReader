@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct LandingView: View {
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @State private var showGetStarted = false
 
   var body: some View {

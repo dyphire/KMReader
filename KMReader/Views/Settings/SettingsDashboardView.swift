@@ -8,7 +8,8 @@
 import SwiftUI
 
 struct SettingsDashboardView: View {
-  @State private var sections: [DashboardSection] = AppConfig.dashboardSections
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
+    DashboardConfiguration()
 
   #if os(tvOS)
     @State private var isEditMode = false
@@ -17,22 +18,24 @@ struct SettingsDashboardView: View {
   #endif
 
   private func isSectionVisible(_ section: DashboardSection) -> Bool {
-    return sections.contains(section)
+    return dashboard.sections.contains(section)
   }
 
   private func hideSection(_ section: DashboardSection) {
-    if let index = sections.firstIndex(of: section) {
-      sections.remove(at: index)
-      AppConfig.dashboardSections = sections
+    if let index = dashboard.sections.firstIndex(of: section) {
+      var newSections = dashboard.sections
+      newSections.remove(at: index)
+      dashboard = DashboardConfiguration(sections: newSections)
     }
   }
 
   private func showSection(_ section: DashboardSection) {
-    if !sections.contains(section) {
+    if !dashboard.sections.contains(section) {
+      var newSections = dashboard.sections
       // Add at the end or find a good position based on allCases order
       if let referenceIndex = DashboardSection.allCases.firstIndex(of: section) {
-        var insertIndex = sections.count
-        for (idx, existingSection) in sections.enumerated() {
+        var insertIndex = newSections.count
+        for (idx, existingSection) in newSections.enumerated() {
           if let existingIndex = DashboardSection.allCases.firstIndex(of: existingSection),
             existingIndex > referenceIndex
           {
@@ -40,34 +43,37 @@ struct SettingsDashboardView: View {
             break
           }
         }
-        sections.insert(section, at: insertIndex)
+        newSections.insert(section, at: insertIndex)
       } else {
-        sections.append(section)
+        newSections.append(section)
       }
-      AppConfig.dashboardSections = sections
+      dashboard = DashboardConfiguration(sections: newSections)
     }
   }
 
   private func moveSections(from source: IndexSet, to destination: Int) {
-    sections.move(fromOffsets: source, toOffset: destination)
-    AppConfig.dashboardSections = sections
+    var newSections = dashboard.sections
+    newSections.move(fromOffsets: source, toOffset: destination)
+    dashboard = DashboardConfiguration(sections: newSections)
   }
 
   #if os(tvOS)
     private func moveSectionUp(_ section: DashboardSection) {
-      guard let index = sections.firstIndex(of: section),
+      guard let index = dashboard.sections.firstIndex(of: section),
         index > 0
       else { return }
-      sections.swapAt(index, index - 1)
-      AppConfig.dashboardSections = sections
+      var newSections = dashboard.sections
+      newSections.swapAt(index, index - 1)
+      dashboard = DashboardSections(sections: newSections)
     }
 
     private func moveSectionDown(_ section: DashboardSection) {
-      guard let index = sections.firstIndex(of: section),
-        index < sections.count - 1
+      guard let index = dashboard.sections.firstIndex(of: section),
+        index < dashboard.sections.count - 1
       else { return }
-      sections.swapAt(index, index + 1)
-      AppConfig.dashboardSections = sections
+      var newSections = dashboard.sections
+      newSections.swapAt(index, index + 1)
+      dashboard = DashboardSections(sections: newSections)
     }
   #endif
 
@@ -120,7 +126,7 @@ struct SettingsDashboardView: View {
       #endif
 
       Section(header: Text("Dashboard Sections")) {
-        ForEach(sections) { section in
+        ForEach(dashboard.sections) { section in
           HStack {
             #if os(tvOS)
               Text(section.displayName)
@@ -242,8 +248,7 @@ struct SettingsDashboardView: View {
             focusedHandle = nil
           #endif
           withAnimation {
-            sections = DashboardSection.allCases
-            AppConfig.dashboardSections = sections
+            dashboard = DashboardConfiguration(sections: DashboardSection.allCases)
           }
         } label: {
           HStack {
@@ -256,12 +261,12 @@ struct SettingsDashboardView: View {
     }
     .optimizedListStyle()
     .inlineNavigationBarTitle("Dashboard")
-    .onAppear {
-      sections = AppConfig.dashboardSections
-      #if os(tvOS)
+    .animation(.default, value: dashboard)
+    #if os(tvOS)
+      .onAppear {
         movingSection = nil
         focusedHandle = nil
-      #endif
-    }
+      }
+    #endif
   }
 }

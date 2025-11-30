@@ -10,7 +10,6 @@ import SwiftUI
 struct SeriesDetailView: View {
   let seriesId: String
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
 

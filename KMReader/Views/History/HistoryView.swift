@@ -11,7 +11,6 @@ struct HistoryView: View {
   @State private var bookViewModel = BookViewModel()
 
   @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
   private func refreshRecentlyReadBooks() {
     Task {

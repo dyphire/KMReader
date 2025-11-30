@@ -17,8 +17,6 @@ struct BrowseStateView<Content: View>: View {
   let onRetry: () -> Void
   @ViewBuilder let content: () -> Content
 
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
-
   var body: some View {
     Group {
       if isLoading && isEmpty {

@@ -8,34 +8,176 @@
 import SwiftUI
 
 struct DashboardBooksSection: View {
-  let title: String
-  let books: [Book]
+  let section: DashboardSection
   var bookViewModel: BookViewModel
+  let refreshTrigger: UUID
   var onBookUpdated: (() -> Void)? = nil
 
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(title)
-        .font(.title3)
-        .fontWeight(.bold)
-        .padding(.horizontal)
+  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
 
-      ScrollView(.horizontal, showsIndicators: false) {
-        HStack(alignment: .top, spacing: 12) {
-          ForEach(books) { book in
-            BookCardView(
-              book: book,
-              viewModel: bookViewModel,
-              cardWidth: PlatformHelper.dashboardCardWidth,
-              onBookUpdated: onBookUpdated,
-              showSeriesTitle: true,
-            )
-            .focusPadding()
+  @State private var books: [Book] = []
+  @State private var currentPage = 0
+  @State private var hasMore = true
+  @State private var isLoading = false
+  @State private var lastTriggeredIndex: Int = -1
+  @State private var hasLoadedInitial = false
+
+  var body: some View {
+    // Don't show section if empty and initial load is complete
+    if !books.isEmpty || isLoading || !hasLoadedInitial {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(section.displayName)
+          .font(.title3)
+          .fontWeight(.bold)
+          .padding(.horizontal)
+
+        ScrollView(.horizontal, showsIndicators: false) {
+          LazyHStack(alignment: .top, spacing: 12) {
+            ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
+              BookCardView(
+                book: book,
+                viewModel: bookViewModel,
+                cardWidth: PlatformHelper.dashboardCardWidth,
+                onBookUpdated: onBookUpdated,
+                showSeriesTitle: true,
+              )
+              .focusPadding()
+              .onAppear {
+                // Trigger load when we're near the last item (within last 3 items)
+                // Only trigger once per index to avoid repeated loads
+                if index >= books.count - 3 && hasMore && !isLoading && lastTriggeredIndex != index
+                {
+                  lastTriggeredIndex = index
+                  Task {
+                    await loadMore()
+                  }
+                }
+              }
+            }
+
+            // Loading indicator at the end
+            if isLoading {
+              ProgressView()
+                .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
+                .padding(.trailing, 12)
+            }
+          }
+          .padding()
+        }
+      }
+      .padding(.bottom, 16)
+      .onChange(of: selectedLibraryId) {
+        Task {
+          await loadInitial()
+        }
+      }
+      .onChange(of: refreshTrigger) {
+        Task {
+          await loadInitial()
+        }
+      }
+      .onAppear {
+        // Load data when view appears (if not already loaded or if empty due to cancelled request)
+        if !hasLoadedInitial || (books.isEmpty && !isLoading) {
+          Task {
+            await loadInitial()
           }
         }
-        .padding()
       }
     }
-    .padding(.bottom, 16)
+  }
+
+  private func loadInitial() async {
+    currentPage = 0
+    hasMore = true
+    lastTriggeredIndex = -1
+    hasLoadedInitial = false
+
+    // Load first page first, then replace
+    await loadMore(reset: true)
+    hasLoadedInitial = true
+  }
+
+  private func loadMore(reset: Bool = false) async {
+    guard hasMore, !isLoading else { return }
+    isLoading = true
+
+    do {
+      let page: Page<Book>
+
+      switch section {
+      case .keepReading:
+        let condition = BookSearch.buildCondition(
+          libraryId: selectedLibraryId.isEmpty ? nil : selectedLibraryId,
+          readStatus: ReadStatus.inProgress
+        )
+        let search = BookSearch(condition: condition)
+        page = try await BookService.shared.getBooksList(
+          search: search,
+          page: currentPage,
+          size: 20,
+          sort: "readProgress.readDate,desc"
+        )
+
+      case .onDeck:
+        page = try await BookService.shared.getBooksOnDeck(
+          libraryId: selectedLibraryId,
+          page: currentPage,
+          size: 20
+        )
+
+      case .recentlyReadBooks:
+        page = try await BookService.shared.getRecentlyReadBooks(
+          libraryId: selectedLibraryId,
+          page: currentPage,
+          size: 20
+        )
+
+      case .recentlyReleasedBooks:
+        page = try await BookService.shared.getRecentlyReleasedBooks(
+          libraryId: selectedLibraryId,
+          page: currentPage,
+          size: 20
+        )
+
+      case .recentlyAddedBooks:
+        page = try await BookService.shared.getRecentlyAddedBooks(
+          libraryId: selectedLibraryId,
+          page: currentPage,
+          size: 20
+        )
+
+      default:
+        isLoading = false
+        return
+      }
+
+      var newBooks = page.content
+
+      // Filter out books without release dates for recentlyReleasedBooks
+      if section == .recentlyReleasedBooks {
+        newBooks = newBooks.filter {
+          $0.metadata.releaseDate != nil && !$0.metadata.releaseDate!.isEmpty
+        }
+      }
+
+      withAnimation {
+        if reset {
+          books = newBooks
+        } else {
+          books.append(contentsOf: newBooks)
+        }
+      }
+
+      hasMore = !page.last
+      currentPage += 1
+
+      // Reset trigger index after loading to allow next trigger
+      lastTriggeredIndex = -1
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+
+    isLoading = false
   }
 }

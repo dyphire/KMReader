@@ -88,24 +88,25 @@ enum AppConfig {
     }
   }
 
-  // MARK: - Dashboard Sections
-  // Array of visible sections in display order. Sections not in array are hidden.
-  static var dashboardSections: [DashboardSection] {
-    get {
-      guard let data = defaults.data(forKey: "dashboardSections"),
-        let sections = try? JSONDecoder().decode([DashboardSection].self, from: data)
-      else {
-        // Return default order with all sections visible
-        return DashboardSection.allCases
-      }
-      return sections
-    }
-    set {
-      if let data = try? JSONEncoder().encode(newValue) {
-        defaults.set(data, forKey: "dashboardSections")
-      }
-    }
-  }
+  // // MARK: - Dashboard Sections
+  // // Array of visible sections in display order. Sections not in array are hidden.
+  // static var dashboardSections: [DashboardSection] {
+  //   get {
+  //     // Use DashboardSections wrapper to match @AppStorage format
+  //     if let rawValue = defaults.string(forKey: "dashboard"),
+  //       let dashboardConfiguration = DashboardConfiguration(rawValue: rawValue)
+  //     {
+  //       return dashboardConfiguration.sections
+  //     }
+  //     // Return default order with all sections visible
+  //     return DashboardSection.allCases
+  //   }
+  //   set {
+  //     // Use DashboardSections wrapper to match @AppStorage format
+  //     let dashboardConfiguration = DashboardConfiguration(sections: newValue)
+  //     defaults.set(dashboardConfiguration.rawValue, forKey: "dashboard")
+  //   }
+  // }
 
   // MARK: - Clear all auth data
   static func clearAuthData() {
