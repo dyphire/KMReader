@@ -22,10 +22,33 @@ struct DashboardSeriesSection: View {
   @State private var lastTriggeredIndex: Int = -1
   @State private var hasLoadedInitial = false
 
+  var shouldShowSection: Bool {
+    return !series.isEmpty || isLoading || !hasLoadedInitial
+  }
+
+  // Load data when view appears (if not already loaded or if empty due to cancelled request)
+  var shouldInitialLoad: Bool {
+    return !hasLoadedInitial || (series.isEmpty && !isLoading)
+  }
+
+  // Show loading overlay during initial load when empty
+  var shouldShowLoadingOverlay: Bool {
+    return isLoading && !hasLoadedInitial && series.isEmpty
+  }
+
+  // Loading indicator at the end - only show when loading more and has content
+  var shouldShowLoadingIndicator: Bool {
+    return isLoading && hasLoadedInitial && !series.isEmpty
+  }
+
+  func shouldLoadMore(index: Int) -> Bool {
+    return index >= series.count - 3 && hasMore && !isLoading && lastTriggeredIndex != index
+  }
+
   var body: some View {
     Group {
       // Don't show section if empty and initial load is complete
-      if !series.isEmpty || isLoading || !hasLoadedInitial {
+      if shouldShowSection {
         VStack(alignment: .leading, spacing: 4) {
           Text(section.displayName)
             .font(.title3)
@@ -47,9 +70,7 @@ struct DashboardSeriesSection: View {
                 .onAppear {
                   // Trigger load when we're near the last item (within last 3 items)
                   // Only trigger once per index to avoid repeated loads
-                  if index >= series.count - 3 && hasMore && !isLoading
-                    && lastTriggeredIndex != index
-                  {
+                  if shouldLoadMore(index: index) {
                     lastTriggeredIndex = index
                     Task {
                       await loadMore()
@@ -58,14 +79,19 @@ struct DashboardSeriesSection: View {
                 }
               }
 
-              // Loading indicator at the end
-              if isLoading {
+              if shouldShowLoadingIndicator {
                 ProgressView()
                   .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
                   .padding(.trailing, 12)
               }
             }
             .padding()
+          }
+          .overlay {
+            if shouldShowLoadingOverlay {
+              ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
           }
           #if os(tvOS)
             .focusSection()
@@ -85,8 +111,7 @@ struct DashboardSeriesSection: View {
       }
     }
     .onAppear {
-      // Load data when view appears (if not already loaded or if empty due to cancelled request)
-      if !hasLoadedInitial || (series.isEmpty && !isLoading) {
+      if shouldInitialLoad {
         Task {
           await loadInitial()
         }

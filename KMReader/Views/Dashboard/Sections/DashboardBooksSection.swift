@@ -22,10 +22,33 @@ struct DashboardBooksSection: View {
   @State private var lastTriggeredIndex: Int = -1
   @State private var hasLoadedInitial = false
 
+  var shouldShowSection: Bool {
+    return !books.isEmpty || isLoading || !hasLoadedInitial
+  }
+
+  // Load data when view appears (if not already loaded or if empty due to cancelled request)
+  var shouldInitialLoad: Bool {
+    return !hasLoadedInitial || (books.isEmpty && !isLoading)
+  }
+
+  // Show loading overlay during initial load when empty
+  var shouldShowLoadingOverlay: Bool {
+    return isLoading && !hasLoadedInitial && books.isEmpty
+  }
+
+  // Loading indicator at the end - only show when loading more and has content
+  var shouldShowLoadingIndicator: Bool {
+    return isLoading && hasLoadedInitial && !books.isEmpty
+  }
+
+  func shouldLoadMore(index: Int) -> Bool {
+    return index >= books.count - 3 && hasMore && !isLoading && lastTriggeredIndex != index
+  }
+
   var body: some View {
     Group {
       // Don't show section if empty and initial load is complete
-      if !books.isEmpty || isLoading || !hasLoadedInitial {
+      if shouldShowSection {
         VStack(alignment: .leading, spacing: 4) {
           Text(section.displayName)
             .font(.title3)
@@ -46,9 +69,7 @@ struct DashboardBooksSection: View {
                 .onAppear {
                   // Trigger load when we're near the last item (within last 3 items)
                   // Only trigger once per index to avoid repeated loads
-                  if index >= books.count - 3 && hasMore && !isLoading
-                    && lastTriggeredIndex != index
-                  {
+                  if shouldLoadMore(index: index) {
                     lastTriggeredIndex = index
                     Task {
                       await loadMore()
@@ -57,14 +78,19 @@ struct DashboardBooksSection: View {
                 }
               }
 
-              // Loading indicator at the end
-              if isLoading {
+              if shouldShowLoadingIndicator {
                 ProgressView()
                   .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
                   .padding(.trailing, 12)
               }
             }
             .padding()
+          }
+          .overlay {
+            if shouldShowLoadingOverlay {
+              ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
           }
         }
         .padding(.bottom, 16)
@@ -81,8 +107,7 @@ struct DashboardBooksSection: View {
       }
     }
     .onAppear {
-      // Load data when view appears (if not already loaded or if empty due to cancelled request)
-      if !hasLoadedInitial || (books.isEmpty && !isLoading) {
+      if shouldInitialLoad {
         Task {
           await loadInitial()
         }
