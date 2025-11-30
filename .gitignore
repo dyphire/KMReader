@@ -18,3 +18,10 @@ Package.resolved
 misc/exportOptions.plist
 archives/
 exports/
+
+# App Store Connect API Keys (never commit these!)
+*.p8
+AuthKey_*.p8
+~/.appstoreconnect/
+.env
+.env.local

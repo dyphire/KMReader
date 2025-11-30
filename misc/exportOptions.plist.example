@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
     <!-- REQUIRED: Distribution method -->
-    <!-- Options: app-store-connect, ad-hoc, enterprise, development, developer-id (for macOS) -->
+    <!-- Options: app-store-connect, app-store, ad-hoc, enterprise, development, developer-id (for macOS) -->
+    <!-- app-store-connect: Direct upload to App Store Connect (recommended by Xcode) -->
+    <!-- app-store: Export IPA for manual upload -->
     <key>method</key>
     <string>app-store-connect</string>
 
@@ -25,11 +27,13 @@
     <!--     <string>Your Provisioning Profile Name</string> -->
     <!-- </dict> -->
 
-    <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store-connect method) -->
+    <!-- OPTIONAL: Upload directly to App Store Connect (only for app-store method) -->
+    <!-- When enabled, the export script will automatically upload to App Store Connect -->
+    <!-- Requires App Store Connect API key or interactive Apple ID login -->
     <!-- <key>uploadToAppStore</key> -->
     <!-- <true/> -->
 
-    <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store-connect) -->
+    <!-- OPTIONAL: Upload symbols for crash reporting (recommended for app-store method) -->
     <!-- <key>uploadSymbols</key> -->
     <!-- <true/> -->
 
