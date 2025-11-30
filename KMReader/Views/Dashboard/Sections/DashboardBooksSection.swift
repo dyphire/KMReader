@@ -23,65 +23,68 @@ struct DashboardBooksSection: View {
   @State private var hasLoadedInitial = false
 
   var body: some View {
-    // Don't show section if empty and initial load is complete
-    if !books.isEmpty || isLoading || !hasLoadedInitial {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(section.displayName)
-          .font(.title3)
-          .fontWeight(.bold)
-          .padding(.horizontal)
+    Group {
+      // Don't show section if empty and initial load is complete
+      if !books.isEmpty || isLoading || !hasLoadedInitial {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(section.displayName)
+            .font(.title3)
+            .fontWeight(.bold)
+            .padding(.horizontal)
 
-        ScrollView(.horizontal, showsIndicators: false) {
-          LazyHStack(alignment: .top, spacing: 12) {
-            ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
-              BookCardView(
-                book: book,
-                viewModel: bookViewModel,
-                cardWidth: PlatformHelper.dashboardCardWidth,
-                onBookUpdated: onBookUpdated,
-                showSeriesTitle: true,
-              )
-              .focusPadding()
-              .onAppear {
-                // Trigger load when we're near the last item (within last 3 items)
-                // Only trigger once per index to avoid repeated loads
-                if index >= books.count - 3 && hasMore && !isLoading && lastTriggeredIndex != index
-                {
-                  lastTriggeredIndex = index
-                  Task {
-                    await loadMore()
+          ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(alignment: .top, spacing: 12) {
+              ForEach(Array(books.enumerated()), id: \.element.id) { index, book in
+                BookCardView(
+                  book: book,
+                  viewModel: bookViewModel,
+                  cardWidth: PlatformHelper.dashboardCardWidth,
+                  onBookUpdated: onBookUpdated,
+                  showSeriesTitle: true,
+                )
+                .focusPadding()
+                .onAppear {
+                  // Trigger load when we're near the last item (within last 3 items)
+                  // Only trigger once per index to avoid repeated loads
+                  if index >= books.count - 3 && hasMore && !isLoading
+                    && lastTriggeredIndex != index
+                  {
+                    lastTriggeredIndex = index
+                    Task {
+                      await loadMore()
+                    }
                   }
                 }
               }
-            }
 
-            // Loading indicator at the end
-            if isLoading {
-              ProgressView()
-                .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
-                .padding(.trailing, 12)
+              // Loading indicator at the end
+              if isLoading {
+                ProgressView()
+                  .frame(width: PlatformHelper.dashboardCardWidth, height: 200)
+                  .padding(.trailing, 12)
+              }
             }
+            .padding()
           }
-          .padding()
         }
+        .padding(.bottom, 16)
       }
-      .padding(.bottom, 16)
-      .onChange(of: selectedLibraryId) {
+    }
+    .onChange(of: selectedLibraryId) {
+      Task {
+        await loadInitial()
+      }
+    }
+    .onChange(of: refreshTrigger) {
+      Task {
+        await loadInitial()
+      }
+    }
+    .onAppear {
+      // Load data when view appears (if not already loaded or if empty due to cancelled request)
+      if !hasLoadedInitial || (books.isEmpty && !isLoading) {
         Task {
           await loadInitial()
-        }
-      }
-      .onChange(of: refreshTrigger) {
-        Task {
-          await loadInitial()
-        }
-      }
-      .onAppear {
-        // Load data when view appears (if not already loaded or if empty due to cancelled request)
-        if !hasLoadedInitial || (books.isEmpty && !isLoading) {
-          Task {
-            await loadInitial()
-          }
         }
       }
     }

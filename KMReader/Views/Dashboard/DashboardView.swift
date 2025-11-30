@@ -12,12 +12,18 @@ struct DashboardView: View {
   @State private var bookViewModel = BookViewModel()
   @State private var seriesViewModel = SeriesViewModel()
   @State private var refreshTrigger = UUID()
+  @State private var isRefreshDisabled = false
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
     DashboardConfiguration()
 
   private func refreshDashboard() {
     refreshTrigger = UUID()
+    isRefreshDisabled = true
+    Task {
+      try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
+      isRefreshDisabled = false
+    }
   }
 
   var body: some View {
@@ -60,6 +66,7 @@ struct DashboardView: View {
             } label: {
               Image(systemName: "arrow.clockwise.circle")
             }
+            .disabled(isRefreshDisabled)
           }
         }
         .refreshable {
