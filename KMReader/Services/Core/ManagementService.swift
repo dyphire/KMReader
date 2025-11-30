@@ -14,10 +14,16 @@ class ManagementService {
   private init() {}
 
   func getActuatorInfo() async throws -> ServerInfo {
+    guard AppConfig.isAdmin else {
+      throw AppErrorType.operationNotAllowed(message: "Admin access required")
+    }
     return try await apiClient.request(path: "/actuator/info")
   }
 
   func getMetric(_ metricName: String, tags: [MetricTag]? = nil) async throws -> Metric {
+    guard AppConfig.isAdmin else {
+      throw AppErrorType.operationNotAllowed(message: "Admin access required")
+    }
     let path = "/actuator/metrics/\(metricName)"
     var queryItems: [URLQueryItem]?
 
@@ -29,6 +35,9 @@ class ManagementService {
   }
 
   func cancelAllTasks() async throws {
+    guard AppConfig.isAdmin else {
+      throw AppErrorType.operationNotAllowed(message: "Admin access required")
+    }
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/tasks",
       method: "DELETE"

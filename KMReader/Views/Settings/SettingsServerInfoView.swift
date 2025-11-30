@@ -8,12 +8,15 @@
 import SwiftUI
 
 struct SettingsServerInfoView: View {
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @State private var serverInfo: ServerInfo?
   @State private var isLoading = false
 
   var body: some View {
     List {
-      if isLoading {
+      if !isAdmin {
+        AdminRequiredView()
+      } else if isLoading {
         Section {
           HStack {
             Spacer()
@@ -289,10 +292,14 @@ struct SettingsServerInfoView: View {
     .optimizedListStyle(alternatesRowBackgrounds: true)
     .inlineNavigationBarTitle("Server Info")
     .task {
-      await loadServerInfo()
+      if isAdmin {
+        await loadServerInfo()
+      }
     }
     .refreshable {
-      await loadServerInfo()
+      if isAdmin {
+        await loadServerInfo()
+      }
     }
   }
 

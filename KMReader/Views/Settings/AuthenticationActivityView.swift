@@ -17,27 +17,7 @@ struct AuthenticationActivityView: View {
 
   var body: some View {
     List {
-      if !isAdmin {
-        Section {
-          HStack {
-            Spacer()
-            VStack(spacing: 8) {
-              Image(systemName: "lock.shield")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary)
-              Text("Admin access required")
-                .font(.headline)
-                .foregroundColor(.secondary)
-              Text("This feature is only available to administrators")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            }
-            Spacer()
-          }
-          .padding(.vertical)
-        }
-      } else if isLoading && activities.isEmpty {
+      if isLoading && activities.isEmpty {
         Section {
           HStack {
             Spacer()

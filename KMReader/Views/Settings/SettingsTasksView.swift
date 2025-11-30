@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SettingsTasksView: View {
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @State private var isLoading = false
   @State private var isCancelling = false
   @State private var showCancelAllConfirmation = false
@@ -22,7 +23,9 @@ struct SettingsTasksView: View {
 
   var body: some View {
     List {
-      if isLoading {
+      if !isAdmin {
+        AdminRequiredView()
+      } else if isLoading {
         Section {
           HStack {
             Spacer()
@@ -120,10 +123,14 @@ struct SettingsTasksView: View {
       Text("Are you sure you want to cancel all tasks? This action cannot be undone.")
     }
     .task {
-      await loadMetrics()
+      if isAdmin {
+        await loadMetrics()
+      }
     }
     .refreshable {
-      await loadMetrics()
+      if isAdmin {
+        await loadMetrics()
+      }
     }
   }
 

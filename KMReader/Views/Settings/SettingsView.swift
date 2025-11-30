@@ -72,7 +72,6 @@ struct SettingsView: View {
           NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
             Label("Authentication Activity", systemImage: "clock")
           }
-          .disabled(!isAdmin)
         }
 
         HStack {
