@@ -57,6 +57,10 @@ struct ZoomableImageContainer<Content: View>: View {
         content: content
       )
       .frame(width: screenSize.width, height: screenSize.height)
+    #else
+      // tvOS does not support zooming, so we just show the content
+      content()
+        .frame(width: screenSize.width, height: screenSize.height)
     #endif
   }
 }
