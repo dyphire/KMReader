@@ -14,7 +14,7 @@ class ReadListService {
   private init() {}
 
   func getReadLists(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
     sort: String? = nil,
@@ -25,8 +25,11 @@ class ReadListService {
       URLQueryItem(name: "size", value: "\(size)"),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
     }
 
     if let sort {
@@ -54,13 +57,14 @@ class ReadListService {
     readListId: String,
     page: Int = 0,
     size: Int = 20,
-    browseOpts: BookBrowseOptions
+    browseOpts: BookBrowseOptions,
+    libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
     let sort = browseOpts.sortString
     let readStatus = browseOpts.readStatusFilter.toReadStatus()
 
     let condition = BookSearch.buildCondition(
-      libraryId: nil,
+      libraryIds: libraryIds,
       readStatus: readStatus,
       seriesId: nil,
       readListId: readListId

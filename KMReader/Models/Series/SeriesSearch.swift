@@ -40,17 +40,27 @@ struct SeriesSearch: Encodable {
 // Helper functions to build conditions
 extension SeriesSearch {
   static func buildCondition(
-    libraryId: String? = nil,
+    libraryIds: [String]? = nil,
     readStatus: ReadStatus? = nil,
     seriesStatus: String? = nil,
     collectionId: String? = nil
   ) -> [String: Any]? {
     var conditions: [[String: Any]] = []
 
-    if let libraryId = libraryId, !libraryId.isEmpty {
-      conditions.append([
-        "libraryId": ["operator": "is", "value": libraryId]
-      ])
+    // Support multiple libraryIds using anyOf
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      if libraryIds.count == 1 {
+        // Single libraryId - use simple condition
+        conditions.append([
+          "libraryId": ["operator": "is", "value": libraryIds[0]]
+        ])
+      } else {
+        // Multiple libraryIds - use anyOf to combine
+        let libraryConditions = libraryIds.map { id in
+          ["libraryId": ["operator": "is", "value": id]]
+        }
+        conditions.append(["anyOf": libraryConditions])
+      }
     }
 
     if let readStatus = readStatus {

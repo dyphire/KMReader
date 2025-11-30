@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct CollectionPickerSheet: View {
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @Environment(\.dismiss) private var dismiss
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var collectionViewModel = CollectionViewModel()
   @State private var selectedCollectionId: String?
@@ -108,7 +108,7 @@ struct CollectionPickerSheet: View {
     isLoading = true
 
     await collectionViewModel.loadCollections(
-      libraryId: selectedLibraryId,
+      libraryIds: dashboard.libraryIds,
       sort: "name,asc",
       searchText: searchText,
       refresh: true

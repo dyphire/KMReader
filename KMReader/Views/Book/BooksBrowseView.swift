@@ -13,7 +13,7 @@ struct BooksBrowseView: View {
   private let spacing: CGFloat = 12
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -37,7 +37,8 @@ struct BooksBrowseView: View {
         onRetry: {
           Task {
             await viewModel.loadBrowseBooks(
-              browseOpts: browseOpts, searchText: searchText, refresh: true)
+              browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+              refresh: true)
           }
         }
       ) {
@@ -52,23 +53,29 @@ struct BooksBrowseView: View {
     .task {
       if viewModel.books.isEmpty {
         await viewModel.loadBrowseBooks(
-          browseOpts: browseOpts, searchText: searchText, refresh: true)
+          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
     .onChange(of: browseOpts) { _, newValue in
       Task {
-        await viewModel.loadBrowseBooks(browseOpts: newValue, searchText: searchText, refresh: true)
+        await viewModel.loadBrowseBooks(
+          browseOpts: newValue, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
     .onChange(of: searchText) { _, newValue in
       Task {
-        await viewModel.loadBrowseBooks(browseOpts: browseOpts, searchText: newValue, refresh: true)
+        await viewModel.loadBrowseBooks(
+          browseOpts: browseOpts, searchText: newValue, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
-    .onChange(of: selectedLibraryId) { _, _ in
+    .onChange(of: dashboard.libraryIds) { _, _ in
       Task {
         await viewModel.loadBrowseBooks(
-          browseOpts: browseOpts, searchText: searchText, refresh: true)
+          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
     .readerPresentation(readerState: $readerState)
@@ -84,7 +91,8 @@ struct BooksBrowseView: View {
           onBookUpdated: {
             Task {
               await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, refresh: true)
+                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+                refresh: true)
             }
           },
           showSeriesTitle: true,
@@ -94,7 +102,8 @@ struct BooksBrowseView: View {
           if index >= viewModel.books.count - 3 {
             Task {
               await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, refresh: false)
+                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+                refresh: false)
             }
           }
         }
@@ -114,7 +123,8 @@ struct BooksBrowseView: View {
           onBookUpdated: {
             Task {
               await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, refresh: true)
+                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+                refresh: true)
             }
           },
           showSeriesTitle: true
@@ -123,7 +133,8 @@ struct BooksBrowseView: View {
           if index >= viewModel.books.count - 3 {
             Task {
               await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, refresh: false)
+                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+                refresh: false)
             }
           }
         }

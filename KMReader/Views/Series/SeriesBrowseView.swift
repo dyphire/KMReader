@@ -14,7 +14,7 @@ struct SeriesBrowseView: View {
 
   @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
 
   @State private var viewModel = SeriesViewModel()
@@ -33,7 +33,8 @@ struct SeriesBrowseView: View {
         onRetry: {
           Task {
             await viewModel.loadSeries(
-              browseOpts: browseOpts, searchText: searchText, refresh: true)
+              browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+              refresh: true)
           }
         }
       ) {
@@ -48,7 +49,8 @@ struct SeriesBrowseView: View {
                   onActionCompleted: {
                     Task {
                       await viewModel.loadSeries(
-                        browseOpts: browseOpts, searchText: searchText, refresh: true)
+                        browseOpts: browseOpts, searchText: searchText,
+                        libraryIds: dashboard.libraryIds, refresh: true)
                     }
                   }
                 )
@@ -59,7 +61,8 @@ struct SeriesBrowseView: View {
                 if index >= viewModel.series.count - 3 {
                   Task {
                     await viewModel.loadSeries(
-                      browseOpts: browseOpts, searchText: searchText, refresh: false)
+                      browseOpts: browseOpts, searchText: searchText,
+                      libraryIds: dashboard.libraryIds, refresh: false)
                   }
                 }
               }
@@ -74,7 +77,8 @@ struct SeriesBrowseView: View {
                   onActionCompleted: {
                     Task {
                       await viewModel.loadSeries(
-                        browseOpts: browseOpts, searchText: searchText, refresh: true)
+                        browseOpts: browseOpts, searchText: searchText,
+                        libraryIds: dashboard.libraryIds, refresh: true)
                     }
                   }
                 )
@@ -84,7 +88,8 @@ struct SeriesBrowseView: View {
                 if index >= viewModel.series.count - 3 {
                   Task {
                     await viewModel.loadSeries(
-                      browseOpts: browseOpts, searchText: searchText, refresh: false)
+                      browseOpts: browseOpts, searchText: searchText,
+                      libraryIds: dashboard.libraryIds, refresh: false)
                   }
                 }
               }
@@ -95,22 +100,30 @@ struct SeriesBrowseView: View {
     }
     .task {
       if viewModel.series.isEmpty {
-        await viewModel.loadSeries(browseOpts: browseOpts, searchText: searchText, refresh: true)
+        await viewModel.loadSeries(
+          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
     .onChange(of: browseOpts) { _, newValue in
       Task {
-        await viewModel.loadSeries(browseOpts: newValue, searchText: searchText, refresh: true)
+        await viewModel.loadSeries(
+          browseOpts: newValue, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
     .onChange(of: searchText) { _, newValue in
       Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, searchText: newValue, refresh: true)
+        await viewModel.loadSeries(
+          browseOpts: browseOpts, searchText: newValue, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
-    .onChange(of: selectedLibraryId) { _, _ in
+    .onChange(of: dashboard.libraryIds) { _, _ in
       Task {
-        await viewModel.loadSeries(browseOpts: browseOpts, searchText: searchText, refresh: true)
+        await viewModel.loadSeries(
+          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
   }

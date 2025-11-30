@@ -10,7 +10,7 @@ import SwiftUI
 
 struct SettingsLibrariesView: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
   @State private var performingLibraryIds: Set<String> = []
@@ -258,10 +258,12 @@ struct SettingsLibrariesView: View {
 
   @ViewBuilder
   private func allLibrariesRowView() -> some View {
-    let isSelected = selectedLibraryId.isEmpty
+    let isSelected = dashboard.libraryIds.isEmpty
 
     Button {
-      AppConfig.selectedLibraryId = ""
+      withAnimation(.easeInOut(duration: 0.2)) {
+        dashboard.libraryIds = []
+      }
     } label: {
       HStack(spacing: 8) {
         VStack(alignment: .leading, spacing: 2) {
@@ -348,10 +350,24 @@ struct SettingsLibrariesView: View {
   @ViewBuilder
   private func libraryRowView(_ library: KomgaLibrary) -> some View {
     let isPerforming = performingLibraryIds.contains(library.libraryId)
-    let isSelected = selectedLibraryId == library.libraryId
+    let isSelected = dashboard.libraryIds.contains(library.libraryId)
 
     Button {
-      AppConfig.selectedLibraryId = library.libraryId
+      withAnimation(.easeInOut(duration: 0.2)) {
+        var currentIds = dashboard.libraryIds
+        if isSelected {
+          // Deselect: remove from selection
+          currentIds.removeAll { $0 == library.libraryId }
+        } else {
+          // Select: add to selection (avoid duplicates)
+          if !currentIds.contains(library.libraryId) {
+            currentIds.append(library.libraryId)
+          }
+        }
+        // Remove duplicates while preserving order
+        var seen = Set<String>()
+        dashboard.libraryIds = currentIds.filter { seen.insert($0).inserted }
+      }
     } label: {
       librarySummary(library, isPerforming: isPerforming, isSelected: isSelected)
         .contentShape(Rectangle())

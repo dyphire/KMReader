@@ -15,7 +15,7 @@ struct CollectionsBrowseView: View {
 
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = CollectionViewModel()
 
@@ -99,7 +99,7 @@ struct CollectionsBrowseView: View {
         await loadCollections(refresh: true)
       }
     }
-    .onChange(of: selectedLibraryId) { _, _ in
+    .onChange(of: dashboard.libraryIds) { _, _ in
       Task {
         await loadCollections(refresh: true)
       }
@@ -108,7 +108,7 @@ struct CollectionsBrowseView: View {
 
   private func loadCollections(refresh: Bool) async {
     await viewModel.loadCollections(
-      libraryId: selectedLibraryId,
+      libraryIds: dashboard.libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,
       refresh: refresh

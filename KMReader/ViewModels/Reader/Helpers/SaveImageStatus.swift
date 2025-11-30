@@ -13,4 +13,3 @@ enum SaveImageStatus: Equatable {
   case success
   case failed(String)
 }
-

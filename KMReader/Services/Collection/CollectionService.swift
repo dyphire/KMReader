@@ -14,7 +14,7 @@ class CollectionService {
   private init() {}
 
   func getCollections(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
     sort: String? = nil,
@@ -25,8 +25,11 @@ class CollectionService {
       URLQueryItem(name: "size", value: "\(size)"),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
     }
 
     if let sort {

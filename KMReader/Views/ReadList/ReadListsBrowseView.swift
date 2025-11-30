@@ -15,7 +15,7 @@ struct ReadListsBrowseView: View {
 
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("browseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @State private var viewModel = ReadListViewModel()
 
@@ -97,7 +97,7 @@ struct ReadListsBrowseView: View {
         await loadReadLists(refresh: true)
       }
     }
-    .onChange(of: selectedLibraryId) { _, _ in
+    .onChange(of: dashboard.libraryIds) { _, _ in
       Task {
         await loadReadLists(refresh: true)
       }
@@ -106,7 +106,7 @@ struct ReadListsBrowseView: View {
 
   private func loadReadLists(refresh: Bool) async {
     await viewModel.loadReadLists(
-      libraryId: selectedLibraryId,
+      libraryIds: dashboard.libraryIds,
       sort: sortOpts.sortString,
       searchText: searchText,
       refresh: refresh

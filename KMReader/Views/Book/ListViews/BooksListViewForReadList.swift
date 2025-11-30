@@ -17,6 +17,7 @@ struct BooksListViewForReadList: View {
 
   @AppStorage("readListBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
@@ -143,7 +144,8 @@ struct BooksListViewForReadList: View {
                   if book.id == bookViewModel.books.last?.id {
                     Task {
                       await bookViewModel.loadReadListBooks(
-                        readListId: readListId, browseOpts: browseOpts, refresh: false)
+                        readListId: readListId, browseOpts: browseOpts,
+                        libraryIds: dashboard.libraryIds, refresh: false)
                     }
                   }
                 }
@@ -223,7 +225,8 @@ struct BooksListViewForReadList: View {
                   if book.id == bookViewModel.books.last?.id {
                     Task {
                       await bookViewModel.loadReadListBooks(
-                        readListId: readListId, browseOpts: browseOpts, refresh: false)
+                        readListId: readListId, browseOpts: browseOpts,
+                        libraryIds: dashboard.libraryIds, refresh: false)
                     }
                   }
                 }
@@ -241,12 +244,14 @@ struct BooksListViewForReadList: View {
     }
     .task(id: readListId) {
       await bookViewModel.loadReadListBooks(
-        readListId: readListId, browseOpts: browseOpts, refresh: true)
+        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+        refresh: true)
     }
     .onChange(of: browseOpts) {
       Task {
         await bookViewModel.loadReadListBooks(
-          readListId: readListId, browseOpts: browseOpts, refresh: true)
+          readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+          refresh: true)
       }
     }
   }
@@ -256,7 +261,8 @@ extension BooksListViewForReadList {
   fileprivate func refreshBooks() {
     Task {
       await bookViewModel.loadReadListBooks(
-        readListId: readListId, browseOpts: browseOpts, refresh: true)
+        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+        refresh: true)
     }
   }
 
@@ -286,7 +292,8 @@ extension BooksListViewForReadList {
 
       // Refresh the books list
       await bookViewModel.loadReadListBooks(
-        readListId: readListId, browseOpts: browseOpts, refresh: true)
+        readListId: readListId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds,
+        refresh: true)
     } catch {
       await MainActor.run {
         ErrorManager.shared.alert(error: error)

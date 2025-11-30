@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct SettingsDashboardView: View {
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
-    DashboardConfiguration()
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   #if os(tvOS)
     @State private var isEditMode = false
@@ -25,7 +24,7 @@ struct SettingsDashboardView: View {
     if let index = dashboard.sections.firstIndex(of: section) {
       var newSections = dashboard.sections
       newSections.remove(at: index)
-      dashboard = DashboardConfiguration(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
     }
   }
 
@@ -47,7 +46,7 @@ struct SettingsDashboardView: View {
       } else {
         newSections.append(section)
       }
-      dashboard = DashboardConfiguration(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
     }
   }
 
@@ -64,7 +63,7 @@ struct SettingsDashboardView: View {
       else { return }
       var newSections = dashboard.sections
       newSections.swapAt(index, index - 1)
-      dashboard = DashboardConfiguration(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
     }
 
     private func moveSectionDown(_ section: DashboardSection) {
@@ -73,7 +72,7 @@ struct SettingsDashboardView: View {
       else { return }
       var newSections = dashboard.sections
       newSections.swapAt(index, index + 1)
-      dashboard = DashboardConfiguration(sections: newSections)
+      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
     }
   #endif
 
@@ -248,7 +247,8 @@ struct SettingsDashboardView: View {
             focusedHandle = nil
           #endif
           withAnimation {
-            dashboard = DashboardConfiguration(sections: DashboardSection.allCases)
+            dashboard = DashboardConfiguration(
+              sections: DashboardSection.allCases, libraryIds: dashboard.libraryIds)
           }
         } label: {
           HStack {

@@ -8,7 +8,9 @@
 import Foundation
 
 enum FileNameHelper {
-  nonisolated static func sanitizedFileName(_ originalName: String, defaultBaseName: String) -> String {
+  nonisolated static func sanitizedFileName(_ originalName: String, defaultBaseName: String)
+    -> String
+  {
     let nsName = originalName as NSString
     let ext = nsName.pathExtension
     let base = nsName.deletingPathExtension

@@ -17,6 +17,7 @@ struct BooksListViewForSeries: View {
 
   @AppStorage("seriesBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -52,7 +53,8 @@ struct BooksListViewForSeries: View {
                 .onAppear {
                   if book.id == bookViewModel.books.last?.id {
                     Task {
-                      await bookViewModel.loadMoreBooks(seriesId: seriesId)
+                      await bookViewModel.loadMoreBooks(
+                        seriesId: seriesId, libraryIds: dashboard.libraryIds)
                     }
                   }
                 }
@@ -76,7 +78,8 @@ struct BooksListViewForSeries: View {
                 .onAppear {
                   if book.id == bookViewModel.books.last?.id {
                     Task {
-                      await bookViewModel.loadMoreBooks(seriesId: seriesId)
+                      await bookViewModel.loadMoreBooks(
+                        seriesId: seriesId, libraryIds: dashboard.libraryIds)
                     }
                   }
                 }
@@ -93,11 +96,13 @@ struct BooksListViewForSeries: View {
       }
     }
     .task(id: seriesId) {
-      await bookViewModel.loadBooks(seriesId: seriesId, browseOpts: browseOpts)
+      await bookViewModel.loadBooks(
+        seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
     }
     .onChange(of: browseOpts) {
       Task {
-        await bookViewModel.loadBooks(seriesId: seriesId, browseOpts: browseOpts)
+        await bookViewModel.loadBooks(
+          seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds)
       }
     }
   }
@@ -107,7 +112,9 @@ extension BooksListViewForSeries {
   fileprivate func refreshBooks() {
     Task {
       // Use refresh: false to preserve existing books during refresh for smoother UI
-      await bookViewModel.loadBooks(seriesId: seriesId, browseOpts: browseOpts, refresh: false)
+      await bookViewModel.loadBooks(
+        seriesId: seriesId, browseOpts: browseOpts, libraryIds: dashboard.libraryIds, refresh: false
+      )
     }
   }
 }

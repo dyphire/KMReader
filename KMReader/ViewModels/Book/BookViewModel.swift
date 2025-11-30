@@ -24,7 +24,10 @@ class BookViewModel {
   private var currentBrowseSort: String?
   private var currentBrowseSearch: String = ""
 
-  func loadBooks(seriesId: String, browseOpts: BookBrowseOptions, refresh: Bool = true) async {
+  func loadBooks(
+    seriesId: String, browseOpts: BookBrowseOptions, libraryIds: [String]? = nil,
+    refresh: Bool = true
+  ) async {
     // Check if we're loading the same series with same options
     let isSameSeries = currentSeriesId == seriesId && currentSeriesBrowseOpts == browseOpts
 
@@ -44,7 +47,7 @@ class BookViewModel {
 
     do {
       let page = try await bookService.getBooks(
-        seriesId: seriesId, page: 0, size: 50, browseOpts: browseOpts)
+        seriesId: seriesId, page: 0, size: 50, browseOpts: browseOpts, libraryIds: libraryIds)
       withAnimation {
         books = page.content
       }
@@ -59,7 +62,7 @@ class BookViewModel {
     isLoading = false
   }
 
-  func loadMoreBooks(seriesId: String) async {
+  func loadMoreBooks(seriesId: String, libraryIds: [String]? = nil) async {
     guard hasMorePages && !isLoading && seriesId == currentSeriesId,
       let browseOpts = currentSeriesBrowseOpts
     else { return }
@@ -68,7 +71,8 @@ class BookViewModel {
 
     do {
       let page = try await bookService.getBooks(
-        seriesId: seriesId, page: currentPage, size: 50, browseOpts: browseOpts)
+        seriesId: seriesId, page: currentPage, size: 50, browseOpts: browseOpts,
+        libraryIds: libraryIds)
       withAnimation {
         books.append(contentsOf: page.content)
       }
@@ -101,11 +105,11 @@ class BookViewModel {
     isLoading = false
   }
 
-  func loadBooksOnDeck(libraryId: String = "") async {
+  func loadBooksOnDeck(libraryIds: [String]? = nil) async {
     isLoading = true
 
     do {
-      let page = try await bookService.getBooksOnDeck(libraryId: libraryId, size: 20)
+      let page = try await bookService.getBooksOnDeck(libraryIds: libraryIds, size: 20)
       withAnimation {
         books = page.content
       }
@@ -163,7 +167,7 @@ class BookViewModel {
     }
   }
 
-  func loadRecentlyReadBooks(libraryId: String = "", refresh: Bool = false) async {
+  func loadRecentlyReadBooks(libraryIds: [String]? = nil, refresh: Bool = false) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
@@ -177,7 +181,7 @@ class BookViewModel {
 
     do {
       let page = try await bookService.getRecentlyReadBooks(
-        libraryId: libraryId,
+        libraryIds: libraryIds,
         page: currentPage,
         size: 20
       )
@@ -200,11 +204,11 @@ class BookViewModel {
   }
 
   func loadBrowseBooks(
-    browseOpts: BookBrowseOptions, searchText: String = "", refresh: Bool = false
+    browseOpts: BookBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,
+    refresh: Bool = false
   )
     async
   {
-    let libraryId = AppConfig.selectedLibraryId
     let sort = browseOpts.sortString
     let paramsChanged =
       currentBrowseState?.readStatusFilter != browseOpts.readStatusFilter
@@ -227,7 +231,7 @@ class BookViewModel {
 
     do {
       let condition = BookSearch.buildCondition(
-        libraryId: libraryId.isEmpty ? nil : libraryId,
+        libraryIds: libraryIds,
         readStatus: browseOpts.readStatusFilter.toReadStatus()
       )
 
@@ -262,6 +266,7 @@ class BookViewModel {
   func loadReadListBooks(
     readListId: String,
     browseOpts: BookBrowseOptions,
+    libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
     if refresh {
@@ -278,7 +283,8 @@ class BookViewModel {
         readListId: readListId,
         page: currentPage,
         size: 50,
-        browseOpts: browseOpts
+        browseOpts: browseOpts,
+        libraryIds: libraryIds
       )
 
       withAnimation {

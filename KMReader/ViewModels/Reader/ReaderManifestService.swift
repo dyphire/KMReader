@@ -103,7 +103,8 @@ struct ReaderManifestService {
 
     let resolvedURL = downloadURL ?? resourceURL
     let resolvedFileName =
-      resolvedURL.lastPathComponent.isEmpty ? "page-\(pageIndex + 1)" : resolvedURL.lastPathComponent
+      resolvedURL.lastPathComponent.isEmpty
+      ? "page-\(pageIndex + 1)" : resolvedURL.lastPathComponent
 
     let page = BookPage(
       number: pageIndex + 1,
@@ -143,7 +144,8 @@ struct ReaderManifestService {
       }
 
       let trimmedTitle = item.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-      let title = trimmedTitle.isEmpty
+      let title =
+        trimmedTitle.isEmpty
         ? String(
           format: NSLocalizedString("Page %d", comment: "Fallback TOC title"), pageIndex + 1)
         : trimmedTitle

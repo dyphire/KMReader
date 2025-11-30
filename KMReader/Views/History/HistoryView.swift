@@ -10,17 +10,17 @@ import SwiftUI
 struct HistoryView: View {
   @State private var bookViewModel = BookViewModel()
 
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   private func refreshRecentlyReadBooks() {
     Task {
-      await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: true)
+      await bookViewModel.loadRecentlyReadBooks(libraryIds: dashboard.libraryIds, refresh: true)
     }
   }
 
   private func loadMoreRecentlyReadBooks() {
     Task {
-      await bookViewModel.loadRecentlyReadBooks(libraryId: selectedLibraryId, refresh: false)
+      await bookViewModel.loadRecentlyReadBooks(libraryIds: dashboard.libraryIds, refresh: false)
     }
   }
 
@@ -71,7 +71,7 @@ struct HistoryView: View {
             Button {
               Task {
                 await bookViewModel.loadRecentlyReadBooks(
-                  libraryId: selectedLibraryId, refresh: true)
+                  libraryIds: dashboard.libraryIds, refresh: true)
               }
             } label: {
               Image(systemName: "arrow.clockwise.circle")
@@ -80,7 +80,7 @@ struct HistoryView: View {
           }
         }
       #endif
-      .onChange(of: selectedLibraryId) {
+      .onChange(of: dashboard.libraryIds) {
         refreshRecentlyReadBooks()
       }
     }

@@ -58,41 +58,60 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   }
 }
 
-// RawRepresentable wrapper for [DashboardSection] to use with @AppStorage
+// RawRepresentable wrapper for [DashboardSection] and libraryIds to use with @AppStorage
 struct DashboardConfiguration: Equatable, RawRepresentable {
   typealias RawValue = String
 
   var sections: [DashboardSection]
+  var libraryIds: [String]
 
-  init(sections: [DashboardSection] = DashboardSection.allCases) {
+  init(sections: [DashboardSection] = DashboardSection.allCases, libraryIds: [String] = []) {
     self.sections = sections
+    self.libraryIds = libraryIds
   }
 
   var rawValue: String {
-    let stringArray = sections.map { $0.rawValue }
-    if let data = try? JSONSerialization.data(withJSONObject: stringArray),
+    let dict: [String: Any] = [
+      "sections": sections.map { $0.rawValue },
+      "libraryIds": libraryIds,
+    ]
+    if let data = try? JSONSerialization.data(withJSONObject: dict),
       let json = String(data: data, encoding: .utf8)
     {
       return json
     }
-    return "[]"
+    return "{}"
   }
 
   init?(rawValue: String) {
     guard !rawValue.isEmpty else {
       self.sections = DashboardSection.allCases
+      self.libraryIds = []
       return
     }
     guard let data = rawValue.data(using: .utf8),
-      let stringArray = try? JSONSerialization.jsonObject(with: data) as? [String]
+      let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     else {
       self.sections = DashboardSection.allCases
+      self.libraryIds = []
       return
     }
-    self.sections = stringArray.compactMap { DashboardSection(rawValue: $0) }
-    // If no valid sections found, use default
-    if self.sections.isEmpty {
+
+    // Parse sections
+    if let sectionsArray = dict["sections"] as? [String] {
+      self.sections = sectionsArray.compactMap { DashboardSection(rawValue: $0) }
+      if self.sections.isEmpty {
+        self.sections = DashboardSection.allCases
+      }
+    } else {
       self.sections = DashboardSection.allCases
+    }
+
+    // Parse libraryIds
+    if let libraryIdsArray = dict["libraryIds"] as? [String] {
+      self.libraryIds = libraryIdsArray
+    } else {
+      self.libraryIds = []
     }
   }
 }

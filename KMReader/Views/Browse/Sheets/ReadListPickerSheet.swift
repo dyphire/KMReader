@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct ReadListPickerSheet: View {
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @Environment(\.dismiss) private var dismiss
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var readListViewModel = ReadListViewModel()
   @State private var selectedReadListId: String?
@@ -108,7 +108,7 @@ struct ReadListPickerSheet: View {
     isLoading = true
 
     await readListViewModel.loadReadLists(
-      libraryId: selectedLibraryId,
+      libraryIds: dashboard.libraryIds,
       sort: "name,asc",
       searchText: searchText,
       refresh: true

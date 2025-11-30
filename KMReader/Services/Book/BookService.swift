@@ -23,13 +23,14 @@ class BookService {
     seriesId: String,
     page: Int = 0,
     size: Int = 500,
-    browseOpts: BookBrowseOptions
+    browseOpts: BookBrowseOptions,
+    libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
     let sort = browseOpts.sortString
     let readStatus = browseOpts.readStatusFilter.toReadStatus()
 
     let condition = BookSearch.buildCondition(
-      libraryId: nil,
+      libraryIds: libraryIds,
       readStatus: readStatus,
       seriesId: seriesId,
       readListId: nil
@@ -121,7 +122,7 @@ class BookService {
   }
 
   func getBooksOnDeck(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Book> {
@@ -130,8 +131,11 @@ class BookService {
       URLQueryItem(name: "size", value: "\(size)"),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
     }
 
     return try await apiClient.request(path: "/api/v1/books/ondeck", queryItems: queryItems)
@@ -240,13 +244,13 @@ class BookService {
   }
 
   func getRecentlyReadBooks(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books with READ status, sorted by last read date
     let condition = BookSearch.buildCondition(
-      libraryId: libraryId.isEmpty ? nil : libraryId,
+      libraryIds: libraryIds,
       readStatus: .read
     )
 
@@ -261,14 +265,14 @@ class BookService {
   }
 
   func getRecentlyAddedBooks(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books sorted by created date (most recent first)
     // Empty condition means match all books
     let condition = BookSearch.buildCondition(
-      libraryId: libraryId.isEmpty ? nil : libraryId
+      libraryIds: libraryIds
     )
 
     let search = BookSearch(condition: condition)
@@ -282,14 +286,14 @@ class BookService {
   }
 
   func getRecentlyReleasedBooks(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books sorted by release date (most recent first)
     // Only include books that have a release date
     let condition = BookSearch.buildCondition(
-      libraryId: libraryId.isEmpty ? nil : libraryId
+      libraryIds: libraryIds
     )
 
     let search = BookSearch(condition: condition)

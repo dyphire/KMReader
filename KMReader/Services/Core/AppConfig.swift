@@ -42,11 +42,6 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "isAdmin") }
   }
 
-  static var selectedLibraryId: String {
-    get { defaults.string(forKey: "selectedLibraryId") ?? "" }
-    set { defaults.set(newValue, forKey: "selectedLibraryId") }
-  }
-
   static var deviceIdentifier: String? {
     get { defaults.string(forKey: "deviceIdentifier") }
     set {
@@ -88,25 +83,15 @@ enum AppConfig {
     }
   }
 
-  // // MARK: - Dashboard Sections
-  // // Array of visible sections in display order. Sections not in array are hidden.
-  // static var dashboardSections: [DashboardSection] {
-  //   get {
-  //     // Use DashboardSections wrapper to match @AppStorage format
-  //     if let rawValue = defaults.string(forKey: "dashboard"),
-  //       let dashboardConfiguration = DashboardConfiguration(rawValue: rawValue)
-  //     {
-  //       return dashboardConfiguration.sections
-  //     }
-  //     // Return default order with all sections visible
-  //     return DashboardSection.allCases
-  //   }
-  //   set {
-  //     // Use DashboardSections wrapper to match @AppStorage format
-  //     let dashboardConfiguration = DashboardConfiguration(sections: newValue)
-  //     defaults.set(dashboardConfiguration.rawValue, forKey: "dashboard")
-  //   }
-  // }
+  // MARK: - Clear selected library IDs
+  static func clearSelectedLibraryIds() {
+    if let rawValue = defaults.string(forKey: "dashboard"),
+      var config = DashboardConfiguration(rawValue: rawValue)
+    {
+      config.libraryIds = []
+      defaults.set(config.rawValue, forKey: "dashboard")
+    }
+  }
 
   // MARK: - Clear all auth data
   static func clearAuthData() {
@@ -114,7 +99,7 @@ enum AppConfig {
     username = ""
     serverDisplayName = ""
     isAdmin = false
-    selectedLibraryId = ""
+    clearSelectedLibraryIds()
     currentInstanceId = ""
   }
 }

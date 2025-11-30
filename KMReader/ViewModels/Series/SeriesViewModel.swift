@@ -20,11 +20,12 @@ class SeriesViewModel {
   private var currentState: SeriesBrowseOptions?
   private var currentSearchText: String = ""
 
-  func loadSeries(browseOpts: SeriesBrowseOptions, searchText: String = "", refresh: Bool = false)
+  func loadSeries(
+    browseOpts: SeriesBrowseOptions, searchText: String = "", libraryIds: [String]? = nil,
+    refresh: Bool = false
+  )
     async
   {
-    let libraryId = AppConfig.selectedLibraryId
-
     // Check if parameters changed - if so, reset pagination
     let paramsChanged =
       currentState?.readStatusFilter != browseOpts.readStatusFilter
@@ -47,7 +48,7 @@ class SeriesViewModel {
 
     do {
       let page = try await seriesService.getSeries(
-        libraryId: libraryId,
+        libraryIds: libraryIds,
         page: currentPage,
         size: 20,
         sort: browseOpts.sortString,
@@ -73,11 +74,11 @@ class SeriesViewModel {
     isLoading = false
   }
 
-  func loadNewSeries(libraryId: String = "") async {
+  func loadNewSeries(libraryIds: [String]? = nil) async {
     isLoading = true
 
     do {
-      let page = try await seriesService.getNewSeries(libraryId: libraryId, size: 20)
+      let page = try await seriesService.getNewSeries(libraryIds: libraryIds, size: 20)
       withAnimation {
         series = page.content
       }
@@ -88,11 +89,11 @@ class SeriesViewModel {
     isLoading = false
   }
 
-  func loadUpdatedSeries(libraryId: String = "") async {
+  func loadUpdatedSeries(libraryIds: [String]? = nil) async {
     isLoading = true
 
     do {
-      let page = try await seriesService.getUpdatedSeries(libraryId: libraryId, size: 20)
+      let page = try await seriesService.getUpdatedSeries(libraryIds: libraryIds, size: 20)
       withAnimation {
         series = page.content
       }

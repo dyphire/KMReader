@@ -13,7 +13,7 @@ struct DashboardBooksSection: View {
   let refreshTrigger: UUID
   var onBookUpdated: (() -> Void)? = nil
 
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var books: [Book] = []
   @State private var currentPage = 0
@@ -96,7 +96,7 @@ struct DashboardBooksSection: View {
         .padding(.bottom, 16)
       }
     }
-    .onChange(of: selectedLibraryId) {
+    .onChange(of: dashboard.libraryIds) {
       Task {
         await loadInitial()
       }
@@ -131,12 +131,13 @@ struct DashboardBooksSection: View {
     isLoading = true
 
     do {
+      let libraryIds = dashboard.libraryIds
       let page: Page<Book>
 
       switch section {
       case .keepReading:
         let condition = BookSearch.buildCondition(
-          libraryId: selectedLibraryId.isEmpty ? nil : selectedLibraryId,
+          libraryIds: libraryIds,
           readStatus: ReadStatus.inProgress
         )
         let search = BookSearch(condition: condition)
@@ -149,28 +150,28 @@ struct DashboardBooksSection: View {
 
       case .onDeck:
         page = try await BookService.shared.getBooksOnDeck(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyReadBooks:
         page = try await BookService.shared.getRecentlyReadBooks(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyReleasedBooks:
         page = try await BookService.shared.getRecentlyReleasedBooks(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyAddedBooks:
         page = try await BookService.shared.getRecentlyAddedBooks(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )

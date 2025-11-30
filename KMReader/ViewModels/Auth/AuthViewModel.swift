@@ -35,7 +35,7 @@ class AuthViewModel {
         username: username, password: password, serverURL: serverURL)
       AppConfig.isLoggedIn = true
       LibraryManager.shared.clearAllLibraries()
-      AppConfig.selectedLibraryId = ""
+      AppConfig.clearSelectedLibraryIds()
       persistInstance(serverURL: serverURL, username: username, displayName: displayName)
       await LibraryManager.shared.loadLibraries()
       credentialsVersion = UUID()
@@ -56,7 +56,7 @@ class AuthViewModel {
     user = nil
     credentialsVersion = UUID()
     LibraryManager.shared.clearAllLibraries()
-    AppConfig.selectedLibraryId = ""
+    AppConfig.clearSelectedLibraryIds()
   }
 
   func loadCurrentUser() async {
@@ -79,7 +79,7 @@ class AuthViewModel {
     let previousInstanceId = AppConfig.currentInstanceId
     if previousInstanceId != instance.id.uuidString {
       LibraryManager.shared.clearAllLibraries()
-      AppConfig.selectedLibraryId = ""
+      AppConfig.clearSelectedLibraryIds()
     }
     APIClient.shared.setServer(url: instance.serverURL)
     APIClient.shared.setAuthToken(instance.authToken)

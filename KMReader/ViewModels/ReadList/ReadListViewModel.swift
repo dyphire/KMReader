@@ -17,24 +17,24 @@ class ReadListViewModel {
   private let readListService = ReadListService.shared
   private var currentPage = 0
   private var hasMorePages = true
-  private var currentLibraryId: String = ""
+  private var currentLibraryIds: [String] = []
   private var currentSort: String?
   private var currentSearchText: String = ""
 
   func loadReadLists(
-    libraryId: String,
+    libraryIds: [String]?,
     sort: String?,
     searchText: String,
     refresh: Bool = false
   ) async {
     let paramsChanged =
-      currentLibraryId != libraryId || currentSort != sort || currentSearchText != searchText
+      currentLibraryIds != libraryIds || currentSort != sort || currentSearchText != searchText
     let shouldReset = refresh || paramsChanged
 
     if shouldReset {
       currentPage = 0
       hasMorePages = true
-      currentLibraryId = libraryId
+      currentLibraryIds = libraryIds ?? []
       currentSort = sort
       currentSearchText = searchText
     }
@@ -45,7 +45,7 @@ class ReadListViewModel {
 
     do {
       let page = try await readListService.getReadLists(
-        libraryId: libraryId,
+        libraryIds: libraryIds,
         page: currentPage,
         size: 20,
         sort: sort,

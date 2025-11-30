@@ -14,7 +14,7 @@ class SeriesService {
   private init() {}
 
   func getSeries(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
     sort: String = "metadata.titleSort,asc",
@@ -23,13 +23,13 @@ class SeriesService {
     searchTerm: String? = nil
   ) async throws -> Page<Series> {
     // Check if we have any filters - if so, use getSeriesList
-    let hasLibraryFilter = !libraryId.isEmpty
+    let hasLibraryFilter = libraryIds != nil && !libraryIds!.isEmpty
     let hasReadStatusFilter = readStatus != nil && readStatus != .all
     let hasSeriesStatusFilter = seriesStatus != nil && seriesStatus != .all
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
       let condition = SeriesSearch.buildCondition(
-        libraryId: hasLibraryFilter ? libraryId : nil,
+        libraryIds: libraryIds,
         readStatus: hasReadStatusFilter ? readStatus!.toReadStatus() : nil,
         seriesStatus: hasSeriesStatusFilter ? seriesStatus!.rawValue : nil
       )
@@ -52,6 +52,13 @@ class SeriesService {
         URLQueryItem(name: "size", value: "\(size)"),
         URLQueryItem(name: "sort", value: sort),
       ]
+
+      // Support multiple libraryIds
+      if let libraryIds = libraryIds, !libraryIds.isEmpty {
+        for id in libraryIds where !id.isEmpty {
+          queryItems.append(URLQueryItem(name: "library_id", value: id))
+        }
+      }
 
       if let searchTerm, !searchTerm.isEmpty {
         queryItems.append(URLQueryItem(name: "search", value: searchTerm))
@@ -95,7 +102,7 @@ class SeriesService {
   }
 
   func getNewSeries(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Series> {
@@ -104,15 +111,18 @@ class SeriesService {
       URLQueryItem(name: "size", value: "\(size)"),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
     }
 
     return try await apiClient.request(path: "/api/v1/series/new", queryItems: queryItems)
   }
 
   func getUpdatedSeries(
-    libraryId: String = "",
+    libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
   ) async throws -> Page<Series> {
@@ -121,8 +131,11 @@ class SeriesService {
       URLQueryItem(name: "size", value: "\(size)"),
     ]
 
-    if !libraryId.isEmpty {
-      queryItems.append(URLQueryItem(name: "library_id", value: libraryId))
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
     }
 
     return try await apiClient.request(path: "/api/v1/series/updated", queryItems: queryItems)

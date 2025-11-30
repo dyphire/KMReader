@@ -13,7 +13,7 @@ struct DashboardSeriesSection: View {
   let refreshTrigger: UUID
   var onSeriesUpdated: (() -> Void)? = nil
 
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
 
   @State private var series: [Series] = []
   @State private var currentPage = 0
@@ -100,7 +100,7 @@ struct DashboardSeriesSection: View {
         .padding(.bottom, 16)
       }
     }
-    .onChange(of: selectedLibraryId) {
+    .onChange(of: dashboard.libraryIds) {
       Task {
         await loadInitial()
       }
@@ -135,19 +135,20 @@ struct DashboardSeriesSection: View {
     isLoading = true
 
     do {
+      let libraryIds = dashboard.libraryIds
       let page: Page<Series>
 
       switch section {
       case .recentlyAddedSeries:
         page = try await SeriesService.shared.getNewSeries(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )
 
       case .recentlyUpdatedSeries:
         page = try await SeriesService.shared.getUpdatedSeries(
-          libraryId: selectedLibraryId,
+          libraryIds: libraryIds,
           page: currentPage,
           size: 20
         )

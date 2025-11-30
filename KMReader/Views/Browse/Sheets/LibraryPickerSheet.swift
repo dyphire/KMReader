@@ -9,8 +9,8 @@ import SwiftData
 import SwiftUI
 
 struct LibraryPickerSheet: View {
-  @AppStorage("selectedLibraryId") private var selectedLibraryId: String = ""
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @Environment(\.dismiss) private var dismiss
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
@@ -30,7 +30,18 @@ struct LibraryPickerSheet: View {
           ProgressView()
             .frame(maxWidth: .infinity)
         } else {
-          Picker("Library", selection: $selectedLibraryId) {
+          // For single selection in picker, use first libraryId
+          let binding = Binding(
+            get: { dashboard.libraryIds.first ?? "" },
+            set: { newValue in
+              if newValue.isEmpty {
+                dashboard.libraryIds = []
+              } else {
+                dashboard.libraryIds = [newValue]
+              }
+            }
+          )
+          Picker("Library", selection: binding) {
             Label("All Libraries", systemImage: "square.grid.2x2").tag("")
             ForEach(libraries) { library in
               Label(library.name, systemImage: "books.vertical").tag(library.libraryId)
@@ -60,9 +71,11 @@ struct LibraryPickerSheet: View {
           }
         }
       }
-      .onChange(of: selectedLibraryId) { oldValue, newValue in
+      .onChange(of: dashboard.libraryIds) { oldValue, newValue in
         // Dismiss when user selects a different library
-        if oldValue != newValue {
+        let oldFirst = oldValue.first ?? ""
+        let newFirst = newValue.first ?? ""
+        if oldFirst != newFirst {
           dismiss()
         }
       }
@@ -70,6 +83,6 @@ struct LibraryPickerSheet: View {
         await libraryManager.loadLibraries()
       }
     }
-    .platformSheetPresentation(detents: [.medium])
+    .platformSheetPresentation(detents: [.large])
   }
 }
