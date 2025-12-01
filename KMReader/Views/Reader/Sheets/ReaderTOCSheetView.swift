@@ -18,8 +18,8 @@ struct ReaderTOCSheetView: View {
         Button {
           onSelect(entry)
         } label: {
-          HStack {
-            VStack(alignment: .leading) {
+          HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
               Text(entry.title)
                 .font(.body)
               Text(
@@ -38,11 +38,15 @@ struct ReaderTOCSheetView: View {
           .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        #if os(tvOS)
+          .listRowInsets(EdgeInsets(top: 24, leading: 48, bottom: 24, trailing: 48))
+        #endif
       }
+      .optimizedListStyle()
       .inlineNavigationBarTitle("Table of Contents")
       .padding(PlatformHelper.sheetPadding)
     }
     .presentationDragIndicator(.visible)
-    .platformSheetPresentation(detents: [.medium, .large])
+    .platformSheetPresentation(detents: [.large])
   }
 }
