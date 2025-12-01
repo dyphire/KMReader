@@ -1,4 +1,4 @@
-.PHONY: help archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer clean-archives clean-exports
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer clean-archives clean-exports
 
 # Configuration
 SCHEME = KMReader
@@ -14,6 +14,12 @@ NC = \033[0m # No Color
 
 help: ## Show this help message
 	@echo "KMReader Build Commands"
+	@echo ""
+	@echo "Build commands:"
+	@echo "  make build           - Build all platforms (iOS, macOS, tvOS)"
+	@echo "  make build-ios       - Build for iOS"
+	@echo "  make build-macos     - Build for macOS"
+	@echo "  make build-tvos      - Build for tvOS"
 	@echo ""
 	@echo "Archive commands:"
 	@echo "  make archive-ios      - Archive for iOS (custom location)"
@@ -36,6 +42,33 @@ help: ## Show this help message
 	@echo "  make clean-exports    - Remove all exports"
 	@echo "  make clean            - Remove archives and exports"
 	@echo ""
+
+build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
+	@echo "$(GREEN)All platforms built successfully!$(NC)"
+
+build-ios: ## Build for iOS
+	@echo "$(GREEN)Building for iOS...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphoneos build -quiet
+
+build-macos: ## Build for macOS
+	@echo "$(GREEN)Building for macOS...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx build -quiet
+
+build-tvos: ## Build for tvOS
+	@echo "$(GREEN)Building for tvOS...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvos build -quiet
+
+build-ios-ci: ## Build for iOS (CI, uses simulator, no code signing)
+	@echo "$(GREEN)Building for iOS (CI)...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+build-macos-ci: ## Build for macOS (CI, no code signing)
+	@echo "$(GREEN)Building for macOS (CI)...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk macosx -destination 'platform=macOS' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+build-tvos-ci: ## Build for tvOS (CI, uses simulator, no code signing)
+	@echo "$(GREEN)Building for tvOS (CI)...$(NC)"
+	@xcodebuild -project $(PROJECT) -scheme $(SCHEME) -sdk appletvsimulator -destination 'generic/platform=tvOS Simulator' build -quiet CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
 archive-ios: ## Archive for iOS
 	@echo "$(GREEN)Archiving for iOS...$(NC)"

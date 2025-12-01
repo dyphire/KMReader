@@ -24,25 +24,8 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Resolve Package Dependencies
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk iphonesimulator
-
       - name: Build iOS
-        run: |
-          xcodebuild clean build \
-            -quiet \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -hideShellScriptEnvironment \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+        run: make build-ios-ci
 
   macos:
     name: macOS
@@ -59,25 +42,8 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Resolve Package Dependencies
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk macosx
-
       - name: Build macOS
-        run: |
-          xcodebuild clean build \
-            -quiet \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk macosx \
-            -destination 'platform=macOS' \
-            -hideShellScriptEnvironment \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+        run: make build-macos-ci
 
   tvos:
     name: tvOS
@@ -94,22 +60,5 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Resolve Package Dependencies
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk appletvsimulator
-
       - name: Build tvOS
-        run: |
-          xcodebuild clean build \
-            -quiet \
-            -project KMReader.xcodeproj \
-            -scheme KMReader \
-            -sdk appletvsimulator \
-            -destination 'generic/platform=tvOS Simulator' \
-            -hideShellScriptEnvironment \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+        run: make build-tvos-ci
