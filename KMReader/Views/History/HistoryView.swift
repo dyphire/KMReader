@@ -9,18 +9,15 @@ import SwiftUI
 
 struct HistoryView: View {
   @State private var bookViewModel = BookViewModel()
-
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
-  private func refreshRecentlyReadBooks() {
+  private func loadRecentlyReadBooks(refresh: Bool) {
     Task {
-      await bookViewModel.loadRecentlyReadBooks(libraryIds: dashboard.libraryIds, refresh: true)
-    }
-  }
-
-  private func loadMoreRecentlyReadBooks() {
-    Task {
-      await bookViewModel.loadRecentlyReadBooks(libraryIds: dashboard.libraryIds, refresh: false)
+      await bookViewModel.loadRecentlyReadBooks(
+        libraryIds: dashboard.libraryIds,
+        refresh: refresh,
+      )
     }
   }
 
@@ -38,9 +35,11 @@ struct HistoryView: View {
             ReadHistorySection(
               title: "Recently Read Books",
               bookViewModel: bookViewModel,
-              onLoadMore: loadMoreRecentlyReadBooks,
+              onLoadMore: {
+                loadRecentlyReadBooks(refresh: false)
+              },
               onBookUpdated: {
-                refreshRecentlyReadBooks()
+                loadRecentlyReadBooks(refresh: true)
               }
             )
             .transition(.move(edge: .top).combined(with: .opacity))
@@ -80,12 +79,15 @@ struct HistoryView: View {
           }
         }
       #endif
+      .onChange(of: currentInstanceId) {
+        loadRecentlyReadBooks(refresh: true)
+      }
       .onChange(of: dashboard.libraryIds) {
-        refreshRecentlyReadBooks()
+        loadRecentlyReadBooks(refresh: true)
       }
     }
     .task {
-      refreshRecentlyReadBooks()
+      loadRecentlyReadBooks(refresh: true)
     }
   }
 }

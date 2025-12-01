@@ -10,6 +10,12 @@ import SwiftUI
 struct BrowseView: View {
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
+    DashboardConfiguration()
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+
+  @State private var refreshTrigger = UUID()
+  @State private var isRefreshDisabled = false
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
   @State private var contentWidth: CGFloat = 0
@@ -18,6 +24,15 @@ struct BrowseView: View {
   private let spacing: CGFloat = 12
   // SwiftUI's default horizontal padding is 16 on each side (32 total)
   private let horizontalPadding: CGFloat = 16
+
+  private func refreshBrowse() {
+    refreshTrigger = UUID()
+    isRefreshDisabled = true
+    Task {
+      try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
+      isRefreshDisabled = false
+    }
+  }
 
   var body: some View {
     NavigationStack {
@@ -76,6 +91,12 @@ struct BrowseView: View {
           )
         }
       }
+      .onChange(of: currentInstanceId) { _, _ in
+        refreshBrowse()
+      }
+      .onChange(of: dashboard.libraryIds) { _, _ in
+        refreshBrowse()
+      }
     }
   }
 
@@ -85,22 +106,26 @@ struct BrowseView: View {
     case .series:
       SeriesBrowseView(
         layoutHelper: layoutHelper,
-        searchText: activeSearchText
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger
       )
     case .books:
       BooksBrowseView(
         layoutHelper: layoutHelper,
-        searchText: activeSearchText
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger
       )
     case .collections:
       CollectionsBrowseView(
         layoutHelper: layoutHelper,
-        searchText: activeSearchText
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger
       )
     case .readlists:
       ReadListsBrowseView(
         layoutHelper: layoutHelper,
-        searchText: activeSearchText
+        searchText: activeSearchText,
+        refreshTrigger: refreshTrigger
       )
     }
   }

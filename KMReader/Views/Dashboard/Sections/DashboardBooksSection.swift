@@ -83,11 +83,6 @@ struct DashboardBooksSection: View {
           .frame(height: 0)
       }
     }
-    .onChange(of: dashboard.libraryIds) {
-      Task {
-        await loadInitial()
-      }
-    }
     .onChange(of: refreshTrigger) {
       Task {
         await loadInitial()

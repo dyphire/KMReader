@@ -10,6 +10,7 @@ import SwiftUI
 struct ReadListsBrowseView: View {
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
+  let refreshTrigger: UUID
 
   private let spacing: CGFloat = 12
 
@@ -87,17 +88,17 @@ struct ReadListsBrowseView: View {
         await loadReadLists(refresh: true)
       }
     }
+    .onChange(of: refreshTrigger) { _, _ in
+      Task {
+        await loadReadLists(refresh: true)
+      }
+    }
     .onChange(of: sortOpts) { _, _ in
       Task {
         await loadReadLists(refresh: true)
       }
     }
     .onChange(of: searchText) { _, _ in
-      Task {
-        await loadReadLists(refresh: true)
-      }
-    }
-    .onChange(of: dashboard.libraryIds) { _, _ in
       Task {
         await loadReadLists(refresh: true)
       }

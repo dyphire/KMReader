@@ -10,7 +10,9 @@ import SwiftUI
 struct SeriesBrowseView: View {
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
-  let spacing: CGFloat = 12
+  let refreshTrigger: UUID
+
+  private let spacing: CGFloat = 12
 
   @AppStorage("seriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
@@ -32,9 +34,7 @@ struct SeriesBrowseView: View {
         emptyMessage: "Try selecting a different library.",
         onRetry: {
           Task {
-            await viewModel.loadSeries(
-              browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-              refresh: true)
+            await loadSeries(refresh: true)
           }
         }
       ) {
@@ -48,9 +48,7 @@ struct SeriesBrowseView: View {
                   cardWidth: layoutHelper.cardWidth,
                   onActionCompleted: {
                     Task {
-                      await viewModel.loadSeries(
-                        browseOpts: browseOpts, searchText: searchText,
-                        libraryIds: dashboard.libraryIds, refresh: true)
+                      await loadSeries(refresh: true)
                     }
                   }
                 )
@@ -60,9 +58,7 @@ struct SeriesBrowseView: View {
               .onAppear {
                 if index >= viewModel.series.count - 3 {
                   Task {
-                    await viewModel.loadSeries(
-                      browseOpts: browseOpts, searchText: searchText,
-                      libraryIds: dashboard.libraryIds, refresh: false)
+                    await loadSeries(refresh: false)
                   }
                 }
               }
@@ -76,9 +72,7 @@ struct SeriesBrowseView: View {
                   series: series,
                   onActionCompleted: {
                     Task {
-                      await viewModel.loadSeries(
-                        browseOpts: browseOpts, searchText: searchText,
-                        libraryIds: dashboard.libraryIds, refresh: true)
+                      await loadSeries(refresh: true)
                     }
                   }
                 )
@@ -87,9 +81,7 @@ struct SeriesBrowseView: View {
               .onAppear {
                 if index >= viewModel.series.count - 3 {
                   Task {
-                    await viewModel.loadSeries(
-                      browseOpts: browseOpts, searchText: searchText,
-                      libraryIds: dashboard.libraryIds, refresh: false)
+                    await loadSeries(refresh: false)
                   }
                 }
               }
@@ -100,31 +92,32 @@ struct SeriesBrowseView: View {
     }
     .task {
       if viewModel.series.isEmpty {
-        await viewModel.loadSeries(
-          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadSeries(refresh: true)
+      }
+    }
+    .onChange(of: refreshTrigger) { _, _ in
+      Task {
+        await loadSeries(refresh: true)
       }
     }
     .onChange(of: browseOpts) { _, newValue in
       Task {
-        await viewModel.loadSeries(
-          browseOpts: newValue, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadSeries(refresh: true)
       }
     }
     .onChange(of: searchText) { _, newValue in
       Task {
-        await viewModel.loadSeries(
-          browseOpts: browseOpts, searchText: newValue, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadSeries(refresh: true)
       }
     }
-    .onChange(of: dashboard.libraryIds) { _, _ in
-      Task {
-        await viewModel.loadSeries(
-          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
-      }
-    }
+  }
+
+  private func loadSeries(refresh: Bool) async {
+    await viewModel.loadSeries(
+      browseOpts: browseOpts,
+      searchText: searchText,
+      libraryIds: dashboard.libraryIds,
+      refresh: refresh
+    )
   }
 }

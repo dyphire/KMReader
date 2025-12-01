@@ -10,6 +10,8 @@ import SwiftUI
 struct BooksBrowseView: View {
   let layoutHelper: BrowseLayoutHelper
   let searchText: String
+  let refreshTrigger: UUID
+
   private let spacing: CGFloat = 12
 
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
@@ -36,9 +38,7 @@ struct BooksBrowseView: View {
         emptyMessage: "Try selecting a different library.",
         onRetry: {
           Task {
-            await viewModel.loadBrowseBooks(
-              browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-              refresh: true)
+            await loadBooks(refresh: true)
           }
         }
       ) {
@@ -52,30 +52,22 @@ struct BooksBrowseView: View {
     }
     .task {
       if viewModel.books.isEmpty {
-        await viewModel.loadBrowseBooks(
-          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadBooks(refresh: true)
+      }
+    }
+    .onChange(of: refreshTrigger) { _, _ in
+      Task {
+        await loadBooks(refresh: true)
       }
     }
     .onChange(of: browseOpts) { _, newValue in
       Task {
-        await viewModel.loadBrowseBooks(
-          browseOpts: newValue, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadBooks(refresh: true)
       }
     }
     .onChange(of: searchText) { _, newValue in
       Task {
-        await viewModel.loadBrowseBooks(
-          browseOpts: browseOpts, searchText: newValue, libraryIds: dashboard.libraryIds,
-          refresh: true)
-      }
-    }
-    .onChange(of: dashboard.libraryIds) { _, _ in
-      Task {
-        await viewModel.loadBrowseBooks(
-          browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-          refresh: true)
+        await loadBooks(refresh: true)
       }
     }
     .readerPresentation(readerState: $readerState)
@@ -90,9 +82,7 @@ struct BooksBrowseView: View {
           cardWidth: layoutHelper.cardWidth,
           onBookUpdated: {
             Task {
-              await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-                refresh: true)
+              await loadBooks(refresh: true)
             }
           },
           showSeriesTitle: true,
@@ -101,9 +91,7 @@ struct BooksBrowseView: View {
         .onAppear {
           if index >= viewModel.books.count - 3 {
             Task {
-              await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-                refresh: false)
+              await loadBooks(refresh: false)
             }
           }
         }
@@ -122,9 +110,7 @@ struct BooksBrowseView: View {
           },
           onBookUpdated: {
             Task {
-              await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-                refresh: true)
+              await loadBooks(refresh: true)
             }
           },
           showSeriesTitle: true
@@ -132,13 +118,20 @@ struct BooksBrowseView: View {
         .onAppear {
           if index >= viewModel.books.count - 3 {
             Task {
-              await viewModel.loadBrowseBooks(
-                browseOpts: browseOpts, searchText: searchText, libraryIds: dashboard.libraryIds,
-                refresh: false)
+              await loadBooks(refresh: false)
             }
           }
         }
       }
     }
+  }
+
+  private func loadBooks(refresh: Bool) async {
+    await viewModel.loadBrowseBooks(
+      browseOpts: browseOpts,
+      searchText: searchText,
+      libraryIds: dashboard.libraryIds,
+      refresh: refresh
+    )
   }
 }

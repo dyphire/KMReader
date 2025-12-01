@@ -16,6 +16,7 @@ struct DashboardView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
     DashboardConfiguration()
+  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   private func refreshDashboard() {
     refreshTrigger = UUID()
@@ -58,6 +59,12 @@ struct DashboardView: View {
       .handleNavigation()
       .inlineNavigationBarTitle("Dashboard")
       .animation(.default, value: dashboard)
+      .onChange(of: currentInstanceId) { _, _ in
+        refreshDashboard()
+      }
+      .onChange(of: dashboard.libraryIds) { _, _ in
+        refreshDashboard()
+      }
       #if !os(tvOS)
         .toolbar {
           ToolbarItem(placement: .automatic) {
