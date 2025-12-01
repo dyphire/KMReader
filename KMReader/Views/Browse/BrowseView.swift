@@ -10,8 +10,7 @@ import SwiftUI
 struct BrowseView: View {
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
-    DashboardConfiguration()
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
 
   @State private var refreshTrigger = UUID()

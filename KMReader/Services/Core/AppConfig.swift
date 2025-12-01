@@ -94,6 +94,16 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "enableSSENotifications") }
   }
 
+  static var enableSSEAutoRefresh: Bool {
+    get {
+      if defaults.object(forKey: "enableSSEAutoRefresh") != nil {
+        return defaults.bool(forKey: "enableSSEAutoRefresh")
+      }
+      return true  // Default to enabled
+    }
+    set { defaults.set(newValue, forKey: "enableSSEAutoRefresh") }
+  }
+
   static var taskQueueStatus: TaskQueueSSEDto {
     get {
       guard let rawValue = defaults.string(forKey: "taskQueueStatus"),
