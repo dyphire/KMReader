@@ -12,6 +12,7 @@ struct ReadListDetailView: View {
 
   @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
   #if os(macOS)
@@ -146,7 +147,7 @@ struct ReadListDetailView: View {
             } label: {
               Label("Edit", systemImage: "pencil")
             }
-            .disabled(!AppConfig.isAdmin)
+            .disabled(!isAdmin)
 
             Divider()
 
@@ -155,7 +156,7 @@ struct ReadListDetailView: View {
             } label: {
               Label("Delete Read List", systemImage: "trash")
             }
-            .disabled(!AppConfig.isAdmin)
+            .disabled(!isAdmin)
           } label: {
             Image(systemName: "ellipsis.circle")
           }

@@ -14,6 +14,7 @@ struct SeriesContextMenu: View {
   var onShowCollectionPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   private var canMarkAsRead: Bool {
     series.booksUnreadCount > 0
@@ -31,7 +32,7 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Edit", systemImage: "pencil")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Divider()
 
@@ -40,14 +41,14 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Analyze", systemImage: "waveform.path.ecg")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Button {
           refreshMetadata()
         } label: {
           Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Divider()
 
@@ -64,11 +65,11 @@ struct SeriesContextMenu: View {
         } label: {
           Label("Delete", systemImage: "trash")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
       } label: {
         Label("Manage", systemImage: "gearshape")
       }
-      .disabled(!AppConfig.isAdmin)
+      .disabled(!isAdmin)
 
       Divider()
 

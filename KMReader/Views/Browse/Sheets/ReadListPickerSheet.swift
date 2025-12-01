@@ -10,6 +10,7 @@ import SwiftUI
 struct ReadListPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var readListViewModel = ReadListViewModel()
   @State private var selectedReadListId: String?
@@ -78,7 +79,7 @@ struct ReadListPickerSheet: View {
           } label: {
             Label("Create New", systemImage: "plus.circle.fill")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
         }
       }
       .task {

@@ -18,6 +18,8 @@ struct BookContextMenu: View {
   var onEditRequested: (() -> Void)? = nil
   var onDownloadRequested: (() -> Void)? = nil
 
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
+
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
   }
@@ -59,7 +61,7 @@ struct BookContextMenu: View {
         } label: {
           Label("Edit", systemImage: "pencil")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Divider()
 
@@ -68,14 +70,14 @@ struct BookContextMenu: View {
         } label: {
           Label("Analyze", systemImage: "waveform.path.ecg")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Button {
           refreshMetadata()
         } label: {
           Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
 
         Divider()
 
@@ -92,11 +94,11 @@ struct BookContextMenu: View {
         } label: {
           Label("Delete", systemImage: "trash")
         }
-        .disabled(!AppConfig.isAdmin)
+        .disabled(!isAdmin)
       } label: {
         Label("Manage", systemImage: "gearshape")
       }
-      .disabled(!AppConfig.isAdmin)
+      .disabled(!isAdmin)
 
       Divider()
 

@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsLibrariesView: View {
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries:
     [KomgaLibrary]
   @State private var performingLibraryIds: Set<String> = []
@@ -118,7 +119,7 @@ struct SettingsLibrariesView: View {
   private func refreshLibraries() async {
     isLoading = true
     await LibraryManager.shared.refreshLibraries()
-    if AppConfig.isAdmin {
+    if isAdmin {
       await loadLibraryMetrics()
       await loadAllLibrariesMetrics()
     }
@@ -330,7 +331,7 @@ struct SettingsLibrariesView: View {
     #endif
     .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
     .contextMenu {
-      if AppConfig.isAdmin {
+      if isAdmin {
         Button {
           performGlobalAction {
             try await scanAllLibraries(deep: false)
@@ -392,7 +393,7 @@ struct SettingsLibrariesView: View {
     #endif
     .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
     .contextMenu {
-      if AppConfig.isAdmin {
+      if isAdmin {
         Button {
           scanLibrary(library)
         } label: {

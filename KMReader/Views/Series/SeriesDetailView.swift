@@ -12,6 +12,7 @@ struct SeriesDetailView: View {
 
   @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
   #if os(macOS)
@@ -427,28 +428,28 @@ struct SeriesDetailView: View {
           }
 
           Menu {
-            Button {
-              showEditSheet = true
-            } label: {
-              Label("Edit", systemImage: "pencil")
-            }
-            .disabled(!AppConfig.isAdmin)
+          Button {
+            showEditSheet = true
+          } label: {
+            Label("Edit", systemImage: "pencil")
+          }
+          .disabled(!isAdmin)
 
             Divider()
 
-            Button {
-              analyzeSeries()
-            } label: {
-              Label("Analyze", systemImage: "waveform.path.ecg")
-            }
-            .disabled(!AppConfig.isAdmin)
+          Button {
+            analyzeSeries()
+          } label: {
+            Label("Analyze", systemImage: "waveform.path.ecg")
+          }
+          .disabled(!isAdmin)
 
-            Button {
-              refreshSeriesMetadata()
-            } label: {
-              Label("Refresh Metadata", systemImage: "arrow.clockwise")
-            }
-            .disabled(!AppConfig.isAdmin)
+          Button {
+            refreshSeriesMetadata()
+          } label: {
+            Label("Refresh Metadata", systemImage: "arrow.clockwise")
+          }
+          .disabled(!isAdmin)
 
             Divider()
 
@@ -480,12 +481,12 @@ struct SeriesDetailView: View {
 
             Divider()
 
-            Button(role: .destructive) {
-              showDeleteConfirmation = true
-            } label: {
-              Label("Delete Series", systemImage: "trash")
-            }
-            .disabled(!AppConfig.isAdmin)
+          Button(role: .destructive) {
+            showDeleteConfirmation = true
+          } label: {
+            Label("Delete Series", systemImage: "trash")
+          }
+          .disabled(!isAdmin)
           } label: {
             Image(systemName: "ellipsis.circle")
           }

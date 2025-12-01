@@ -12,6 +12,7 @@ struct CollectionDetailView: View {
 
   @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @Environment(\.dismiss) private var dismiss
 
@@ -127,7 +128,7 @@ struct CollectionDetailView: View {
             } label: {
               Label("Edit", systemImage: "pencil")
             }
-            .disabled(!AppConfig.isAdmin)
+            .disabled(!isAdmin)
 
             Divider()
 
@@ -136,7 +137,7 @@ struct CollectionDetailView: View {
             } label: {
               Label("Delete Collection", systemImage: "trash")
             }
-            .disabled(!AppConfig.isAdmin)
+            .disabled(!isAdmin)
           } label: {
             Image(systemName: "ellipsis.circle")
           }

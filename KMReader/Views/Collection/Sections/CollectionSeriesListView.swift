@@ -16,6 +16,7 @@ struct CollectionSeriesListView: View {
 
   @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
     SeriesBrowseOptions()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var selectedSeriesIds: Set<String> = []
   @State private var isSelectionMode = false
@@ -32,7 +33,7 @@ struct CollectionSeriesListView: View {
         HStack(spacing: 8) {
           SeriesFilterView(browseOpts: $browseOpts)
 
-          if !isSelectionMode && AppConfig.isAdmin {
+          if !isSelectionMode && isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true

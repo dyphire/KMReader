@@ -18,6 +18,7 @@ struct BooksListViewForReadList: View {
   @AppStorage("readListBookBrowseOptions") private var browseOpts: BookBrowseOptions =
     BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
@@ -34,7 +35,7 @@ struct BooksListViewForReadList: View {
         HStack(spacing: 8) {
           BookFilterView(browseOpts: $browseOpts)
 
-          if !isSelectionMode && AppConfig.isAdmin {
+          if !isSelectionMode && isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true

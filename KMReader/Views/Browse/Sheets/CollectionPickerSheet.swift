@@ -10,6 +10,7 @@ import SwiftUI
 struct CollectionPickerSheet: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var collectionViewModel = CollectionViewModel()
   @State private var selectedCollectionId: String?
@@ -78,7 +79,7 @@ struct CollectionPickerSheet: View {
           } label: {
             Label("Create New", systemImage: "plus.circle.fill")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
         }
       }
       .task {

@@ -14,6 +14,7 @@ struct ReadListContextMenu: View {
   var onActionCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   var body: some View {
     Group {
@@ -28,7 +29,7 @@ struct ReadListContextMenu: View {
       } label: {
         Label("Edit", systemImage: "pencil")
       }
-      .disabled(!AppConfig.isAdmin)
+      .disabled(!isAdmin)
 
       Divider()
 
@@ -37,7 +38,7 @@ struct ReadListContextMenu: View {
       } label: {
         Label("Delete", systemImage: "trash")
       }
-      .disabled(!AppConfig.isAdmin)
+      .disabled(!isAdmin)
     }
   }
 }

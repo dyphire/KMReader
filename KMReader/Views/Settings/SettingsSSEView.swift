@@ -11,6 +11,7 @@ struct SettingsSSEView: View {
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("enableSSENotifications") private var enableSSENotifications: Bool = true
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
+  @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
   var body: some View {
     List {
@@ -30,7 +31,7 @@ struct SettingsSSEView: View {
           // Always disconnect first to ensure clean state
           SSEService.shared.disconnect()
           // Then connect if enabled and logged in
-          if newValue && AppConfig.isLoggedIn {
+          if newValue && isLoggedIn {
             SSEService.shared.connect()
           }
         }

@@ -14,6 +14,7 @@ struct BookDetailView: View {
   #if os(macOS)
     @Environment(\.openWindow) private var openWindow
   #endif
+  @AppStorage("isAdmin") private var isAdmin: Bool = false
   @State private var book: Book?
   @State private var isLoading = true
   @State private var readerState: BookReaderState?
@@ -282,7 +283,7 @@ struct BookDetailView: View {
           } label: {
             Label("Edit", systemImage: "pencil")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
 
           Divider()
 
@@ -291,14 +292,14 @@ struct BookDetailView: View {
           } label: {
             Label("Analyze", systemImage: "waveform.path.ecg")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
 
           Button {
             refreshMetadata()
           } label: {
             Label("Refresh Metadata", systemImage: "arrow.clockwise")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
 
           Divider()
 
@@ -343,7 +344,7 @@ struct BookDetailView: View {
           } label: {
             Label("Delete Book", systemImage: "trash")
           }
-          .disabled(!AppConfig.isAdmin)
+          .disabled(!isAdmin)
 
           Button(role: .destructive) {
             clearCache()

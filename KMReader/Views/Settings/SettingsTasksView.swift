@@ -51,7 +51,7 @@ struct SettingsTasksView: View {
             .disabled(isCancelling)
           }
         #else
-          if AppConfig.isAdmin {
+          if isAdmin {
             Section {
               Button(role: .destructive) {
                 showCancelAllConfirmation = true

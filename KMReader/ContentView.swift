@@ -12,6 +12,7 @@ struct ContentView: View {
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+  @AppStorage("enableSSE") private var enableSSE: Bool = true
 
   @State private var errorManager = ErrorManager.shared
 
@@ -29,7 +30,7 @@ struct ContentView: View {
           await authViewModel.loadCurrentUser()
           await LibraryManager.shared.loadLibraries()
           // Connect to SSE on app startup if already logged in and enabled
-          if AppConfig.enableSSE {
+          if enableSSE {
             SSEService.shared.connect()
           }
         }
@@ -41,7 +42,7 @@ struct ContentView: View {
             await authViewModel.loadCurrentUser()
             await LibraryManager.shared.loadLibraries()
             // Connect to SSE when login state changes to logged in and enabled
-            if AppConfig.enableSSE {
+            if enableSSE {
               SSEService.shared.connect()
             }
           }
