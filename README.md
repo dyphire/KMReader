@@ -81,12 +81,18 @@ _A media server for comics, mangas, BDs, and magazines_
 
 ### 📊 Dashboard & History
 
-- **Dashboard Sections**:
+- **Dashboard Sections** (Customizable):
   - Keep Reading: Quick access to books you're currently reading
   - On Deck: Next books ready to read in your series
   - Recently Added Books: Newly added content
+  - Recently Read Books: Books you've recently finished
+  - Recently Released Books: Books sorted by release date
   - Recently Added Series: New series in your library
   - Recently Updated Series: Series with new content
+- **Dashboard Customization**:
+  - Show or hide any dashboard section
+  - Reorder sections to match your preferences
+  - Filter dashboard content by selected libraries
 - **History**:
   - Complete reading history with infinite scroll
   - Quick resume from history
@@ -111,15 +117,21 @@ _A media server for comics, mangas, BDs, and magazines_
   - Analyze libraries
   - Refresh metadata
   - Empty trash
-  - Delete libraries
+  - Delete libraries (with name confirmation for safety)
+  - Multi-select libraries for batch operations
   - Global operations for all libraries
   - One-tap sheets for individual libraries plus toolbar actions to scan or empty trash across every library
+  - Library metrics and analytics
 
 ### 📡 Server Insights & Monitoring
 
 - **Server Info**: View Komga build metadata, git SHA, Java runtime, and OS details directly from the actuator endpoint
 - **Metrics Dashboard**: Inspect all-library disk usage, counts for series/books/collections/read lists/sidecars, and drill down per library
 - **Task Analytics**: Track executed tasks, duration per task type, and surface API errors inline for fast troubleshooting
+  - View tasks executed count by type
+  - Monitor total execution time per task type
+  - Cancel all running tasks with confirmation
+  - Error handling for metrics with inline error messages
 
 ### ⚙️ Settings & Customization
 
@@ -127,6 +139,10 @@ _A media server for comics, mangas, BDs, and magazines_
   - Pick a favorite accent color to theme the app
   - Adjust portrait and landscape column counts independently
   - Toggle card details like series titles and thumbnail aspect ratios
+- **Dashboard Settings**:
+  - Customize which dashboard sections are visible
+  - Reorder sections to match your reading workflow
+  - Filter dashboard content by specific libraries
 - **Reader Settings**:
   - Tap zone hints toggle
   - Reader background colors (system, black, white, gray)
