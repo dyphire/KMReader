@@ -110,6 +110,16 @@ struct PlatformHelper {
     #endif
   }
 
+  static var detailThumbnailWidth: CGFloat {
+    #if os(tvOS)
+      return 240
+    #elseif os(macOS)
+      return 180
+    #else
+      return 120
+    #endif
+  }
+
   static var readerAnimation: Animation? {
     #if os(tvOS)
       return nil

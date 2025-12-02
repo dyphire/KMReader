@@ -91,10 +91,12 @@ struct SeriesDetailView: View {
           }
 
           HStack(alignment: .top) {
-            ThumbnailImage(url: thumbnailURL, showPlaceholder: false, width: 120)
-              #if os(tvOS)
-                .focusable()
-              #endif
+            ThumbnailImage(
+              url: thumbnailURL, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
+            )
+            #if os(tvOS)
+              .focusable()
+            #endif
 
             VStack(alignment: .leading) {
 

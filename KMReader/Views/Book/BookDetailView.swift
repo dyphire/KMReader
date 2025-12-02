@@ -58,7 +58,7 @@ struct BookDetailView: View {
             .fixedSize(horizontal: false, vertical: true)
 
           HStack(alignment: .top) {
-            ThumbnailImage(url: thumbnailURL, width: 120)
+            ThumbnailImage(url: thumbnailURL, width: PlatformHelper.detailThumbnailWidth)
               #if os(tvOS)
                 .focusable()
               #endif
