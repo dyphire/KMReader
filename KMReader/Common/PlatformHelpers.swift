@@ -146,7 +146,7 @@ struct PlatformHelper {
   /// - Parameter color: SwiftUI Color to convert
   /// - Returns: CGColor representation of the color
   static func cgColor(from color: Color) -> CGColor {
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
       return UIColor(color).cgColor
     #elseif os(macOS)
       return NSColor(color).cgColor

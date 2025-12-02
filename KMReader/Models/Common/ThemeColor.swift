@@ -8,7 +8,7 @@
 import SwiftUI
 
 // ThemeColor type that embeds Color and supports RawRepresentable
-struct ThemeColor: RawRepresentable, Equatable {
+struct ThemeColor: RawRepresentable, Equatable, Hashable {
   let color: Color
 
   init(color: Color) {
@@ -97,12 +97,29 @@ struct ThemeColor: RawRepresentable, Equatable {
   static func from(_ color: Color) -> ThemeColor {
     ThemeColor(color: color)
   }
+
+  // Custom Equatable implementation using rawValue for reliable comparison
+  static func == (lhs: ThemeColor, rhs: ThemeColor) -> Bool {
+    return lhs.rawValue == rhs.rawValue
+  }
+
+  // Custom Hashable implementation using rawValue
+  func hash(into hasher: inout Hasher) {
+    hasher.combine(rawValue)
+  }
 }
 
 #if os(tvOS)
   struct PresetColor {
     let name: String
     let color: Color
+    let themeColor: ThemeColor
+
+    init(name: String, color: Color) {
+      self.name = name
+      self.color = color
+      self.themeColor = ThemeColor(color: color)
+    }
   }
 
   extension ThemeColor {
