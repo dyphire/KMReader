@@ -112,11 +112,6 @@ struct MainTabView: View {
           Label("Browse", systemImage: "books.vertical")
         }
 
-      HistoryView()
-        .tabItem {
-          Label("History", systemImage: "clock")
-        }
-
       #if !os(macOS)
         SettingsView()
           .tabItem {
