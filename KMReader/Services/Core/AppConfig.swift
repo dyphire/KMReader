@@ -84,14 +84,14 @@ enum AppConfig {
     set { defaults.set(newValue, forKey: "enableSSE") }
   }
 
-  static var enableSSENotifications: Bool {
+  static var enableSSENotify: Bool {
     get {
-      if defaults.object(forKey: "enableSSENotifications") != nil {
-        return defaults.bool(forKey: "enableSSENotifications")
+      if defaults.object(forKey: "enableSSENotify") != nil {
+        return defaults.bool(forKey: "enableSSENotify")
       }
-      return true  // Default to enabled
+      return false  // Default to disabled
     }
-    set { defaults.set(newValue, forKey: "enableSSENotifications") }
+    set { defaults.set(newValue, forKey: "enableSSENotify") }
   }
 
   static var enableSSEAutoRefresh: Bool {

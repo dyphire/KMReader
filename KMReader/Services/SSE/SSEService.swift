@@ -99,7 +99,7 @@ class SSEService {
     AppConfig.taskQueueStatus = TaskQueueSSEDto()
 
     // Notify user that SSE disconnected (if notifications enabled)
-    if AppConfig.enableSSENotifications {
+    if AppConfig.enableSSENotify {
       ErrorManager.shared.notify(message: "Real-time updates disconnected")
     }
   }
@@ -144,7 +144,7 @@ class SSEService {
       logger.info("✅ SSE connected")
 
       // Notify user that SSE connected successfully (if notifications enabled)
-      if AppConfig.enableSSENotifications {
+      if AppConfig.enableSSENotify {
         ErrorManager.shared.notify(message: "Real-time updates connected")
       }
 
@@ -345,7 +345,7 @@ class SSEService {
           onTaskQueueStatus?(dto)
 
           // Notify if tasks completed (went from > 0 to 0) and notifications enabled
-          if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotifications {
+          if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
             ErrorManager.shared.notify(message: "All server tasks finished")
           }
         }

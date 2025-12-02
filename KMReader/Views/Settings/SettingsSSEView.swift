@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsSSEView: View {
   @AppStorage("enableSSE") private var enableSSE: Bool = true
-  @AppStorage("enableSSENotifications") private var enableSSENotifications: Bool = true
+  @AppStorage("enableSSENotify") private var enableSSENotify: Bool = false
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
 
@@ -67,7 +67,7 @@ struct SettingsSSEView: View {
       }
 
       Section {
-        Toggle(isOn: $enableSSENotifications) {
+        Toggle(isOn: $enableSSENotify) {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
               Image(systemName: "bell")
