@@ -48,12 +48,10 @@ struct BrowseView: View {
             Spacer()
           }
           .padding(.horizontal, horizontalPadding)
-          .padding(.vertical, spacing)
 
           if contentWidth > 0 {
             contentView(layoutHelper: layoutHelper)
               .padding(.horizontal, horizontalPadding)
-              .padding(.vertical, spacing)
           }
         }
       }
