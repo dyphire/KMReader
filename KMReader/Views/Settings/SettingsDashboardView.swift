@@ -8,107 +8,142 @@
 import SwiftUI
 
 struct SettingsDashboardView: View {
-  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  var body: some View {
+    #if os(tvOS)
+      SettingsDashboardView_tvOS()
+    #elseif os(macOS)
+      SettingsDashboardView_macOS()
+    #else
+      SettingsDashboardView_iOS()
+    #endif
+  }
+}
 
-  #if os(tvOS)
+#if os(iOS)
+  private struct SettingsDashboardView_iOS: View {
+    @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
+      DashboardConfiguration()
+    private var controller: DashboardSectionsController {
+      DashboardSectionsController(dashboard: $dashboard)
+    }
+
+    var body: some View {
+      List {
+        Section(header: Text("Dashboard Sections")) {
+          ForEach(controller.sections) { section in
+            HStack {
+              Label(section.displayName, systemImage: section.icon)
+              Spacer()
+              Toggle("", isOn: controller.sectionToggleBinding(for: section))
+            }
+          }
+          .onMove(perform: controller.moveSections)
+          #if os(iOS)
+            .environment(\.editMode, .constant(.active))
+          #endif
+        }
+
+        if !controller.hiddenSections.isEmpty {
+          Section(header: Text("Hidden Sections")) {
+            ForEach(controller.hiddenSections) { section in
+              HStack {
+                Label(section.displayName, systemImage: section.icon)
+                Spacer()
+                Toggle("", isOn: controller.hiddenSectionToggleBinding(for: section))
+              }
+            }
+          }
+        }
+
+        Section {
+          Button {
+            withAnimation {
+              controller.resetSections()
+            }
+          } label: {
+            HStack {
+              Spacer()
+              Text("Reset to Default")
+              Spacer()
+            }
+          }
+        }
+      }
+      .listStyle(.insetGrouped)
+      .inlineNavigationBarTitle("Dashboard")
+      .animation(.default, value: dashboard)
+    }
+  }
+#elseif os(macOS)
+  private struct SettingsDashboardView_macOS: View {
+    @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
+      DashboardConfiguration()
+    private var controller: DashboardSectionsController {
+      DashboardSectionsController(dashboard: $dashboard)
+    }
+
+    var body: some View {
+      Form {
+        Section(header: Text("Dashboard Sections")) {
+          List {
+            ForEach(controller.sections) { section in
+              HStack {
+                Label(section.displayName, systemImage: section.icon)
+                Spacer()
+                Toggle("", isOn: controller.sectionToggleBinding(for: section))
+              }
+            }
+            .onMove(perform: controller.moveSections)
+          }
+          .listStyle(.inset(alternatesRowBackgrounds: true))
+          .scrollDisabled(true)
+        }
+
+        if !controller.hiddenSections.isEmpty {
+          Section(header: Text("Hidden Sections")) {
+            ForEach(controller.hiddenSections) { section in
+              HStack {
+                Label(section.displayName, systemImage: section.icon)
+                Spacer()
+                Toggle("", isOn: controller.hiddenSectionToggleBinding(for: section))
+              }
+            }
+          }
+        }
+
+        Section {
+          Button {
+            withAnimation {
+              controller.resetSections()
+            }
+          } label: {
+            HStack {
+              Spacer()
+              Text("Reset to Default")
+              Spacer()
+            }
+          }
+        }
+      }
+      .formStyle(.grouped)
+      .inlineNavigationBarTitle("Dashboard")
+      .animation(.default, value: dashboard)
+    }
+  }
+#elseif os(tvOS)
+  private struct SettingsDashboardView_tvOS: View {
+    @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
+      DashboardConfiguration()
+    private var controller: DashboardSectionsController {
+      DashboardSectionsController(dashboard: $dashboard)
+    }
+
     @State private var isEditMode = false
     @State private var movingSection: DashboardSection?
     @FocusState private var focusedHandle: DashboardSection?
-  #endif
 
-  private func isSectionVisible(_ section: DashboardSection) -> Bool {
-    return dashboard.sections.contains(section)
-  }
-
-  private func hideSection(_ section: DashboardSection) {
-    if let index = dashboard.sections.firstIndex(of: section) {
-      var newSections = dashboard.sections
-      newSections.remove(at: index)
-      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
-    }
-  }
-
-  private func showSection(_ section: DashboardSection) {
-    if !dashboard.sections.contains(section) {
-      var newSections = dashboard.sections
-      // Add at the end or find a good position based on allCases order
-      if let referenceIndex = DashboardSection.allCases.firstIndex(of: section) {
-        var insertIndex = newSections.count
-        for (idx, existingSection) in newSections.enumerated() {
-          if let existingIndex = DashboardSection.allCases.firstIndex(of: existingSection),
-            existingIndex > referenceIndex
-          {
-            insertIndex = idx
-            break
-          }
-        }
-        newSections.insert(section, at: insertIndex)
-      } else {
-        newSections.append(section)
-      }
-      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
-    }
-  }
-
-  private func moveSections(from source: IndexSet, to destination: Int) {
-    var newSections = dashboard.sections
-    newSections.move(fromOffsets: source, toOffset: destination)
-    dashboard = DashboardConfiguration(sections: newSections)
-  }
-
-  #if os(tvOS)
-    private func moveSectionUp(_ section: DashboardSection) {
-      guard let index = dashboard.sections.firstIndex(of: section),
-        index > 0
-      else { return }
-      var newSections = dashboard.sections
-      newSections.swapAt(index, index - 1)
-      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
-    }
-
-    private func moveSectionDown(_ section: DashboardSection) {
-      guard let index = dashboard.sections.firstIndex(of: section),
-        index < dashboard.sections.count - 1
-      else { return }
-      var newSections = dashboard.sections
-      newSections.swapAt(index, index + 1)
-      dashboard = DashboardConfiguration(sections: newSections, libraryIds: dashboard.libraryIds)
-    }
-  #endif
-
-  private var hiddenSections: [DashboardSection] {
-    DashboardSection.allCases.filter { !isSectionVisible($0) }
-  }
-
-  private func sectionToggleBinding(for section: DashboardSection) -> Binding<Bool> {
-    Binding(
-      get: { isSectionVisible(section) },
-      set: { _ in
-        withAnimation {
-          if isSectionVisible(section) {
-            hideSection(section)
-          } else {
-            showSection(section)
-          }
-        }
-      }
-    )
-  }
-
-  private func hiddenSectionToggleBinding(for section: DashboardSection) -> Binding<Bool> {
-    Binding(
-      get: { isSectionVisible(section) },
-      set: { _ in
-        withAnimation {
-          showSection(section)
-        }
-      }
-    )
-  }
-
-  var body: some View {
-    Form {
-      #if os(tvOS)
+    var body: some View {
+      Form {
         HStack {
           Spacer()
           Button {
@@ -120,21 +155,16 @@ struct SettingsDashboardView: View {
           } label: {
             Text(isEditMode ? "Done" : "Edit")
           }
-          .buttonStyle(.plain)
+          .adaptiveButtonStyle(.borderedProminent)
         }
-      #endif
+        .listRowBackground(Color.clear)
 
-      Section(header: Text("Dashboard Sections")) {
-        ForEach(dashboard.sections) { section in
-          HStack {
-            #if os(tvOS)
+        Section(header: Text("Dashboard Sections")) {
+          ForEach(controller.sections) { section in
+            HStack {
               Text(section.displayName)
                 .font(.headline)
-            #else
-              Label(section.displayName, systemImage: section.icon)
-            #endif
-            Spacer()
-            #if os(tvOS)
+              Spacer()
               HStack(spacing: 18) {
                 Button {
                   if movingSection == section {
@@ -157,7 +187,7 @@ struct SettingsDashboardView: View {
                       focusedHandle = nil
                     }
                     withAnimation {
-                      hideSection(section)
+                      controller.hideSection(section)
                     }
                   } label: {
                     Image(systemName: "minus.circle.fill")
@@ -166,21 +196,14 @@ struct SettingsDashboardView: View {
                 }
               }
               .padding(.horizontal, 18)
-            #else
-              Toggle("", isOn: sectionToggleBinding(for: section))
-            #endif
-          }
-          #if os(tvOS)
+            }
             .listRowBackground(
               Capsule()
                 .fill(PlatformHelper.secondarySystemBackgroundColor)
                 .opacity(movingSection == section ? 0.5 : 0))
-          #endif
-        }
-        #if os(tvOS)
+          }
           .onMoveCommand { direction in
             guard let movingSection = movingSection else { return }
-            // force focus on the moving section
             if let focus = focusedHandle, focus != movingSection {
               focusedHandle = movingSection
             }
@@ -195,22 +218,18 @@ struct SettingsDashboardView: View {
               }
             }
           }
-        #else
-          .onMove(perform: moveSections)
-        #endif
-      }
+        }
 
-      #if os(tvOS)
-        if isEditMode && !hiddenSections.isEmpty {
+        if isEditMode && !controller.hiddenSections.isEmpty {
           Section(header: Text("Hidden Sections")) {
-            ForEach(hiddenSections) { section in
+            ForEach(controller.hiddenSections) { section in
               HStack {
                 Text(section.displayName)
                   .font(.headline)
                 Spacer()
                 Button {
                   withAnimation {
-                    showSection(section)
+                    controller.showSection(section)
                   }
                 } label: {
                   Image(systemName: "plus.circle")
@@ -221,53 +240,141 @@ struct SettingsDashboardView: View {
             }
           }
         }
-      #else
-        if !hiddenSections.isEmpty {
-          Section(header: Text("Hidden Sections")) {
-            ForEach(hiddenSections) { section in
-              HStack {
-                Label {
-                  Text(section.displayName)
-                } icon: {
-                  Image(systemName: section.icon)
-                }
-                Spacer()
-                Toggle("", isOn: hiddenSectionToggleBinding(for: section))
-              }
+
+        Section {
+          Button {
+            movingSection = nil
+            focusedHandle = nil
+            withAnimation {
+              controller.resetSections()
+            }
+          } label: {
+            HStack {
+              Spacer()
+              Text("Reset to Default")
+              Spacer()
             }
           }
         }
-      #endif
-
-      Section {
-        Button {
-          // Reset to default
-          #if os(tvOS)
-            movingSection = nil
-            focusedHandle = nil
-          #endif
-          withAnimation {
-            dashboard = DashboardConfiguration(
-              sections: DashboardSection.allCases, libraryIds: dashboard.libraryIds)
-          }
-        } label: {
-          HStack {
-            Spacer()
-            Text("Reset to Default")
-            Spacer()
-          }
-        }
       }
-    }
-    .formStyle(.grouped)
-    .inlineNavigationBarTitle("Dashboard")
-    .animation(.default, value: dashboard)
-    #if os(tvOS)
+      .formStyle(.grouped)
+      .inlineNavigationBarTitle("Dashboard")
+      .animation(.default, value: dashboard)
       .onAppear {
         movingSection = nil
         focusedHandle = nil
       }
-    #endif
+    }
+
+    private func moveSectionUp(_ section: DashboardSection) {
+      var currentSections = controller.sections
+      guard let index = currentSections.firstIndex(of: section), index > 0 else { return }
+      currentSections.swapAt(index, index - 1)
+      controller.setSections(currentSections)
+    }
+
+    private func moveSectionDown(_ section: DashboardSection) {
+      var currentSections = controller.sections
+      guard let index = currentSections.firstIndex(of: section),
+        index < currentSections.count - 1
+      else { return }
+      currentSections.swapAt(index, index + 1)
+      controller.setSections(currentSections)
+    }
+  }
+#endif
+
+private struct DashboardSectionsController {
+  var dashboard: Binding<DashboardConfiguration>
+
+  var sections: [DashboardSection] {
+    dashboard.wrappedValue.sections
+  }
+
+  var hiddenSections: [DashboardSection] {
+    DashboardSection.allCases.filter { !isSectionVisible($0) }
+  }
+
+  private var libraryIds: [String] {
+    dashboard.wrappedValue.libraryIds
+  }
+
+  private func updateSections(_ newSections: [DashboardSection]) {
+    dashboard.wrappedValue = DashboardConfiguration(
+      sections: newSections,
+      libraryIds: libraryIds
+    )
+  }
+
+  func isSectionVisible(_ section: DashboardSection) -> Bool {
+    sections.contains(section)
+  }
+
+  func hideSection(_ section: DashboardSection) {
+    guard let index = sections.firstIndex(of: section) else { return }
+    var newSections = sections
+    newSections.remove(at: index)
+    updateSections(newSections)
+  }
+
+  func showSection(_ section: DashboardSection) {
+    guard !isSectionVisible(section) else { return }
+    var newSections = sections
+    if let referenceIndex = DashboardSection.allCases.firstIndex(of: section) {
+      var insertIndex = newSections.count
+      for (idx, existingSection) in newSections.enumerated() {
+        if let existingIndex = DashboardSection.allCases.firstIndex(of: existingSection),
+          existingIndex > referenceIndex
+        {
+          insertIndex = idx
+          break
+        }
+      }
+      newSections.insert(section, at: insertIndex)
+    } else {
+      newSections.append(section)
+    }
+    updateSections(newSections)
+  }
+
+  func moveSections(_ source: IndexSet, _ destination: Int) {
+    var newSections = sections
+    newSections.move(fromOffsets: source, toOffset: destination)
+    updateSections(newSections)
+  }
+
+  func setSections(_ newSections: [DashboardSection]) {
+    updateSections(newSections)
+  }
+
+  func resetSections() {
+    updateSections(DashboardSection.allCases)
+  }
+
+  func sectionToggleBinding(for section: DashboardSection) -> Binding<Bool> {
+    Binding(
+      get: { isSectionVisible(section) },
+      set: { newValue in
+        withAnimation {
+          if newValue {
+            showSection(section)
+          } else {
+            hideSection(section)
+          }
+        }
+      }
+    )
+  }
+
+  func hiddenSectionToggleBinding(for section: DashboardSection) -> Binding<Bool> {
+    Binding(
+      get: { isSectionVisible(section) },
+      set: { _ in
+        withAnimation {
+          showSection(section)
+        }
+      }
+    )
   }
 
 }
