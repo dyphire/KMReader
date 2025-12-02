@@ -92,7 +92,7 @@ struct SettingsAppearanceView: View {
                     }
                   }
                 }
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
               }
             }
           }
@@ -156,7 +156,7 @@ struct SettingsAppearanceView: View {
                 }
                 #if os(tvOS)
                   .focused($focusedButton, equals: .portraitMinus)
-                  .buttonStyle(.plain)
+                  .adaptiveButtonStyle(.plain)
                 #endif
                 Text("\(browseColumns.portrait)")
                   .font(.body)
@@ -170,7 +170,7 @@ struct SettingsAppearanceView: View {
                 }
                 #if os(tvOS)
                   .focused($focusedButton, equals: .portraitPlus)
-                  .buttonStyle(.plain)
+                  .adaptiveButtonStyle(.plain)
                 #endif
               }
             }
@@ -193,7 +193,7 @@ struct SettingsAppearanceView: View {
                 }
                 #if os(tvOS)
                   .focused($focusedButton, equals: .landscapeMinus)
-                  .buttonStyle(.plain)
+                  .adaptiveButtonStyle(.plain)
                 #endif
                 Text("\(browseColumns.landscape)")
                   .font(.body)
@@ -207,7 +207,7 @@ struct SettingsAppearanceView: View {
                 }
                 #if os(tvOS)
                   .focused($focusedButton, equals: .landscapePlus)
-                  .buttonStyle(.plain)
+                  .adaptiveButtonStyle(.plain)
                 #endif
               }
             }

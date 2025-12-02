@@ -109,7 +109,7 @@ struct PageImageView: View {
               }
             }
           }
-          .buttonStyle(.borderedProminent)
+          .adaptiveButtonStyle(.borderedProminent)
           .padding(.top, 8)
         }
       } else {

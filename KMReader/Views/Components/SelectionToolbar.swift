@@ -41,7 +41,7 @@ struct SelectionToolbar: View {
         Label(selectAllLabel, systemImage: selectAllImage)
           .font(.footnote)
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
 
       Button(role: .destructive) {
         if selectedCount > 0 {
@@ -51,7 +51,7 @@ struct SelectionToolbar: View {
         Label(deleteLabel, systemImage: "trash.fill")
           .font(.footnote)
       }
-      .buttonStyle(.borderedProminent)
+      .adaptiveButtonStyle(.borderedProminent)
       .disabled(submitDisabled)
       .opacity(selectedCount == 0 ? 0 : 1)
 
@@ -65,7 +65,7 @@ struct SelectionToolbar: View {
         Label("Cancel", systemImage: "xmark.circle")
           .font(.footnote)
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
     }
     .transition(.opacity.combined(with: .move(edge: .top)))
   }

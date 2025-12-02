@@ -100,7 +100,7 @@ struct BookCardView: View {
       .frame(maxHeight: .infinity, alignment: .top)
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       BookContextMenu(
         book: book,

@@ -108,7 +108,7 @@ struct BookRowView: View {
       }
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       BookContextMenu(
         book: book,

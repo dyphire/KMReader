@@ -54,7 +54,7 @@ struct SeriesBrowseView: View {
                 )
               }
               .focusPadding()
-              .buttonStyle(.plain)
+              .adaptiveButtonStyle(.plain)
               .onAppear {
                 if index >= viewModel.series.count - 3 {
                   Task {
@@ -77,7 +77,7 @@ struct SeriesBrowseView: View {
                   }
                 )
               }
-              .buttonStyle(.plain)
+              .adaptiveButtonStyle(.plain)
               .onAppear {
                 if index >= viewModel.series.count - 3 {
                   Task {

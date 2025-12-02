@@ -176,7 +176,7 @@ struct BooksListViewForReadList: View {
                           selectedBookIds.contains(book.id) ? .accentColor : .secondary
                         )
                       }
-                      .buttonStyle(.plain)
+                      .adaptiveButtonStyle(.plain)
                       .transition(.scale.combined(with: .opacity))
                       .animation(
                         .spring(response: 0.3, dampingFraction: 0.7),

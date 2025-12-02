@@ -41,7 +41,7 @@ struct CollectionCardView: View {
       }
       .frame(maxHeight: .infinity, alignment: .top)
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       CollectionContextMenu(
         collection: collection,

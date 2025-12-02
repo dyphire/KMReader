@@ -56,7 +56,7 @@ struct EndPageView: View {
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             .contentShape(Rectangle())
           }
-          .buttonStyle(.plain)
+          .adaptiveButtonStyle(.plain)
           #if os(tvOS)
             .focused($focusedButton, equals: .next)
           #endif
@@ -70,7 +70,7 @@ struct EndPageView: View {
               Color.clear
                 .frame(width: 1, height: 1)
             }
-            .buttonStyle(.plain)
+            .adaptiveButtonStyle(.plain)
             .focused($focusedButton, equals: .hidden)
           }
         #endif
@@ -105,7 +105,7 @@ struct EndPageView: View {
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
           .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .adaptiveButtonStyle(.plain)
         #if os(tvOS)
           .focused($focusedButton, equals: .close)
         #endif
@@ -118,7 +118,7 @@ struct EndPageView: View {
               Color.clear
                 .frame(width: 1, height: 1)
             }
-            .buttonStyle(.plain)
+            .adaptiveButtonStyle(.plain)
             .focused($focusedButton, equals: .hidden)
           }
         #endif
@@ -148,7 +148,7 @@ struct EndPageView: View {
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
             .contentShape(Rectangle())
           }
-          .buttonStyle(.plain)
+          .adaptiveButtonStyle(.plain)
           #if os(tvOS)
             .focused($focusedButton, equals: .next)
           #endif

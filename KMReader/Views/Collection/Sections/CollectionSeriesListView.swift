@@ -141,7 +141,7 @@ struct CollectionSeriesListView: View {
                       )
                     }
                     .focusPadding()
-                    .buttonStyle(.plain)
+                    .adaptiveButtonStyle(.plain)
                   }
                 }
                 .onAppear {
@@ -178,7 +178,7 @@ struct CollectionSeriesListView: View {
                           selectedSeriesIds.contains(series.id) ? .accentColor : .secondary
                         )
                       }
-                      .buttonStyle(.plain)
+                      .adaptiveButtonStyle(.plain)
                       .transition(.scale.combined(with: .opacity))
                       .animation(
                         .spring(response: 0.3, dampingFraction: 0.7),
@@ -221,7 +221,7 @@ struct CollectionSeriesListView: View {
                           }
                         )
                       }
-                      .buttonStyle(.plain)
+                      .adaptiveButtonStyle(.plain)
                     }
                   }
                 }

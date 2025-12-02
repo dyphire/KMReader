@@ -18,21 +18,21 @@ struct BookActionsSection: View {
       } label: {
         Label("Read", systemImage: "book.pages")
       }
-      .buttonStyle(.borderedProminent)
+      .adaptiveButtonStyle(.borderedProminent)
 
       Button {
         onRead(true)
       } label: {
         Label("Read Incognito", systemImage: "eye.slash")
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
 
       Spacer()
 
       NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
         Label("View Series", systemImage: "book.fill")
       }
-      .buttonStyle(.bordered)
+      .adaptiveButtonStyle(.bordered)
     }.font(.caption)
   }
 }

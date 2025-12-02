@@ -177,7 +177,7 @@ struct SettingsDashboardView: View {
                 } label: {
                   Image(systemName: "line.3.horizontal")
                 }
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
                 .focused($focusedHandle, equals: section)
 
                 if isEditMode {
@@ -192,7 +192,7 @@ struct SettingsDashboardView: View {
                   } label: {
                     Image(systemName: "minus.circle.fill")
                   }
-                  .buttonStyle(.plain)
+                  .adaptiveButtonStyle(.plain)
                 }
               }
               .padding(.horizontal, 18)
@@ -234,7 +234,7 @@ struct SettingsDashboardView: View {
                 } label: {
                   Image(systemName: "plus.circle")
                 }
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
               }
               .padding(.vertical, 8)
             }

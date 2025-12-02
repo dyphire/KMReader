@@ -37,7 +37,7 @@ struct ReaderTOCSheetView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
           .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .adaptiveButtonStyle(.plain)
         #if os(tvOS)
           .listRowInsets(EdgeInsets(top: 24, leading: 48, bottom: 24, trailing: 48))
         #endif

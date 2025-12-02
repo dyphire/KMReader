@@ -23,10 +23,10 @@ extension View {
         self.buttonStyle(.glass)
       case .borderedProminent:
         self.buttonStyle(.glassProminent)
-      case .plain:
-        self.buttonStyle(.glass)
       case .borderless:
         self.buttonStyle(.glass)
+      case .plain:
+        self.buttonStyle(.plain)
       }
     } else {
       #if os(tvOS)
@@ -37,10 +37,10 @@ extension View {
           self.buttonStyle(.bordered)
         case .borderedProminent:
           self.buttonStyle(.borderedProminent)
-        case .plain:
-          self.buttonStyle(.plain)
         case .borderless:
           self.buttonStyle(.borderless)
+        case .plain:
+          self.buttonStyle(.plain)
         }
       #endif
     }

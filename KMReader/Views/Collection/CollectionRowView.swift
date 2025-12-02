@@ -55,7 +55,7 @@ struct CollectionRowView: View {
           .foregroundColor(.secondary)
       }
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       CollectionContextMenu(
         collection: collection,

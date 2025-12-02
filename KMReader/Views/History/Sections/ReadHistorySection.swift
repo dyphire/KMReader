@@ -54,7 +54,7 @@ struct ReadHistorySection: View {
                 )
               }
           }
-          .buttonStyle(.plain)
+          .adaptiveButtonStyle(.plain)
           .onAppear {
             // Load next page when the last few items appear
             if let onLoadMore = onLoadMore, index >= bookViewModel.books.count - 3 {

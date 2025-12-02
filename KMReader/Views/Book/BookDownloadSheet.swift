@@ -39,7 +39,7 @@ struct BookDownloadSheet: View {
           } label: {
             Label("Save to Files", systemImage: "square.and.arrow.up")
           }
-          .buttonStyle(.borderedProminent)
+          .adaptiveButtonStyle(.borderedProminent)
         #endif
       } else {
         Text("Ready to download this book file.")
@@ -50,7 +50,7 @@ struct BookDownloadSheet: View {
         } label: {
           Label("Start Download", systemImage: "arrow.down.circle")
         }
-        .buttonStyle(.borderedProminent)
+        .adaptiveButtonStyle(.borderedProminent)
       }
     }
     .padding(PlatformHelper.sheetPadding)

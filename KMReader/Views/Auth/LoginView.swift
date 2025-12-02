@@ -140,7 +140,7 @@ struct LoginView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
           }
-          .buttonStyle(.borderedProminent)
+          .adaptiveButtonStyle(.borderedProminent)
           .disabled(!isFormValid || authViewModel.isLoading)
           .padding(.top, 8)
         }

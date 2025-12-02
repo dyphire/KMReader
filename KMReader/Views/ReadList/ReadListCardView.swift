@@ -49,7 +49,7 @@ struct ReadListCardView: View {
       }
       .frame(maxHeight: .infinity, alignment: .top)
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       ReadListContextMenu(
         readList: readList,

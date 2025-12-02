@@ -58,7 +58,7 @@ struct ReadListRowView: View {
           .foregroundColor(.secondary)
       }
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .contextMenu {
       ReadListContextMenu(
         readList: readList,

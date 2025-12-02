@@ -28,7 +28,7 @@ import SwiftUI
           Color.black.opacity(0.5)
             .ignoresSafeArea()
         }
-        .buttonStyle(.plain)
+        .adaptiveButtonStyle(.plain)
 
         // Help content
         VStack(spacing: 20) {
@@ -93,7 +93,7 @@ import SwiftUI
               .background(themeColor.color.opacity(0.9))
               .cornerRadius(8)
           }
-          .buttonStyle(.plain)
+          .adaptiveButtonStyle(.plain)
         }
         .padding(40)
         .frame(maxWidth: 500)

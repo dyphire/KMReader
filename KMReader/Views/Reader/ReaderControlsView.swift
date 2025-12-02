@@ -177,7 +177,7 @@ struct ReaderControlsView: View {
         }
 
       }
-      .buttonStyle(.plain)
+      .adaptiveButtonStyle(.plain)
       .padding(.horizontal, buttonMargin)
       .padding(.vertical, buttonPadding)
       .allowsHitTesting(true)

@@ -228,7 +228,7 @@ struct SettingsServersView: View {
       .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
     }
     .animation(.easeInOut(duration: 0.25), value: isActive(instance))
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     .disabled(isActive(instance))
     #if os(iOS) || os(macOS)
       .swipeActions(edge: .trailing) {

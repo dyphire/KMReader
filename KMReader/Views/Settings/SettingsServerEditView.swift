@@ -64,12 +64,12 @@ struct SettingsServerEditView: View {
             Button("Cancel") {
               dismiss()
             }
-            .buttonStyle(.bordered)
+            .adaptiveButtonStyle(.bordered)
 
             Button("Save") {
               saveChanges()
             }
-            .buttonStyle(.borderedProminent)
+            .adaptiveButtonStyle(.borderedProminent)
             .disabled(!canSave)
           }
           .frame(maxWidth: .infinity)

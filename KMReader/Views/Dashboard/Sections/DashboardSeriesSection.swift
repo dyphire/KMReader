@@ -56,7 +56,7 @@ struct DashboardSeriesSection: View {
                   )
                 }
                 .focusPadding()
-                .buttonStyle(.plain)
+                .adaptiveButtonStyle(.plain)
                 .onAppear {
                   // Trigger load when we're near the last item (within last 3 items)
                   // Only trigger once per index to avoid repeated loads

@@ -34,7 +34,7 @@
                 }
               }
             }
-            .buttonStyle(.plain)
+            .adaptiveButtonStyle(.plain)
             .contentShape(Rectangle())
             .id(link.href)
           }

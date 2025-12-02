@@ -47,7 +47,7 @@ struct LandingView: View {
           .frame(maxWidth: .infinity)
           .frame(height: 56)
         }
-        .buttonStyle(.borderedProminent)
+        .adaptiveButtonStyle(.borderedProminent)
         .padding(.horizontal, 40)
         .padding(.bottom, 60)
       }

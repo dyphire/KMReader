@@ -64,7 +64,7 @@
                     Text("Add")
                   }.foregroundStyle(.white)
                 }
-                .buttonStyle(.borderedProminent)
+                .adaptiveButtonStyle(.borderedProminent)
               }
               if showFontInputError {
                 Text(fontInputErrorMessage)

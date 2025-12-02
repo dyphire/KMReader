@@ -325,7 +325,7 @@ struct SettingsLibrariesView: View {
       .animation(.easeInOut(duration: 0.2), value: isSelected)
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     #if os(iOS) || os(macOS)
       .listRowSeparator(.hidden)
     #endif
@@ -387,7 +387,7 @@ struct SettingsLibrariesView: View {
       librarySummary(library, isPerforming: isPerforming, isSelected: isSelected)
         .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
+    .adaptiveButtonStyle(.plain)
     #if os(iOS) || os(macOS)
       .listRowSeparator(.hidden)
     #endif

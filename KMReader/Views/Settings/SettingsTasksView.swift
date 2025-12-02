@@ -15,6 +15,7 @@ struct SettingsTasksView: View {
   @State private var isLoading = false
   @State private var isCancelling = false
   @State private var showCancelAllConfirmation = false
+  @State private var hasLoadedMetrics = false
 
   // Tasks metrics
   @State private var tasks: Metric?
@@ -26,7 +27,7 @@ struct SettingsTasksView: View {
     Form {
       if !isAdmin {
         AdminRequiredView()
-      } else if isLoading {
+      } else if isLoading && !hasLoadedMetrics {
         Section {
           HStack {
             Spacer()
@@ -35,41 +36,22 @@ struct SettingsTasksView: View {
           }
         }
       } else {
-        #if os(tvOS)
+        if isAdmin {
           HStack {
             Spacer()
-            Button {
+            if isCancelling {
+              ProgressView()
+            }
+            Button(role: .destructive) {
               showCancelAllConfirmation = true
             } label: {
-              if isCancelling {
-                ProgressView()
-              } else {
-                Text("Cancel All")
-              }
+              Label("Cancel All Tasks", systemImage: "xmark.circle")
             }
-            .buttonStyle(.plain)
-            .disabled(isCancelling)
+            .adaptiveButtonStyle(.bordered)
+            .disabled(isCancelling || isLoading)
           }
-        #else
-          if isAdmin {
-            Section {
-              Button(role: .destructive) {
-                showCancelAllConfirmation = true
-              } label: {
-                HStack {
-                  Spacer()
-                  if isCancelling {
-                    ProgressView()
-                  } else {
-                    Label("Cancel All Tasks", systemImage: "xmark.circle")
-                  }
-                  Spacer()
-                }
-              }
-              .disabled(isCancelling)
-            }
-          }
-        #endif
+          .listRowBackground(Color.clear)
+        }
 
         // Task Queue Status Section (from SSE)
         if taskQueueStatus.count > 0 {
@@ -219,28 +201,39 @@ struct SettingsTasksView: View {
   }
 
   private func loadMetrics() async {
-    isLoading = true
-    metricErrors.removeAll()
+    await MainActor.run {
+      if !hasLoadedMetrics {
+        isLoading = true
+      }
+      metricErrors.removeAll()
+    }
 
     // Load tasks metrics
     do {
       let metric = try await ManagementService.shared.getMetric(MetricName.tasksExecution.rawValue)
-      tasks = metric
-
       let (countByType, totalTimeByType, errors) = await processTasksMetrics(metric)
-      tasksCountByType = countByType
-      tasksTotalTimeByType = totalTimeByType
-      if let tasksExecutedError = errors[.tasksExecuted] {
-        metricErrors[.tasksExecuted] = tasksExecutedError
-      }
-      if let tasksTotalTimeError = errors[.tasksTotalTime] {
-        metricErrors[.tasksTotalTime] = tasksTotalTimeError
+
+      await MainActor.run {
+        tasks = metric
+        tasksCountByType = countByType
+        tasksTotalTimeByType = totalTimeByType
+        if let tasksExecutedError = errors[.tasksExecuted] {
+          metricErrors[.tasksExecuted] = tasksExecutedError
+        }
+        if let tasksTotalTimeError = errors[.tasksTotalTime] {
+          metricErrors[.tasksTotalTime] = tasksTotalTimeError
+        }
       }
     } catch {
-      tasks = nil
+      await MainActor.run {
+        tasks = nil
+      }
     }
 
-    isLoading = false
+    await MainActor.run {
+      hasLoadedMetrics = true
+      isLoading = false
+    }
   }
 
   private func cancelAllTasks() {
