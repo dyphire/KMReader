@@ -18,6 +18,10 @@ class SSEService {
   private var streamTask: Task<Void, Never>?
   private var isConnected = false
 
+  var connected: Bool {
+    isConnected
+  }
+
   // Event handlers
   var onLibraryAdded: ((LibrarySSEDto) -> Void)?
   var onLibraryChanged: ((LibrarySSEDto) -> Void)?

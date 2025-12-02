@@ -40,15 +40,17 @@ struct DashboardView: View {
     }
   }
 
-  private func refreshDashboard(immediate: Bool = false) {
-    // For immediate refreshes (user actions), always refresh
+  private func refreshDashboard() {
     // Cancel any pending debounced refresh
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
 
     // Update last event time for manual refreshes
-    if immediate {
-      serverLastUpdateInterval = Date().timeIntervalSince1970
+    serverLastUpdateInterval = Date().timeIntervalSince1970
+
+    // Check SSE connection status and reconnect if disconnected
+    if enableSSE && !sseService.connected {
+      sseService.connect()
     }
 
     // Perform refresh immediately
@@ -92,7 +94,7 @@ struct DashboardView: View {
             if enableSSE {
               #if os(tvOS)
                 Button {
-                  refreshDashboard(immediate: true)
+                  refreshDashboard()
                 } label: {
                   Label("Refresh", systemImage: "arrow.clockwise.circle")
                 }
@@ -117,7 +119,7 @@ struct DashboardView: View {
                 section: section,
                 bookViewModel: bookViewModel,
                 refreshTrigger: refreshTrigger,
-                onBookUpdated: { refreshDashboard(immediate: true) }
+                onBookUpdated: refreshDashboard,
               )
               .transition(.move(edge: .top).combined(with: .opacity))
 
@@ -126,7 +128,7 @@ struct DashboardView: View {
                 section: section,
                 seriesViewModel: seriesViewModel,
                 refreshTrigger: refreshTrigger,
-                onSeriesUpdated: { refreshDashboard(immediate: true) }
+                onSeriesUpdated: refreshDashboard,
               )
               .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -141,11 +143,11 @@ struct DashboardView: View {
         // Reset server last update time when switching servers
         serverLastUpdateInterval = 0
         // Bypass auto-refresh setting for configuration changes
-        refreshDashboard(immediate: true)
+        refreshDashboard()
       }
       .onChange(of: dashboard.libraryIds) { _, _ in
         // Bypass auto-refresh setting for configuration changes
-        refreshDashboard(immediate: true)
+        refreshDashboard()
       }
       .onAppear {
         setupSSEHandlers()
@@ -167,7 +169,7 @@ struct DashboardView: View {
         .toolbar {
           ToolbarItem(placement: .automatic) {
             Button {
-              refreshDashboard(immediate: true)
+              refreshDashboard()
             } label: {
               Image(systemName: "arrow.clockwise.circle")
             }
@@ -175,7 +177,7 @@ struct DashboardView: View {
           }
         }
         .refreshable {
-          refreshDashboard(immediate: true)
+          refreshDashboard()
         }
       #endif
     }
