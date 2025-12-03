@@ -206,7 +206,7 @@ struct OldTabView: View {
         .adaptiveButtonStyle(.bordered)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(Color(.systemBackground).ignoresSafeArea())
+      .background(PlatformHelper.systemBackgroundColor.ignoresSafeArea())
     }
   }
 #elseif os(macOS)
