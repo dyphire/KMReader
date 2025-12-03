@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct AuthenticationActivity: Codable, Identifiable {
+struct AuthenticationActivity: Codable {
   let userId: String
   let email: String
   let apiKeyId: String?
@@ -18,8 +18,4 @@ struct AuthenticationActivity: Codable, Identifiable {
   let error: String?
   let dateTime: Date
   let source: String?
-
-  var id: String {
-    "\(userId)-\(dateTime.timeIntervalSince1970)"
-  }
 }

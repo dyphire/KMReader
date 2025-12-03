@@ -43,7 +43,7 @@ struct AuthenticationActivityView: View {
         }
       } else {
         Section {
-          ForEach(Array(activities.enumerated()), id: \.element.id) { index, activity in
+          ForEach(Array(activities.enumerated()), id: \.offset) { index, activity in
             VStack(alignment: .leading, spacing: 8) {
               HStack {
                 Image(systemName: activity.success ? "checkmark.circle.fill" : "xmark.circle.fill")
@@ -97,7 +97,12 @@ struct AuthenticationActivityView: View {
               }
             }
             .tvFocusableHighlight()
-            .padding(.vertical, 4)
+            #if os(tvOS)
+              .padding(.vertical, 12)
+              .padding(.horizontal, 16)
+            #else
+              .padding(.vertical, 4)
+            #endif
             .onAppear {
               if index >= activities.count - 3 && hasMorePages && !isLoadingMore {
                 Task {
