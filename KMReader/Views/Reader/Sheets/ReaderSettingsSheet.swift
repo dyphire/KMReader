@@ -15,7 +15,7 @@ struct ReaderSettingsSheet: View {
   @Binding var webtoonPageWidthPercentage: Double
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Reader Settings", size: .large) {
       ScrollView {
         VStack(spacing: 24) {
           cardSection(title: "Read Mode") {
@@ -53,10 +53,8 @@ struct ReaderSettingsSheet: View {
         }
         .padding(24)
       }
-      .inlineNavigationBarTitle("Reader Settings")
     }
     .presentationDragIndicator(.visible)
-    .platformSheetPresentation(detents: [.large])
   }
 
   private func cardSection<Content: View>(
