@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Release script for KMReader (builds all platforms)
-# Usage: ./release.sh [--show-in-organizer] [--skip-export] [--verbose]
+# Usage: ./release.sh [--show-in-organizer] [--skip-export]
 # --show-in-organizer: Save archives to Xcode's default location
 # --skip-export: Only create archives, skip export step
-# --verbose: Show verbose output during export
 
 set -e
 
@@ -35,7 +34,6 @@ fi
 # Parse arguments
 SHOW_IN_ORGANIZER=false
 SKIP_EXPORT=false
-VERBOSE=false
 
 for arg in "$@"; do
 	case "$arg" in
@@ -45,12 +43,9 @@ for arg in "$@"; do
 	--skip-export)
 		SKIP_EXPORT=true
 		;;
-	--verbose)
-		VERBOSE=true
-		;;
 	*)
 		echo -e "${RED}Unknown option: $arg${NC}"
-		echo "Usage: ./release.sh [--show-in-organizer] [--skip-export] [--verbose]"
+		echo "Usage: ./release.sh [--show-in-organizer] [--skip-export]"
 		exit 1
 		;;
 	esac
@@ -199,11 +194,6 @@ if [ "$SKIP_EXPORT" = false ]; then
 
 		# Build export command; keep archive for artifacts.sh to extract .app file for DMG creation
 		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR" "--keep-archive")
-
-		# Add verbose flag if requested
-		if [ "$VERBOSE" = true ]; then
-			EXPORT_CMD+=("--verbose")
-		fi
 
 		"${EXPORT_CMD[@]}"
 

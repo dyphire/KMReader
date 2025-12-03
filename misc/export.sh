@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # Export script for KMReader archives
-# Usage: ./export.sh [archive_path] [export_options_plist] [destination] [--keep-archive] [--verbose]
+# Usage: ./export.sh [archive_path] [export_options_plist] [destination] [--keep-archive]
 # Example: ./export.sh ./archives/KMReader-iOS_20240101_120000.xcarchive exportOptions.plist ./exports
 # --keep-archive: Keep the archive after successful export (default: delete archive)
-# --verbose: Show full xcodebuild output for debugging
 
 set -e
 
@@ -36,16 +35,11 @@ KEEP_ARCHIVE=false
 ARCHIVE_PATH=""
 EXPORT_OPTIONS=""
 DEST_DIR=""
-VERBOSE=false
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--keep-archive)
 		KEEP_ARCHIVE=true
-		shift
-		;;
-	--verbose)
-		VERBOSE=true
 		shift
 		;;
 	*)
@@ -161,34 +155,17 @@ if [ "$UPLOAD_ENABLED" = true ]; then
 	echo -e "${YELLOW}This will also upload to App Store Connect...${NC}"
 fi
 
-# Run xcodebuild
-if [ "$VERBOSE" = true ]; then
-	# Show full output in verbose mode
-	echo -e "${YELLOW}Running xcodebuild (verbose mode)...${NC}"
-	xcodebuild -exportArchive \
-		-archivePath "$ARCHIVE_PATH" \
-		-exportPath "$EXPORT_PATH" \
-		-exportOptionsPlist "$EXPORT_OPTIONS" \
-		-allowProvisioningUpdates \
-		"${AUTH_ARGS[@]}"
-	XCODEBUILD_EXIT_CODE=$?
-	XCODEBUILD_OUTPUT=""
-else
-	# Capture output for analysis
-	XCODEBUILD_OUTPUT=$(xcodebuild -exportArchive \
-		-archivePath "$ARCHIVE_PATH" \
-		-exportPath "$EXPORT_PATH" \
-		-exportOptionsPlist "$EXPORT_OPTIONS" \
-		-allowProvisioningUpdates \
-		"${AUTH_ARGS[@]}" 2>&1)
-	XCODEBUILD_EXIT_CODE=$?
-fi
+# Run xcodebuild quietly (warnings/errors still show)
+xcodebuild -exportArchive \
+	-archivePath "$ARCHIVE_PATH" \
+	-exportPath "$EXPORT_PATH" \
+	-exportOptionsPlist "$EXPORT_OPTIONS" \
+	-allowProvisioningUpdates \
+	-quiet \
+	"${AUTH_ARGS[@]}"
+XCODEBUILD_EXIT_CODE=$?
 
-# Show output if there was an error or in verbose mode
 if [ "$XCODEBUILD_EXIT_CODE" -ne 0 ]; then
-	if [ "$VERBOSE" != true ]; then
-		echo "$XCODEBUILD_OUTPUT"
-	fi
 	echo -e "${RED}✗ Export failed!${NC}"
 	exit 1
 fi
