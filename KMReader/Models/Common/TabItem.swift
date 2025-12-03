@@ -10,7 +10,9 @@ import SwiftUI
 enum TabItem: String, CaseIterable, Hashable {
   case home = "home"
   case browse = "browse"
-  case settings = "settings"
+  #if !os(macOS)
+    case settings = "settings"
+  #endif
 
   var title: String {
     switch self {
@@ -18,8 +20,10 @@ enum TabItem: String, CaseIterable, Hashable {
       return "Home"
     case .browse:
       return "Browse"
-    case .settings:
-      return "Settings"
+    #if !os(macOS)
+      case .settings:
+        return "Settings"
+    #endif
     }
   }
 
@@ -29,8 +33,10 @@ enum TabItem: String, CaseIterable, Hashable {
       return "house"
     case .browse:
       return "books.vertical"
-    case .settings:
-      return "gearshape"
+    #if !os(macOS)
+      case .settings:
+        return "gearshape"
+    #endif
     }
   }
 
@@ -45,9 +51,10 @@ enum TabItem: String, CaseIterable, Hashable {
       DashboardView()
     case .browse:
       BrowseView()
-    case .settings:
-      SettingsView()
+    #if !os(macOS)
+      case .settings:
+        SettingsView()
+    #endif
     }
   }
-
 }
