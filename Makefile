@@ -1,4 +1,4 @@
-.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer clean-archives clean-exports
+.PHONY: help build build-ios build-macos build-tvos build-ios-ci build-macos-ci build-tvos-ci archive-ios archive-macos archive-tvos archive-ios-organizer archive-macos-organizer archive-tvos-organizer export release release-organizer artifacts clean-archives clean-exports clean-artifacts
 
 # Configuration
 SCHEME = KMReader
@@ -36,11 +36,13 @@ help: ## Show this help message
 	@echo "Build all platforms:"
 	@echo "  make release           - Archive and export all platforms (iOS, macOS, tvOS)"
 	@echo "  make release-organizer - Archive and export all platforms (appears in Organizer)"
+	@echo "  make artifacts         - Build release and prepare artifacts (ipa + dmg) for GitHub Release"
 	@echo ""
 	@echo "Clean commands:"
 	@echo "  make clean-archives   - Remove all archives"
 	@echo "  make clean-exports    - Remove all exports"
-	@echo "  make clean            - Remove archives and exports"
+	@echo "  make clean-artifacts  - Remove prepared artifacts"
+	@echo "  make clean            - Remove archives, exports, and artifacts"
 	@echo ""
 
 build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
@@ -110,6 +112,10 @@ release-organizer: ## Archive and export all platforms (appears in Xcode Organiz
 	@echo "$(GREEN)Building all platforms (will appear in Organizer)...$(NC)"
 	@$(MISC_DIR)/release.sh --show-in-organizer
 
+artifacts: ## Prepare artifacts (ipa + dmg) for GitHub Release
+	@echo "$(GREEN)Preparing artifacts for GitHub Release...$(NC)"
+	@$(MISC_DIR)/artifacts.sh $(EXPORTS_DIR) artifacts
+
 clean-archives: ## Remove all archives
 	@echo "$(YELLOW)Cleaning archives...$(NC)"
 	@rm -rf $(ARCHIVES_DIR)
@@ -118,4 +124,8 @@ clean-exports: ## Remove all exports
 	@echo "$(YELLOW)Cleaning exports...$(NC)"
 	@rm -rf $(EXPORTS_DIR)
 
-clean: clean-archives clean-exports ## Remove archives and exports
+clean-artifacts: ## Remove prepared artifacts
+	@echo "$(YELLOW)Cleaning artifacts...$(NC)"
+	@rm -rf artifacts
+
+clean: clean-archives clean-exports clean-artifacts ## Remove archives, exports, and artifacts

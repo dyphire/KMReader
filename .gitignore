@@ -18,6 +18,7 @@ Package.resolved
 misc/exportOptions.plist
 archives/
 exports/
+artifacts/
 
 # App Store Connect API Keys (never commit these!)
 *.p8

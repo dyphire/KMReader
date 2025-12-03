@@ -198,7 +198,8 @@ if [ "$SKIP_EXPORT" = false ]; then
 		echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 		# Build export command with optional API key arguments
-		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR")
+		# Keep archive for artifacts.sh to extract .app file for DMG creation
+		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR" "--keep-archive")
 
 		# Add API key arguments if environment variables are set
 		if [ -n "$APP_STORE_CONNECT_API_KEY_PATH" ] && [ -n "$APP_STORE_CONNECT_API_ISSUER_ID" ] && [ -n "$APP_STORE_CONNECT_API_KEY_ID" ]; then
