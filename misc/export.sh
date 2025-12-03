@@ -160,7 +160,6 @@ xcodebuild -exportArchive \
 	-archivePath "$ARCHIVE_PATH" \
 	-exportPath "$EXPORT_PATH" \
 	-exportOptionsPlist "$EXPORT_OPTIONS" \
-	-allowProvisioningUpdates \
 	-quiet \
 	"${AUTH_ARGS[@]}"
 XCODEBUILD_EXIT_CODE=$?

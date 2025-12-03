@@ -52,19 +52,48 @@ for arg in "$@"; do
 done
 
 # Configuration
+BUNDLE_IDENTIFIER="com.everpcpc.Komga"
+MAC_INSTALLER_CERT_NAME="${MAC_INSTALLER_CERT_NAME:-3rd Party Mac Developer Installer}"
 ARCHIVES_DIR="$PROJECT_ROOT/archives"
 EXPORTS_DIR="$PROJECT_ROOT/exports"
-EXPORT_OPTIONS="$SCRIPT_DIR/exportOptions.plist"
+EXPORT_OPTIONS_TEMPLATE="$SCRIPT_DIR/exportOptions.template.plist"
 PLATFORMS=("ios" "macos" "tvos")
 
-# Check if export options file exists
-if [ "$SKIP_EXPORT" = false ] && [ ! -f "$EXPORT_OPTIONS" ]; then
-	echo -e "${RED}Error: Export options plist not found at '$EXPORT_OPTIONS'${NC}"
+# Check if export options template exists
+if [ "$SKIP_EXPORT" = false ] && [ ! -f "$EXPORT_OPTIONS_TEMPLATE" ]; then
+	echo -e "${RED}Error: Export options template not found at '$EXPORT_OPTIONS_TEMPLATE'${NC}"
 	echo "Please create it by copying the example:"
-	echo "  cp $SCRIPT_DIR/exportOptions.plist.example $EXPORT_OPTIONS"
+	echo "  cp $SCRIPT_DIR/exportOptions.plist.example $EXPORT_OPTIONS_TEMPLATE"
 	echo "Then edit it according to your needs."
 	exit 1
 fi
+
+prepare_export_options() {
+	local platform_name=$1
+	local profile_name=$2
+	local output_plist=$3
+
+	cp "$EXPORT_OPTIONS_TEMPLATE" "$output_plist"
+
+	/usr/libexec/PlistBuddy -c "Delete :signingStyle" "$output_plist" >/dev/null 2>&1 || true
+	/usr/libexec/PlistBuddy -c "Add :signingStyle string manual" "$output_plist"
+	/usr/libexec/PlistBuddy -c "Delete :signingCertificate" "$output_plist" >/dev/null 2>&1 || true
+	/usr/libexec/PlistBuddy -c "Add :signingCertificate string 'Apple Distribution'" "$output_plist"
+
+	/usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" "$output_plist" >/dev/null 2>&1 || true
+	/usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" "$output_plist"
+	/usr/libexec/PlistBuddy -c "Add :provisioningProfiles:$BUNDLE_IDENTIFIER string $profile_name" "$output_plist" >/dev/null 2>&1 || \
+		/usr/libexec/PlistBuddy -c "Set :provisioningProfiles:$BUNDLE_IDENTIFIER $profile_name" "$output_plist"
+
+	if [ "$platform_name" = "macOS" ]; then
+		/usr/libexec/PlistBuddy -c "Delete :installerSigningCertificate" "$output_plist" >/dev/null 2>&1 || true
+		/usr/libexec/PlistBuddy -c "Add :installerSigningCertificate string ${MAC_INSTALLER_CERT_NAME}" "$output_plist"
+	else
+		/usr/libexec/PlistBuddy -c "Delete :installerSigningCertificate" "$output_plist" >/dev/null 2>&1 || true
+	fi
+
+	echo -e "${GREEN}Prepared export options for $platform_name using profile '$profile_name'.${NC}"
+}
 
 # Array to store archive paths
 declare -a ARCHIVE_PATHS
@@ -192,10 +221,33 @@ if [ "$SKIP_EXPORT" = false ]; then
 		echo -e "${YELLOW}Exporting $PLATFORM_NAME archive...${NC}"
 		echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
+		PROFILE_NAME=""
+		case "$PLATFORM_NAME" in
+		"iOS")
+			PROFILE_NAME="${IOS_PROVISIONING_PROFILE_NAME:-}"
+			;;
+		"macOS")
+			PROFILE_NAME="${MACOS_PROVISIONING_PROFILE_NAME:-}"
+			;;
+		"tvOS")
+			PROFILE_NAME="${TVOS_PROVISIONING_PROFILE_NAME:-}"
+			;;
+		esac
+
+		if [ -z "$PROFILE_NAME" ]; then
+			echo -e "${RED}✗ No provisioning profile available for $PLATFORM_NAME. Skipping export.${NC}"
+			continue
+		fi
+
+		TMPDIR="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+		TEMP_EXPORT_OPTIONS="$(mktemp "$TMPDIR/exportOptions.${PLATFORM_NAME}.XXXXXX.plist")"
+		prepare_export_options "$PLATFORM_NAME" "$PROFILE_NAME" "$TEMP_EXPORT_OPTIONS"
+
 		# Build export command; keep archive for artifacts.sh to extract .app file for DMG creation
-		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$EXPORT_OPTIONS" "$EXPORTS_DIR" "--keep-archive")
+		EXPORT_CMD=("$SCRIPT_DIR/export.sh" "$archive_path" "$TEMP_EXPORT_OPTIONS" "$EXPORTS_DIR" "--keep-archive")
 
 		"${EXPORT_CMD[@]}"
+		rm -f "$TEMP_EXPORT_OPTIONS"
 
 		echo ""
 	done

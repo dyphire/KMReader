@@ -128,7 +128,6 @@ xcodebuild archive \
 	-destination "$DESTINATION" \
 	-configuration Release \
 	-archivePath "$ARCHIVE_PATH" \
-	-allowProvisioningUpdates \
 	-quiet \
 	"${AUTH_ARGS[@]}"
 
