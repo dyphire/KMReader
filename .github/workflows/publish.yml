@@ -74,7 +74,7 @@ jobs:
 
           echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
-  publish:
+  upload:
     runs-on: macos-latest
     needs: detect
     if: needs.detect.outputs.build_changed == 'true'
