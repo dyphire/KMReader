@@ -219,15 +219,18 @@ struct SettingsServersView: View {
             ProgressView()
               .scaleEffect(0.8)
           } else if isActive(instance) {
-            Label("Active", systemImage: "checkmark.seal.fill")
-              .font(.caption)
-              .foregroundStyle(themeColor.color)
-              .padding(.horizontal, 8)
-              .padding(.vertical, 4)
-              .background(
-                Capsule()
-                  .fill(themeColor.color.opacity(0.2))
-              )
+            HStack(spacing: 4) {
+              Image(systemName: "checkmark.seal.fill")
+              Text("Active")
+            }
+            .font(.caption)
+            .foregroundStyle(themeColor.color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+              Capsule()
+                .fill(themeColor.color.opacity(0.2))
+            )
           }
         }
 
