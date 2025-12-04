@@ -91,9 +91,7 @@ struct SeriesDetailView: View {
             ThumbnailImage(
               url: thumbnailURL, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
             )
-            #if os(tvOS)
-              .focusable()
-            #endif
+            .thumbnailFocus()
 
             VStack(alignment: .leading) {
 
