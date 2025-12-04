@@ -67,9 +67,12 @@ final class KomgaLibraryStore {
       }
     }
 
-    // Delete libraries that no longer exist
+    // Delete libraries that no longer exist (but preserve __all_libraries__ entry)
+    let allLibrariesId = KomgaLibrary.allLibrariesId
     for (_, library) in existingMap {
-      context.delete(library)
+      if library.libraryId != allLibrariesId {
+        context.delete(library)
+      }
     }
 
     try context.save()
@@ -87,6 +90,48 @@ final class KomgaLibraryStore {
     }
     let items = try context.fetch(descriptor)
     items.forEach { context.delete($0) }
+    try context.save()
+  }
+
+  func upsertAllLibrariesEntry(
+    instanceId: String,
+    fileSize: Double?,
+    booksCount: Double?,
+    seriesCount: Double?,
+    sidecarsCount: Double?,
+    collectionsCount: Double?,
+    readlistsCount: Double?
+  ) throws {
+    let context = try makeContext()
+    let allLibrariesId = KomgaLibrary.allLibrariesId
+    let descriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { library in
+        library.instanceId == instanceId && library.libraryId == allLibrariesId
+      }
+    )
+
+    if let existing = try context.fetch(descriptor).first {
+      existing.fileSize = fileSize
+      existing.booksCount = booksCount
+      existing.seriesCount = seriesCount
+      existing.sidecarsCount = sidecarsCount
+      existing.collectionsCount = collectionsCount
+      existing.readlistsCount = readlistsCount
+    } else {
+      let allLibrariesEntry = KomgaLibrary(
+        instanceId: instanceId,
+        libraryId: KomgaLibrary.allLibrariesId,
+        name: "All Libraries",
+        fileSize: fileSize,
+        booksCount: booksCount,
+        seriesCount: seriesCount,
+        sidecarsCount: sidecarsCount,
+        collectionsCount: collectionsCount,
+        readlistsCount: readlistsCount
+      )
+      context.insert(allLibrariesEntry)
+    }
+
     try context.save()
   }
 }

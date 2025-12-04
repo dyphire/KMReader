@@ -19,6 +19,7 @@ struct BrowseView: View {
   @State private var activeSearchText: String = ""
   @State private var contentWidth: CGFloat = 0
   @State private var layoutHelper = BrowseLayoutHelper()
+  @State private var showLibraryPicker = false
 
   private let horizontalPadding: CGFloat = PlatformHelper.sheetPadding
 
@@ -57,6 +58,20 @@ struct BrowseView: View {
       .handleNavigation()
       .inlineNavigationBarTitle("Browse")
       .searchable(text: $searchQuery)
+      #if !os(tvOS)
+        .toolbar {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              showLibraryPicker = true
+            } label: {
+              Image(systemName: "books.vertical")
+            }
+          }
+        }
+        .sheet(isPresented: $showLibraryPicker) {
+          LibraryPickerSheet()
+        }
+      #endif
       .onSubmit(of: .search) {
         activeSearchText = searchQuery
       }

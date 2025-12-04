@@ -10,6 +10,8 @@ import SwiftData
 
 @Model
 final class KomgaLibrary {
+  static let allLibrariesId = "__all_libraries__"
+
   @Attribute(.unique) var id: UUID
   var instanceId: String
   var libraryId: String
@@ -21,6 +23,8 @@ final class KomgaLibrary {
   var booksCount: Double?
   var seriesCount: Double?
   var sidecarsCount: Double?
+  var collectionsCount: Double?
+  var readlistsCount: Double?
 
   init(
     id: UUID = UUID(),
@@ -31,7 +35,9 @@ final class KomgaLibrary {
     fileSize: Double? = nil,
     booksCount: Double? = nil,
     seriesCount: Double? = nil,
-    sidecarsCount: Double? = nil
+    sidecarsCount: Double? = nil,
+    collectionsCount: Double? = nil,
+    readlistsCount: Double? = nil
   ) {
     self.id = id
     self.instanceId = instanceId
@@ -42,5 +48,7 @@ final class KomgaLibrary {
     self.booksCount = booksCount
     self.seriesCount = seriesCount
     self.sidecarsCount = sidecarsCount
+    self.collectionsCount = collectionsCount
+    self.readlistsCount = readlistsCount
   }
 }

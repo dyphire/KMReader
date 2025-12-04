@@ -14,6 +14,7 @@ struct DashboardView: View {
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
   @State private var pendingRefreshTask: Task<Void, Never>?
+  @State private var showLibraryPicker = false
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
@@ -167,7 +168,14 @@ struct DashboardView: View {
       }
       #if !os(tvOS)
         .toolbar {
-          ToolbarItem(placement: .automatic) {
+          ToolbarItem(placement: .cancellationAction) {
+            Button {
+              showLibraryPicker = true
+            } label: {
+              Image(systemName: "books.vertical")
+            }
+          }
+          ToolbarItem(placement: .confirmationAction) {
             Button {
               refreshDashboard()
             } label: {
@@ -178,6 +186,9 @@ struct DashboardView: View {
         }
         .refreshable {
           refreshDashboard()
+        }
+        .sheet(isPresented: $showLibraryPicker) {
+          LibraryPickerSheet()
         }
       #endif
     }
