@@ -48,7 +48,7 @@ struct SettingsServerEditView: View {
   }
 
   var body: some View {
-    NavigationStack {
+    SheetView(title: "Edit Server", size: .large, applyFormStyle: true) {
       Form {
         Section(header: Text("Display")) {
           TextField("Name", text: $name)
@@ -129,31 +129,18 @@ struct SettingsServerEditView: View {
           .adaptiveButtonStyle(.bordered)
           .disabled(isValidating || !canValidate)
         }
-
-        Section {
-          HStack(spacing: 12) {
-            Button("Cancel") {
-              dismiss()
-            }
-            .adaptiveButtonStyle(.bordered)
-
-            Button("Save") {
-              saveChanges()
-            }
-            .adaptiveButtonStyle(.borderedProminent)
-            .disabled(!canSave)
-          }
-          .frame(maxWidth: .infinity)
-        }
       }
-      .formStyle(.grouped)
       #if os(tvOS)
         .focusSection()
       #endif
-      .inlineNavigationBarTitle("Edit Server")
-      .padding(PlatformHelper.sheetPadding)
+    } controls: {
+      Button {
+        saveChanges()
+      } label: {
+        Label("Save", systemImage: "checkmark")
+      }
+      .disabled(!canSave)
     }
-    .platformSheetPresentation(detents: [.large], minWidth: 600, minHeight: 400)
   }
 
   private var trimmedName: String {
