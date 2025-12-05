@@ -48,7 +48,6 @@ help: ## Show this help message
 	@echo "  make bump             - Increment CURRENT_PROJECT_VERSION in project.pbxproj"
 	@echo "  make major            - Increment major version (MARKETING_VERSION)"
 	@echo "  make minor            - Increment minor version (MARKETING_VERSION)"
-	@echo "  make patch            - Increment patch version (MARKETING_VERSION)"
 	@echo ""
 
 build: build-ios build-macos build-tvos ## Build all platforms (iOS, macOS, tvOS)
@@ -144,6 +143,3 @@ major: ## Increment major version (MARKETING_VERSION)
 
 minor: ## Increment minor version (MARKETING_VERSION)
 	@$(MISC_DIR)/bump-version.sh minor
-
-patch: ## Increment patch version (MARKETING_VERSION)
-	@$(MISC_DIR)/bump-version.sh patch

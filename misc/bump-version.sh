@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Bump marketing version script for KMReader
-# Usage: ./bump-version.sh [major|minor|patch]
-# Increments MARKETING_VERSION in project.pbxproj
+# Usage: ./bump-version.sh [major|minor]
+# Increments MARKETING_VERSION in project.pbxproj (two-digit version: major.minor)
 # Requires a clean git working directory
 
 set -e
@@ -23,14 +23,14 @@ PROJECT="$PROJECT_ROOT/KMReader.xcodeproj/project.pbxproj"
 # Check argument
 if [ -z "$1" ]; then
 	echo -e "${RED}Error: Version type is required${NC}"
-	echo "Usage: $0 [major|minor|patch]"
+	echo "Usage: $0 [major|minor]"
 	exit 1
 fi
 
 VERSION_TYPE="$1"
 
-if [ "$VERSION_TYPE" != "major" ] && [ "$VERSION_TYPE" != "minor" ] && [ "$VERSION_TYPE" != "patch" ]; then
-	echo -e "${RED}Error: Version type must be 'major', 'minor', or 'patch'${NC}"
+if [ "$VERSION_TYPE" != "major" ] && [ "$VERSION_TYPE" != "minor" ]; then
+	echo -e "${RED}Error: Version type must be 'major' or 'minor'${NC}"
 	exit 1
 fi
 
@@ -51,25 +51,20 @@ if [ -z "$CURRENT_VERSION" ]; then
 	exit 1
 fi
 
-# Parse version components
+# Parse version components (two-digit format: major.minor)
 IFS='.' read -ra VERSION_PARTS <<<"$CURRENT_VERSION"
 MAJOR="${VERSION_PARTS[0]}"
 MINOR="${VERSION_PARTS[1]}"
-PATCH="${VERSION_PARTS[2]}"
 
 # Calculate next version
 if [ "$VERSION_TYPE" == "major" ]; then
 	MAJOR=$((MAJOR + 1))
 	MINOR=0
-	PATCH=0
 elif [ "$VERSION_TYPE" == "minor" ]; then
 	MINOR=$((MINOR + 1))
-	PATCH=0
-elif [ "$VERSION_TYPE" == "patch" ]; then
-	PATCH=$((PATCH + 1))
 fi
 
-NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+NEXT_VERSION="$MAJOR.$MINOR"
 
 echo -e "${GREEN}Current version: $CURRENT_VERSION -> Next version: $NEXT_VERSION${NC}"
 
