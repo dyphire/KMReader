@@ -18,7 +18,7 @@ struct SeriesBrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter & Sort", size: .medium) {
+    SheetView(title: "Filter & Sort", size: .large) {
       Form {
         Section("Filters") {
           Picker("Read Status", selection: $tempOpts.readStatusFilter) {

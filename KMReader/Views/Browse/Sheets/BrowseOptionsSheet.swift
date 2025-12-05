@@ -46,8 +46,8 @@ struct BrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter & Sort", size: .medium) {
-        Form {
+    SheetView(title: "Filter & Sort", size: .large) {
+      Form {
         if contentType.supportsReadStatusFilter || contentType.supportsSeriesStatusFilter {
           Section("Filters") {
             if contentType.supportsReadStatusFilter {
@@ -166,9 +166,8 @@ struct BrowseOptionsSheet: View {
             }
           }
         }
-        }
       }
-    controls: {
+    } controls: {
       Button(action: applyChanges) {
         Label("Done", systemImage: "checkmark")
       }
