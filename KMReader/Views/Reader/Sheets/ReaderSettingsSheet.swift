@@ -111,21 +111,12 @@ struct ReaderSettingsSheet: View {
           Text("\(Int(webtoonPageWidthPercentage))%")
             .foregroundColor(.secondary)
         }
-        HStack(spacing: 32) {
-          Button {
-            webtoonPageWidthPercentage = max(50, webtoonPageWidthPercentage - 5)
-          } label: {
-            Image(systemName: "minus.circle")
-              .font(.title)
-          }
-          Button {
-            webtoonPageWidthPercentage = min(100, webtoonPageWidthPercentage + 5)
-          } label: {
-            Image(systemName: "plus.circle")
-              .font(.title)
-          }
-        }
-        Text("Adjust the width of pages when reading in webtoon mode")
+        Slider(
+          value: $webtoonPageWidthPercentage,
+          in: 50...100,
+          step: 5
+        )
+        Text("Adjust the width of webtoon pages as a percentage of screen width")
           .font(.caption)
           .foregroundColor(.secondary)
           .lineLimit(nil)
