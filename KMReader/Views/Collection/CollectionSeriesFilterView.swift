@@ -1,5 +1,5 @@
 //
-//  SeriesFilterView.swift
+//  CollectionSeriesFilterView.swift
 //  Komga
 //
 //  Created by Komga iOS Client
@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-struct SeriesFilterView: View {
-  @Binding var browseOpts: SeriesBrowseOptions
+struct CollectionSeriesFilterView: View {
+  @Binding var browseOpts: CollectionSeriesBrowseOptions
   @Binding var showFilterSheet: Bool
 
   var body: some View {
@@ -44,18 +44,17 @@ struct SeriesFilterView: View {
             .buttonStyle(.plain)
           }
 
-          Button {
-            showFilterSheet = true
-          } label: {
-            FilterChip(
-              label:
-                browseOpts.readStatusFilter == .all && browseOpts.seriesStatusFilter == .all
-                  ? "Filter & Sort"
-                  : "\(browseOpts.sortField.displayName) \(browseOpts.sortDirection == .ascending ? "↑" : "↓")",
-              systemImage: "arrow.up.arrow.down"
-            )
+          if browseOpts.readStatusFilter == .all && browseOpts.seriesStatusFilter == .all {
+            Button {
+              showFilterSheet = true
+            } label: {
+              FilterChip(
+                label: "Filter",
+                systemImage: "line.3.horizontal.decrease.circle"
+              )
+            }
+            .buttonStyle(.plain)
           }
-          .buttonStyle(.plain)
         }
         .padding(.horizontal, 4)
       }
@@ -63,7 +62,7 @@ struct SeriesFilterView: View {
       Spacer()
     }
     .sheet(isPresented: $showFilterSheet) {
-      SeriesBrowseOptionsSheet(browseOpts: $browseOpts)
+      CollectionSeriesBrowseOptionsSheet(browseOpts: $browseOpts)
     }
   }
 }

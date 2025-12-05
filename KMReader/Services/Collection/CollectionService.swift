@@ -57,22 +57,37 @@ class CollectionService {
     collectionId: String,
     page: Int = 0,
     size: Int = 20,
-    browseOpts: SeriesBrowseOptions
+    browseOpts: CollectionSeriesBrowseOptions,
+    libraryIds: [String]? = nil
   ) async throws -> Page<Series> {
-    let sort = browseOpts.sortString
+    var queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+    ]
+
+    // Note: collection series API does not support sort, only filter
+
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
+    }
+
+    // Support readStatus filter
     let readStatus = browseOpts.readStatusFilter.toReadStatus()
+    if let readStatus = readStatus {
+      queryItems.append(URLQueryItem(name: "read_status", value: readStatus.rawValue))
+    }
 
-    let condition = SeriesSearch.buildCondition(
-      readStatus: readStatus,
-      collectionId: collectionId
-    )
-    let search = SeriesSearch(condition: condition)
+    // Support seriesStatus filter
+    if browseOpts.seriesStatusFilter != .all {
+      queryItems.append(URLQueryItem(name: "status", value: browseOpts.seriesStatusFilter.rawValue))
+    }
 
-    return try await SeriesService.shared.getSeriesList(
-      search: search,
-      page: page,
-      size: size,
-      sort: sort
+    return try await apiClient.request(
+      path: "/api/v1/collections/\(collectionId)/series",
+      queryItems: queryItems
     )
   }
 

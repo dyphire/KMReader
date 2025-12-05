@@ -168,7 +168,8 @@ class SeriesViewModel {
 
   func loadCollectionSeries(
     collectionId: String,
-    browseOpts: SeriesBrowseOptions,
+    browseOpts: CollectionSeriesBrowseOptions,
+    libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
     if refresh {
@@ -185,7 +186,8 @@ class SeriesViewModel {
         collectionId: collectionId,
         page: currentPage,
         size: 20,
-        browseOpts: browseOpts
+        browseOpts: browseOpts,
+        libraryIds: libraryIds
       )
 
       withAnimation {

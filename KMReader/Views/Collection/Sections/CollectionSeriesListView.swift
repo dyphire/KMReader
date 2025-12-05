@@ -15,8 +15,9 @@ struct CollectionSeriesListView: View {
   @Binding var showFilterSheet: Bool
 
   @AppStorage("browseLayout") private var layoutMode: BrowseLayoutMode = .grid
-  @AppStorage("collectionSeriesBrowseOptions") private var browseOpts: SeriesBrowseOptions =
-    SeriesBrowseOptions()
+  @AppStorage("collectionSeriesBrowseOptions") private var browseOpts:
+    CollectionSeriesBrowseOptions =
+      CollectionSeriesBrowseOptions()
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
   @State private var selectedSeriesIds: Set<String> = []
@@ -32,7 +33,7 @@ struct CollectionSeriesListView: View {
         Spacer()
 
         HStack(spacing: 8) {
-          SeriesFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
+          CollectionSeriesFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
 
           if !isSelectionMode && isAdmin {
             Button {
