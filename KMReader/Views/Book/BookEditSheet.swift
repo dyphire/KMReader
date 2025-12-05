@@ -41,8 +41,8 @@ struct BookEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Book", size: .large) {
-        Form {
+    SheetView(title: "Edit Book", size: .large, applyFormStyle: true) {
+      Form {
         Section("Basic Information") {
           TextField("Title", text: $title)
           TextField("Number", text: $number)
@@ -155,9 +155,8 @@ struct BookEditSheet: View {
             .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
           }
         }
-        }
       }
-    controls: {
+    } controls: {
       Button(action: saveChanges) {
         if isSaving {
           ProgressView()

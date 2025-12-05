@@ -22,15 +22,14 @@ struct CollectionEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Collection", size: .medium) {
-        Form {
-          Section("Basic Information") {
-            TextField("Name", text: $name)
-            Toggle("Ordered", isOn: $ordered)
-          }
+    SheetView(title: "Edit Collection", size: .medium, applyFormStyle: true) {
+      Form {
+        Section("Basic Information") {
+          TextField("Name", text: $name)
+          Toggle("Ordered", isOn: $ordered)
         }
       }
-    controls: {
+    } controls: {
       Button(action: saveChanges) {
         if isSaving {
           ProgressView()

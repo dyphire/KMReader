@@ -18,7 +18,7 @@ struct SimpleSortOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Sort", size: .large) {
+    SheetView(title: "Sort", size: .both, applyFormStyle: true) {
       Form {
         SortOptionView(
           sortField: $tempOpts.sortField,

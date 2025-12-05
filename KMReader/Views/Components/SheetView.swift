@@ -13,6 +13,7 @@ import SwiftUI
 ///   - size: Presentation size hint (medium, large, or both detents).
 ///   - content: Main body of the sheet (typically a Form or VStack).
 ///   - controls: Additional buttons such as Done/Save (a Close button is automatically added).
+///   - applyFormStyle: Whether to apply form styling (grouped style and hidden scroll background).
 /// - Behavior:
 ///   - On non-tvOS platforms controls are injected into the navigation toolbar.
 ///   - On tvOS controls are displayed at the top of the sheet in an HStack.
@@ -21,6 +22,7 @@ struct SheetView<Content: View, Controls: View>: View {
   private let title: String?
   private let size: SheetPresentationSize
   private let showsCloseButton: Bool
+  private let applyFormStyle: Bool
   private let content: Content
   private let controls: Controls?
   @Environment(\.dismiss) private var dismiss
@@ -33,12 +35,14 @@ struct SheetView<Content: View, Controls: View>: View {
     title: String? = nil,
     size: SheetPresentationSize = .large,
     showsCloseButton: Bool = true,
+    applyFormStyle: Bool = false,
     @ViewBuilder content: () -> Content,
     @ViewBuilder controls: () -> Controls
   ) {
     self.title = title
     self.size = size
     self.showsCloseButton = showsCloseButton
+    self.applyFormStyle = applyFormStyle
     self.content = content()
     self.controls = controls()
   }
@@ -47,11 +51,13 @@ struct SheetView<Content: View, Controls: View>: View {
     title: String? = nil,
     size: SheetPresentationSize = .large,
     showsCloseButton: Bool = true,
+    applyFormStyle: Bool = false,
     @ViewBuilder content: () -> Content
   ) where Controls == EmptyView {
     self.title = title
     self.size = size
     self.showsCloseButton = showsCloseButton
+    self.applyFormStyle = applyFormStyle
     self.content = content()
     self.controls = nil
   }
@@ -85,10 +91,12 @@ struct SheetView<Content: View, Controls: View>: View {
           .focusSection()
         }
         content
+          .applyFormStyleIfNeeded(applyFormStyle)
       }
     #else
       if hasControls {
         content
+          .applyFormStyleIfNeeded(applyFormStyle)
           .toolbar {
             if showsCloseButton {
               ToolbarItem(placement: .cancellationAction) {
@@ -107,6 +115,7 @@ struct SheetView<Content: View, Controls: View>: View {
           }
       } else {
         content
+          .applyFormStyleIfNeeded(applyFormStyle)
       }
     #endif
   }
@@ -164,5 +173,16 @@ extension View {
     #else
       return self
     #endif
+  }
+
+  @ViewBuilder
+  fileprivate func applyFormStyleIfNeeded(_ apply: Bool) -> some View {
+    if apply {
+      self
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+    } else {
+      self
+    }
   }
 }

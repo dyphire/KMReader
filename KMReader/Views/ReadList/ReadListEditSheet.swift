@@ -24,17 +24,16 @@ struct ReadListEditSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Edit Read List", size: .medium) {
-        Form {
-          Section("Basic Information") {
-            TextField("Name", text: $name)
-            TextField("Summary", text: $summary, axis: .vertical)
-              .lineLimit(3...10)
-            Toggle("Ordered", isOn: $ordered)
-          }
+    SheetView(title: "Edit Read List", size: .medium, applyFormStyle: true) {
+      Form {
+        Section("Basic Information") {
+          TextField("Name", text: $name)
+          TextField("Summary", text: $summary, axis: .vertical)
+            .lineLimit(3...10)
+          Toggle("Ordered", isOn: $ordered)
         }
       }
-    controls: {
+    } controls: {
       Button(action: saveChanges) {
         if isSaving {
           ProgressView()

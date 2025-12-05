@@ -46,7 +46,7 @@ struct BrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter & Sort", size: .large) {
+    SheetView(title: "Filter & Sort", size: .both, applyFormStyle: true) {
       Form {
         if contentType.supportsReadStatusFilter || contentType.supportsSeriesStatusFilter {
           Section("Filters") {
