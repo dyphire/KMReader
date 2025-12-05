@@ -14,9 +14,10 @@ struct AuthenticationActivityView: View {
   @State private var isLoadingMore = false
   @State private var currentPage = 0
   @State private var hasMorePages = true
+  @State private var lastTriggeredIndex: Int = -1
 
   var body: some View {
-    Form {
+    List {
       if isLoading && activities.isEmpty {
         Section {
           HStack {
@@ -44,72 +45,7 @@ struct AuthenticationActivityView: View {
       } else {
         Section {
           ForEach(Array(activities.enumerated()), id: \.offset) { index, activity in
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Image(systemName: activity.success ? "checkmark.circle.fill" : "xmark.circle.fill")
-                  .foregroundColor(activity.success ? .green : .red)
-                if let source = activity.source {
-                  Text(source)
-                    .font(.headline)
-                } else {
-                  Text(activity.success ? "Success" : "Failed")
-                    .font(.headline)
-                }
-                Spacer()
-                Text(formatDate(activity.dateTime))
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-
-              if let error = activity.error {
-                Text(error)
-                  .font(.caption)
-                  .foregroundColor(.red)
-              }
-
-              if let ip = activity.ip {
-                HStack {
-                  Label("IP", systemImage: "network")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                  Text(ip)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-
-              if let userAgent = activity.userAgent {
-                Text(userAgent)
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-                  .lineLimit(2)
-              }
-
-              if let apiKeyComment = activity.apiKeyComment {
-                HStack {
-                  Label("API Key", systemImage: "key")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                  Text(apiKeyComment)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-            }
-            .tvFocusableHighlight()
-            #if os(tvOS)
-              .padding(.vertical, 12)
-              .padding(.horizontal, 16)
-            #else
-              .padding(.vertical, 4)
-            #endif
-            .onAppear {
-              if index >= activities.count - 3 && hasMorePages && !isLoadingMore {
-                Task {
-                  await loadMoreActivities()
-                }
-              }
-            }
+            activityRow(activity: activity, index: index)
           }
 
           if isLoadingMore {
@@ -123,7 +59,7 @@ struct AuthenticationActivityView: View {
         }
       }
     }
-    .formStyle(.grouped)
+    .optimizedListStyle()
     .inlineNavigationBarTitle("Authentication Activity")
     .task {
       if isAdmin {
@@ -137,20 +73,99 @@ struct AuthenticationActivityView: View {
     }
   }
 
+  @ViewBuilder
+  private func activityRow(activity: AuthenticationActivity, index: Int) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        Image(systemName: activity.success ? "checkmark.circle.fill" : "xmark.circle.fill")
+          .foregroundColor(activity.success ? .green : .red)
+        if let source = activity.source {
+          Text(source)
+            .font(.headline)
+        } else {
+          Text(activity.success ? "Success" : "Failed")
+            .font(.headline)
+        }
+        Spacer()
+        Text(formatDate(activity.dateTime))
+          .font(.caption)
+          .foregroundColor(.secondary)
+      }
+
+      if let error = activity.error {
+        Text(error)
+          .font(.caption)
+          .foregroundColor(.red)
+      }
+
+      if let ip = activity.ip {
+        HStack {
+          Label("IP", systemImage: "network")
+            .font(.caption)
+            .foregroundColor(.secondary)
+          Text(ip)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+
+      if let userAgent = activity.userAgent {
+        Text(userAgent)
+          .font(.caption)
+          .foregroundColor(.secondary)
+          .lineLimit(2)
+      }
+
+      if let apiKeyComment = activity.apiKeyComment {
+        HStack {
+          Label("API Key", systemImage: "key")
+            .font(.caption)
+            .foregroundColor(.secondary)
+          Text(apiKeyComment)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
+    }
+    .tvFocusableHighlight()
+    #if os(tvOS)
+      .padding(.vertical, 12)
+      .padding(.horizontal, 16)
+    #else
+      .padding(.vertical, 4)
+    #endif
+    .onAppear {
+      guard index >= activities.count - 3,
+        hasMorePages,
+        !isLoadingMore,
+        lastTriggeredIndex != index
+      else {
+        return
+      }
+      lastTriggeredIndex = index
+      Task {
+        await loadMoreActivities()
+      }
+    }
+  }
+
   private func loadActivities(refresh: Bool = false) async {
     if refresh {
       currentPage = 0
       hasMorePages = true
-      activities = []
+      lastTriggeredIndex = -1
     }
 
     isLoading = true
 
     do {
       let page = try await AuthService.shared.getAuthenticationActivity(page: 0, size: 20)
-      activities = page.content
-      hasMorePages = !page.last
-      currentPage = 1
+      await MainActor.run {
+        activities = page.content
+        hasMorePages = !page.last
+        currentPage = 1
+        lastTriggeredIndex = -1
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -165,9 +180,12 @@ struct AuthenticationActivityView: View {
 
     do {
       let page = try await AuthService.shared.getAuthenticationActivity(page: currentPage, size: 20)
-      activities.append(contentsOf: page.content)
-      hasMorePages = !page.last
-      currentPage += 1
+      await MainActor.run {
+        activities.append(contentsOf: page.content)
+        hasMorePages = !page.last
+        currentPage += 1
+        lastTriggeredIndex = -1
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
