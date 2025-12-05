@@ -57,25 +57,31 @@ class ReadListService {
     readListId: String,
     page: Int = 0,
     size: Int = 20,
-    browseOpts: BookBrowseOptions,
+    browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
-    let sort = browseOpts.sortString
+    var queryItems = [
+      URLQueryItem(name: "page", value: "\(page)"),
+      URLQueryItem(name: "size", value: "\(size)"),
+    ]
+
+    // Support multiple libraryIds
+    if let libraryIds = libraryIds, !libraryIds.isEmpty {
+      for id in libraryIds where !id.isEmpty {
+        queryItems.append(URLQueryItem(name: "library_id", value: id))
+      }
+    }
+
+    // Support readStatus filter
     let readStatus = browseOpts.readStatusFilter.toReadStatus()
+    if let readStatus = readStatus {
+      queryItems.append(URLQueryItem(name: "read_status", value: readStatus.rawValue))
+    }
 
-    let condition = BookSearch.buildCondition(
-      libraryIds: libraryIds,
-      readStatus: readStatus,
-      seriesId: nil,
-      readListId: readListId
-    )
-    let search = BookSearch(condition: condition)
-
-    return try await BookService.shared.getBooksList(
-      search: search,
-      page: page,
-      size: size,
-      sort: sort
+    // Note: readlist books API does not support sort, only filter
+    return try await apiClient.request(
+      path: "/api/v1/readlists/\(readListId)/books",
+      queryItems: queryItems
     )
   }
 

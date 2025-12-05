@@ -315,7 +315,7 @@ class BookViewModel {
 
   func loadReadListBooks(
     readListId: String,
-    browseOpts: BookBrowseOptions,
+    browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
