@@ -38,7 +38,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
 
         Section {
           Button(action: resetOptions) {
-            Label("Reset", systemImage: "arrow.counterclockwise")
+            Label("Reset", systemImage: "arrow.uturn.backward")
           }
         }
       }

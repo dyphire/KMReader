@@ -24,6 +24,14 @@ struct CollectionSeriesListView: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
 
+  private var supportsSelectionMode: Bool {
+    #if os(tvOS)
+      return false
+    #else
+      return true
+    #endif
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
@@ -35,21 +43,22 @@ struct CollectionSeriesListView: View {
         HStack(spacing: 8) {
           CollectionSeriesFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
 
-          if !isSelectionMode && isAdmin {
+          if supportsSelectionMode && !isSelectionMode && isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true
               }
             } label: {
               Image(systemName: "square.and.pencil.circle")
-                .imageScale(.large)
             }
+            .adaptiveButtonStyle(.bordered)
+            .controlSize(.small)
             .transition(.opacity.combined(with: .scale))
           }
         }
       }
 
-      if isSelectionMode {
+      if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
           selectedCount: selectedSeriesIds.count,
           totalCount: seriesViewModel.series.count,
@@ -84,7 +93,7 @@ struct CollectionSeriesListView: View {
             LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
               ForEach(seriesViewModel.series) { series in
                 Group {
-                  if isSelectionMode {
+                  if supportsSelectionMode && isSelectionMode {
                     SeriesCardView(
                       series: series,
                       cardWidth: layoutHelper.cardWidth,
@@ -161,7 +170,7 @@ struct CollectionSeriesListView: View {
             LazyVStack(spacing: layoutHelper.spacing) {
               ForEach(seriesViewModel.series) { series in
                 Group {
-                  if isSelectionMode {
+                  if supportsSelectionMode && isSelectionMode {
                     HStack(spacing: 12) {
                       Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {

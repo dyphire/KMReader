@@ -25,6 +25,14 @@ struct BooksListViewForReadList: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
 
+  private var supportsSelectionMode: Bool {
+    #if os(tvOS)
+      return false
+    #else
+      return true
+    #endif
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
@@ -36,21 +44,22 @@ struct BooksListViewForReadList: View {
         HStack(spacing: 8) {
           ReadListBookFilterView(browseOpts: $browseOpts, showFilterSheet: $showFilterSheet)
 
-          if !isSelectionMode && isAdmin {
+          if supportsSelectionMode && !isSelectionMode && isAdmin {
             Button {
               withAnimation {
                 isSelectionMode = true
               }
             } label: {
               Image(systemName: "square.and.pencil.circle")
-                .imageScale(.large)
             }
+            .adaptiveButtonStyle(.bordered)
+            .controlSize(.small)
             .transition(.opacity.combined(with: .scale))
           }
         }
       }
 
-      if isSelectionMode {
+      if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
           selectedCount: selectedBookIds.count,
           totalCount: bookViewModel.books.count,
@@ -85,7 +94,7 @@ struct BooksListViewForReadList: View {
             LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
               ForEach(bookViewModel.books) { book in
                 Group {
-                  if isSelectionMode {
+                  if supportsSelectionMode && isSelectionMode {
                     BookCardView(
                       book: book,
                       viewModel: bookViewModel,
@@ -162,7 +171,7 @@ struct BooksListViewForReadList: View {
             LazyVStack(spacing: layoutHelper.spacing) {
               ForEach(bookViewModel.books) { book in
                 Group {
-                  if isSelectionMode {
+                  if supportsSelectionMode && isSelectionMode {
                     HStack(spacing: 12) {
                       Button {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
