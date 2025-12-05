@@ -244,6 +244,9 @@ class APIClient {
       request.addValue("application/json", forHTTPHeaderField: "Content-Type")
     }
 
+    // Add domain-specific headers (e.g., skip_zrok_interstitial for zrok.io)
+    RequestModifierHelper.modifyInPlace(&request)
+
     headers?.forEach { key, value in
       request.setValue(value, forHTTPHeaderField: key)
     }

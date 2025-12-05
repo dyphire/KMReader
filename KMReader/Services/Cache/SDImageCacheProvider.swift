@@ -47,6 +47,11 @@ enum SDImageCacheProvider {
       SDWebImageDownloader.shared.setValue(nil, forHTTPHeaderField: "Authorization")
     }
 
+    // Set request modifier for zrok.io domains
+    SDWebImageDownloader.shared.requestModifier = SDWebImageDownloaderRequestModifier { request in
+      RequestModifierHelper.modify(request)
+    }
+
     // Register WebP coder
     SDImageCodersManager.shared.addCoder(SDImageWebPCoder.shared)
   }
