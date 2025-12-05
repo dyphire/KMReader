@@ -15,12 +15,15 @@ struct DashboardView: View {
   @State private var isRefreshDisabled = false
   @State private var pendingRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
+  @State private var shouldRefreshAfterReading = false
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("serverLastUpdate") private var serverLastUpdateInterval: TimeInterval = 0
+
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   private let sseService = SSEService.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce - wait for events to settle
@@ -45,6 +48,7 @@ struct DashboardView: View {
     // Cancel any pending debounced refresh
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
+    shouldRefreshAfterReading = false
 
     // Update last event time for manual refreshes
     serverLastUpdateInterval = Date().timeIntervalSince1970
@@ -64,6 +68,13 @@ struct DashboardView: View {
 
     // Cancel any existing pending refresh
     pendingRefreshTask?.cancel()
+    pendingRefreshTask = nil
+
+    // Defer refresh while actively reading
+    if isReaderActive {
+      shouldRefreshAfterReading = true
+      return
+    }
 
     // Schedule a new refresh after debounce interval
     // This ensures the last event will always trigger a refresh
@@ -75,8 +86,14 @@ struct DashboardView: View {
 
       // Perform the refresh
       await MainActor.run {
-        // Debounce expired - refresh to ensure last event always triggers
-        performRefresh()
+        // If reader became active while waiting, defer refresh until it closes
+        if isReaderActive {
+          shouldRefreshAfterReading = true
+        } else {
+          // Debounce expired - refresh to ensure last event always triggers
+          performRefresh()
+        }
+        pendingRefreshTask = nil
       }
     }
   }
@@ -85,6 +102,10 @@ struct DashboardView: View {
     // If dashboard shows all libraries (empty array), refresh for any library
     // Otherwise, only refresh if the library matches
     return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
+  }
+
+  private var isReaderActive: Bool {
+    readerPresentation.readerState != nil
   }
 
   var body: some View {
@@ -164,6 +185,16 @@ struct DashboardView: View {
         if !newValue {
           pendingRefreshTask?.cancel()
           pendingRefreshTask = nil
+        }
+      }
+      .onChange(of: readerPresentation.readerState) { _, newState in
+        if newState != nil {
+          // Reader opened - cancel any pending dashboard refresh
+          pendingRefreshTask?.cancel()
+          pendingRefreshTask = nil
+        } else if shouldRefreshAfterReading {
+          shouldRefreshAfterReading = false
+          refreshDashboard()
         }
       }
       #if !os(tvOS)
