@@ -154,19 +154,8 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists."
           else
-            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
-              PATCH="${BASH_REMATCH[1]}"
-              if [ "$PATCH" = "0" ]; then
-                echo "Creating stable release (patch is 0): $TAG"
-                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
-              else
-                echo "Creating prerelease (patch is $PATCH): $TAG"
-                gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
-              fi
-            else
-              echo "Version '$VERSION' is not in expected format X.Y.Z; defaulting to prerelease."
-              gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --prerelease
-            fi
+            echo "Creating stable release: $TAG"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
           fi
 
       - name: Upload artifacts to GitHub Release
