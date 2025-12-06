@@ -18,14 +18,13 @@ struct SimpleSortOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Sort", size: .both, applyFormStyle: true) {
+    SheetView(title: "Sort", size: .both, onReset: resetOptions, applyFormStyle: true) {
       Form {
         SortOptionView(
           sortField: $tempOpts.sortField,
           sortDirection: $tempOpts.sortDirection
         )
 
-        ResetButton(action: resetOptions)
       }
     } controls: {
       Button(action: applyChanges) {

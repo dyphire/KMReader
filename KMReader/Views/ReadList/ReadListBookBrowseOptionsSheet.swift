@@ -18,7 +18,7 @@ struct ReadListBookBrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter", size: .both, applyFormStyle: true) {
+    SheetView(title: "Filter", size: .both, onReset: resetOptions, applyFormStyle: true) {
       Form {
         Section("Filters") {
           Picker("Read Status", selection: $tempOpts.readStatusFilter) {
@@ -29,7 +29,6 @@ struct ReadListBookBrowseOptionsSheet: View {
           .pickerStyle(.menu)
         }
 
-        ResetButton(action: resetOptions)
       }
     } controls: {
       Button(action: applyChanges) {

@@ -22,19 +22,21 @@ struct SheetView<Content: View, Controls: View>: View {
   private let title: String?
   private let size: SheetPresentationSize
   private let showsCloseButton: Bool
+  private let onReset: (() -> Void)?
   private let applyFormStyle: Bool
   private let content: Content
   private let controls: Controls?
   @Environment(\.dismiss) private var dismiss
 
   private var hasControls: Bool {
-    controls != nil || showsCloseButton
+    controls != nil || showsCloseButton || onReset != nil
   }
 
   init(
     title: String? = nil,
     size: SheetPresentationSize = .large,
     showsCloseButton: Bool = true,
+    onReset: (() -> Void)? = nil,
     applyFormStyle: Bool = false,
     @ViewBuilder content: () -> Content,
     @ViewBuilder controls: () -> Controls
@@ -42,6 +44,7 @@ struct SheetView<Content: View, Controls: View>: View {
     self.title = title
     self.size = size
     self.showsCloseButton = showsCloseButton
+    self.onReset = onReset
     self.applyFormStyle = applyFormStyle
     self.content = content()
     self.controls = controls()
@@ -51,12 +54,14 @@ struct SheetView<Content: View, Controls: View>: View {
     title: String? = nil,
     size: SheetPresentationSize = .large,
     showsCloseButton: Bool = true,
+    onReset: (() -> Void)? = nil,
     applyFormStyle: Bool = false,
     @ViewBuilder content: () -> Content
   ) where Controls == EmptyView {
     self.title = title
     self.size = size
     self.showsCloseButton = showsCloseButton
+    self.onReset = onReset
     self.applyFormStyle = applyFormStyle
     self.content = content()
     self.controls = nil
@@ -83,6 +88,13 @@ struct SheetView<Content: View, Controls: View>: View {
                 Label("Close", systemImage: "xmark")
               }
             }
+            if let onReset {
+              Button {
+                onReset()
+              } label: {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+              }
+            }
             Spacer()
             if let controls {
               controls
@@ -98,12 +110,19 @@ struct SheetView<Content: View, Controls: View>: View {
         content
           .applyFormStyleIfNeeded(applyFormStyle)
           .toolbar {
-            if showsCloseButton {
-              ToolbarItem(placement: .cancellationAction) {
+            ToolbarItemGroup(placement: .cancellationAction) {
+              if showsCloseButton {
                 Button {
                   dismiss()
                 } label: {
                   Label("Close", systemImage: "xmark")
+                }
+              }
+              if let onReset {
+                Button {
+                  onReset()
+                } label: {
+                  Image(systemName: "arrow.counterclockwise")
                 }
               }
             }

@@ -18,7 +18,7 @@ struct SeriesBrowseOptionsSheet: View {
   }
 
   var body: some View {
-    SheetView(title: "Filter & Sort", size: .both, applyFormStyle: true) {
+    SheetView(title: "Filter & Sort", size: .both, onReset: resetOptions, applyFormStyle: true) {
       Form {
         Section("Filters") {
           Picker("Read Status", selection: $tempOpts.readStatusFilter) {
@@ -41,7 +41,6 @@ struct SeriesBrowseOptionsSheet: View {
           sortDirection: $tempOpts.sortDirection
         )
 
-        ResetButton(action: resetOptions)
       }
     } controls: {
       Button(action: applyChanges) {
