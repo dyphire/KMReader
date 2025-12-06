@@ -74,33 +74,27 @@ struct SeriesDetailView: View {
     ScrollView {
       VStack(alignment: .leading) {
         if let series = series {
-          // Header with thumbnail and info
           HStack {
             Text(series.metadata.title)
               .font(.title3)
-            Spacer()
             if let ageRating = series.metadata.ageRating, ageRating > 0 {
-              InfoChip(
-                label: "\(ageRating)+",
-                backgroundColor: ageRating > 16 ? Color.red : Color.green,
-                foregroundColor: .white
-              )
+              AgeRatingBadge(ageRating: ageRating)
             }
+            Spacer()
           }
 
           HStack(alignment: .top) {
             ThumbnailImage(
-              url: thumbnailURL, showPlaceholder: false, width: PlatformHelper.detailThumbnailWidth
+              url: thumbnailURL,
+              showPlaceholder: false,
+              width: PlatformHelper.detailThumbnailWidth
             )
             .thumbnailFocus()
 
             VStack(alignment: .leading) {
 
-              // Status and info chips
               VStack(alignment: .leading, spacing: 6) {
-                // First row: Books count and read status
                 HStack(spacing: 6) {
-                  // Books count
                   if let totalBookCount = series.metadata.totalBookCount {
                     InfoChip(
                       label: "\(series.booksCount) / \(totalBookCount) books",
@@ -117,7 +111,6 @@ struct SeriesDetailView: View {
                     )
                   }
 
-                  // Unread count, in progress, or complete
                   if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
                     InfoChip(
                       label: "\(series.booksUnreadCount) unread",
@@ -144,7 +137,6 @@ struct SeriesDetailView: View {
 
                 if hasReleaseInfo {
                   HStack(spacing: 6) {
-                    // Release date chip
                     if let releaseDate = series.booksMetadata.releaseDate {
                       InfoChip(
                         label: releaseDate,
@@ -153,7 +145,6 @@ struct SeriesDetailView: View {
                         foregroundColor: .orange
                       )
                     }
-                    // Status chip
                     if let status = series.metadata.status, !status.isEmpty {
                       InfoChip(
                         label: series.statusDisplayName,
@@ -167,7 +158,6 @@ struct SeriesDetailView: View {
 
                 if hasReadInfo {
                   HStack(spacing: 6) {
-                    // Language chip
                     if let language = series.metadata.language, !language.isEmpty {
                       InfoChip(
                         label: languageDisplayName(language),
@@ -177,7 +167,6 @@ struct SeriesDetailView: View {
                       )
                     }
 
-                    // Reading direction chip
                     if let direction = series.metadata.readingDirection, !direction.isEmpty {
                       InfoChip(
                         label: ReadingDirection.fromString(direction).displayName,
@@ -189,7 +178,6 @@ struct SeriesDetailView: View {
                   }
                 }
 
-                // Publisher
                 if let publisher = series.metadata.publisher, !publisher.isEmpty {
                   InfoChip(
                     label: publisher,
@@ -199,7 +187,6 @@ struct SeriesDetailView: View {
                   )
                 }
 
-                // Authors as chips
                 if let authors = series.booksMetadata.authors, !authors.isEmpty {
                   ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
@@ -218,7 +205,6 @@ struct SeriesDetailView: View {
             }
           }
 
-          // Genres
           if let genres = series.metadata.genres, !genres.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
               HStack(spacing: 6) {
@@ -235,7 +221,6 @@ struct SeriesDetailView: View {
             }
           }
 
-          // Tags
           if let tags = series.metadata.tags, !tags.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
               HStack(spacing: 6) {
@@ -252,7 +237,6 @@ struct SeriesDetailView: View {
             }
           }
 
-          // Created and last modified dates
           HStack(spacing: 6) {
             InfoChip(
               label: "Created: \(formatDate(series.created))",
@@ -299,7 +283,6 @@ struct SeriesDetailView: View {
             .padding(.top, 8)
           }
 
-          // Alternate titles
           if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
               Text("Alternate Titles")
@@ -320,7 +303,6 @@ struct SeriesDetailView: View {
             }.padding(.bottom, 8)
           }
 
-          // Links
           if let links = series.metadata.links, !links.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
               Text("Links")
@@ -356,7 +338,6 @@ struct SeriesDetailView: View {
             }.padding(.bottom, 8)
           }
 
-          // Summary section - show series summary or first book summary if available
           if let summary = series.metadata.summary, !summary.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
               Text("Summary")
@@ -385,7 +366,6 @@ struct SeriesDetailView: View {
               .padding(.vertical, 8)
           #endif
 
-          // Books list
           if containerWidth > 0 {
             BooksListViewForSeries(
               seriesId: seriesId,
@@ -427,7 +407,6 @@ struct SeriesDetailView: View {
           addToCollection(collectionId: collectionId)
         },
         onComplete: {
-          // Create already adds series, just refresh
           Task {
             await refreshSeriesData()
           }
@@ -470,7 +449,6 @@ struct SeriesDetailView: View {
   }
 }
 
-// Helper functions for SeriesDetailView
 extension SeriesDetailView {
   private func presentReader(book: Book, incognito: Bool) {
     readerPresentation.present(book: book, incognito: incognito) {
@@ -481,7 +459,6 @@ extension SeriesDetailView {
   private func refreshAfterReading() {
     Task {
       await refreshSeriesData()
-      // Refresh book list smoothly without clearing existing data
       await bookViewModel.refreshCurrentBooks()
     }
   }
