@@ -10,7 +10,7 @@ import SwiftUI
 
 struct LibraryPickerSheet: View {
   var body: some View {
-    SheetView(title: "Select Library", size: .large) {
+    SheetView(title: "Libraries", size: .large) {
       LibraryListContent(
         showMetrics: true,
         showDeleteAction: false,
