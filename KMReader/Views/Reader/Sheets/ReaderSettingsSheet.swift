@@ -15,30 +15,25 @@ struct ReaderSettingsSheet: View {
   @Binding var webtoonPageWidthPercentage: Double
 
   var body: some View {
-    SheetView(title: "Reader Settings", size: .large) {
-      ScrollView {
-        VStack(spacing: 24) {
-          cardSection(title: "Read Mode") {
-            Picker("Read Mode", selection: $readingDirection) {
-              ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-                Text(direction.displayName)
-                  .tag(direction)
-              }
+    SheetView(title: "Reader Settings", size: .large, applyFormStyle: true) {
+      Form {
+        Section(header: Text("Appearance")) {
+          Picker("Reader Background", selection: $readerBackground) {
+            ForEach(ReaderBackground.allCases, id: \.self) { background in
+              Text(background.displayName).tag(background)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
           }
+          .pickerStyle(.menu)
+        }
 
-          cardSection(title: "Background") {
-            Picker("", selection: $readerBackground) {
-              ForEach(ReaderBackground.allCases, id: \.self) { background in
-                Text(background.displayName)
-                  .tag(background)
-              }
+        Section(header: Text("Reading Options")) {
+          Picker("Reading Direction", selection: $readingDirection) {
+            ForEach(ReadingDirection.availableCases, id: \.self) { direction in
+              Label(direction.displayName, systemImage: direction.icon)
+                .tag(direction)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
           }
+          .pickerStyle(.menu)
 
           switch readingDirection {
           case .webtoon:
@@ -49,41 +44,20 @@ struct ReaderSettingsSheet: View {
             layoutSection
             pageNumberSection
           }
-
         }
-        .padding(24)
       }
     }
     .presentationDragIndicator(.visible)
   }
 
-  private func cardSection<Content: View>(
-    title: String,
-    @ViewBuilder content: () -> Content
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 12) {
-      Text(title)
-        .font(.headline)
-        .lineLimit(nil)
-      content()
-    }
-    .padding(18)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(.thinMaterial)
-    .cornerRadius(20)
-    .focusSectionIfAvailable()
-  }
-
   private var layoutSection: some View {
-    cardSection(title: "Page Layout") {
-      Picker("", selection: $pageLayout) {
+    Group {
+      Picker("Layout Mode", selection: $pageLayout) {
         ForEach(PageLayout.allCases, id: \.self) { layout in
-          Text(layout.displayName)
+          Label(layout.displayName, systemImage: layout.icon)
             .tag(layout)
         }
-      }
-      .pickerStyle(.segmented)
-      .labelsHidden()
+      }.pickerStyle(.menu)
 
       if pageLayout.supportsDualPageOptions {
         Toggle(isOn: $dualPageNoCover) {
@@ -104,25 +78,23 @@ struct ReaderSettingsSheet: View {
 
   private var webtoonSection: some View {
     #if os(iOS)
-      cardSection(title: "Webtoon") {
-        VStack(alignment: .leading, spacing: 12) {
-          HStack {
-            Text("Page Width")
-            Spacer()
-            Text("\(Int(webtoonPageWidthPercentage))%")
-              .foregroundColor(.secondary)
-          }
-          Slider(
-            value: $webtoonPageWidthPercentage,
-            in: 50...100,
-            step: 5
-          )
-          Text("Adjust the width of webtoon pages as a percentage of screen width")
-            .font(.caption)
+      VStack(alignment: .leading, spacing: 8) {
+        HStack {
+          Text("Webtoon Page Width")
+          Spacer()
+          Text("\(Int(webtoonPageWidthPercentage))%")
             .foregroundColor(.secondary)
-            .lineLimit(nil)
-            .multilineTextAlignment(.leading)
         }
+        Slider(
+          value: $webtoonPageWidthPercentage,
+          in: 50...100,
+          step: 5
+        )
+        Text("Adjust the width of webtoon pages as a percentage of screen width")
+          .font(.caption)
+          .foregroundColor(.secondary)
+          .lineLimit(nil)
+          .multilineTextAlignment(.leading)
       }
     #else
       EmptyView()
@@ -132,31 +104,17 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
 
   private var pageNumberSection: some View {
-    cardSection(title: "Page Display") {
-      Toggle(isOn: $showPageNumber) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Always Show Page Number")
-            .lineLimit(nil)
-            .multilineTextAlignment(.leading)
-          Text("Display page number overlay on images while reading")
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .lineLimit(nil)
-            .multilineTextAlignment(.leading)
-        }
+    Toggle(isOn: $showPageNumber) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text("Always Show Page Number")
+          .lineLimit(nil)
+          .multilineTextAlignment(.leading)
+        Text("Display page number overlay on images while reading")
+          .font(.caption)
+          .foregroundColor(.secondary)
+          .lineLimit(nil)
+          .multilineTextAlignment(.leading)
       }
     }
-  }
-
-}
-
-extension View {
-  @ViewBuilder
-  fileprivate func focusSectionIfAvailable() -> some View {
-    #if os(tvOS)
-      self.focusSection()
-    #else
-      self
-    #endif
   }
 }

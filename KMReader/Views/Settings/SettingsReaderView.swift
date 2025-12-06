@@ -18,7 +18,19 @@ struct SettingsReaderView: View {
 
   var body: some View {
     Form {
-      Section(header: Text("Overlay Hints")) {
+      Section(header: Text("Appearance")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Reader Background", selection: $readerBackground) {
+            ForEach(ReaderBackground.allCases, id: \.self) { background in
+              Text(background.displayName).tag(background)
+            }
+          }
+          .pickerStyle(.menu)
+          Text("The background color of the reader")
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+
         #if os(macOS)
           Toggle(isOn: $showReaderHelperOverlay) {
             VStack(alignment: .leading, spacing: 4) {
@@ -40,21 +52,7 @@ struct SettingsReaderView: View {
         #endif
       }
 
-      Section(header: Text("Background")) {
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Reader Background", selection: $readerBackground) {
-            ForEach(ReaderBackground.allCases, id: \.self) { background in
-              Text(background.displayName).tag(background)
-            }
-          }
-          .optimizedPickerStyle()
-          Text("The background color of the reader")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
-
-      Section(header: Text("Default Read Mode")) {
+      Section(header: Text("Default Reading Settings")) {
         VStack(alignment: .leading, spacing: 8) {
           Picker("Preferred Direction", selection: $readDirection) {
             ForEach(ReadingDirection.availableCases, id: \.self) { direction in
@@ -62,14 +60,12 @@ struct SettingsReaderView: View {
                 .tag(direction)
             }
           }
-          .optimizedPickerStyle()
+          .pickerStyle(.menu)
           Text("Used when a book or series doesn't specify a reading direction")
             .font(.caption)
             .foregroundColor(.secondary)
         }
-      }
 
-      Section(header: Text("Page Layout")) {
         VStack(alignment: .leading, spacing: 8) {
           Picker("Page Layout", selection: $pageLayout) {
             ForEach(PageLayout.allCases, id: \.self) { mode in
@@ -77,7 +73,7 @@ struct SettingsReaderView: View {
                 .tag(mode)
             }
           }
-          .optimizedPickerStyle()
+          .pickerStyle(.menu)
           Text("Opt for single page, auto-detected spreads, or forced dual pages (landscape only)")
             .font(.caption)
             .foregroundColor(.secondary)
@@ -92,9 +88,7 @@ struct SettingsReaderView: View {
             }
           }
         }
-      }
 
-      Section(header: Text("Page Display")) {
         Toggle(isOn: $showPageNumber) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Always Show Page Number")
@@ -103,13 +97,11 @@ struct SettingsReaderView: View {
               .foregroundColor(.secondary)
           }
         }
-      }
 
-      #if os(iOS)
-        Section(header: Text("Webtoon")) {
+        #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
             HStack {
-              Text("Page Width")
+              Text("Webtoon Page Width")
               Spacer()
               Text("\(Int(webtoonPageWidthPercentage))%")
                 .foregroundColor(.secondary)
@@ -123,8 +115,9 @@ struct SettingsReaderView: View {
               .font(.caption)
               .foregroundColor(.secondary)
           }
-        }
-      #endif
+        #endif
+      }
+
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle("Reader")
