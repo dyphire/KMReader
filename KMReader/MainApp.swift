@@ -12,6 +12,8 @@ import SwiftUI
 
 @main
 struct MainApp: App {
+  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
+
   private let modelContainer: ModelContainer
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
@@ -41,6 +43,9 @@ struct MainApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        #if os(iOS)
+          .tint(themeColor.color)
+        #endif
         .environment(authViewModel)
         .environment(readerPresentation)
         .modelContainer(modelContainer)
