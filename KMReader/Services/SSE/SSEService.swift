@@ -8,16 +8,37 @@
 import Foundation
 import OSLog
 
-@MainActor
-class SSEService {
+private actor SSEStreamActor {
+  private var task: Task<Void, Never>?
+
+  func start(service: SSEService, url: URL) async {
+    task?.cancel()
+    task = Task.detached(priority: .utility) { [weak service] in
+      guard let service else { return }
+      await service.handleSSEStream(url: url)
+    }
+  }
+
+  func cancel() async {
+    task?.cancel()
+    task = nil
+  }
+
+  func isRunning() async -> Bool {
+    task != nil
+  }
+}
+
+final class SSEService {
   static let shared = SSEService()
 
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "SSE")
 
-  private var streamTask: Task<Void, Never>?
   private var isConnected = false
+  private let streamActor = SSEStreamActor()
 
+  @MainActor
   var connected: Bool {
     isConnected
   }
@@ -63,6 +84,7 @@ class SSEService {
 
   private init() {}
 
+  @MainActor
   func connect() {
     guard !isConnected else {
       logger.info("SSE already connected")
@@ -85,18 +107,20 @@ class SSEService {
     }
 
     logger.info("🔌 Connecting to SSE: \(url.absoluteString)")
-    streamTask = Task {
-      await handleSSEStream(url: url)
+    Task {
+      await streamActor.start(service: self, url: url)
     }
     isConnected = true
   }
 
+  @MainActor
   func disconnect() {
     guard isConnected else { return }
 
     logger.info("🔌 Disconnecting SSE")
-    streamTask?.cancel()
-    streamTask = nil
+    Task {
+      await streamActor.cancel()
+    }
     isConnected = false
 
     // Clear task queue status when disconnecting
@@ -108,7 +132,7 @@ class SSEService {
     }
   }
 
-  private func handleSSEStream(url: URL) async {
+  fileprivate func handleSSEStream(url: URL) async {
     var request = URLRequest(url: url)
     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
@@ -141,7 +165,9 @@ class SSEService {
         (200...299).contains(httpResponse.statusCode)
       else {
         logger.error("SSE connection failed: \(response)")
-        isConnected = false
+        await MainActor.run {
+          self.isConnected = false
+        }
         return
       }
 
@@ -149,7 +175,9 @@ class SSEService {
 
       // Notify user that SSE connected successfully (if notifications enabled)
       if AppConfig.enableSSENotify {
-        ErrorManager.shared.notify(message: "Real-time updates connected")
+        await MainActor.run {
+          ErrorManager.shared.notify(message: "Real-time updates connected")
+        }
       }
 
       var lineBuffer = ""
@@ -171,7 +199,7 @@ class SSEService {
           if line.isEmpty {
             // Empty line indicates end of message
             if let eventType = currentEventType, let data = currentData {
-              handleSSEEvent(type: eventType, data: data)
+              await handleSSEEvent(type: eventType, data: data)
             }
             currentEventType = nil
             currentData = nil
@@ -196,7 +224,9 @@ class SSEService {
 
       // Stream ended - connection closed
       logger.warning("SSE stream ended - connection closed")
-      isConnected = false
+      await MainActor.run {
+        self.isConnected = false
+      }
 
       // Attempt to reconnect if still logged in
       if AppConfig.isLoggedIn && AppConfig.enableSSE && !Task.isCancelled {
@@ -204,14 +234,18 @@ class SSEService {
           try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
           if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
             logger.info("Reconnecting SSE after stream ended")
-            connect()
+            await MainActor.run {
+              self.connect()
+            }
           }
         }
       }
     } catch {
       if !Task.isCancelled {
         logger.error("SSE stream error: \(error.localizedDescription)")
-        isConnected = false
+        await MainActor.run {
+          self.isConnected = false
+        }
 
         // Attempt to reconnect after a delay
         if AppConfig.isLoggedIn && AppConfig.enableSSE {
@@ -219,7 +253,9 @@ class SSEService {
             try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
             if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
               logger.info("Reconnecting SSE after error")
-              connect()
+              await MainActor.run {
+                self.connect()
+              }
             }
           }
         }
@@ -227,7 +263,7 @@ class SSEService {
     }
   }
 
-  private func handleSSEEvent(type: String, data: String) {
+  private func handleSSEEvent(type: String, data: String) async {
     // Update last event time
     AppConfig.serverLastUpdate = Date()
 
@@ -241,121 +277,121 @@ class SSEService {
     switch type {
     case "LibraryAdded":
       if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        onLibraryAdded?(dto)
+        dispatchToMain(handler: onLibraryAdded, value: dto)
       }
     case "LibraryChanged":
       if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        onLibraryChanged?(dto)
+        dispatchToMain(handler: onLibraryChanged, value: dto)
       }
     case "LibraryDeleted":
       if let dto = try? decoder.decode(LibrarySSEDto.self, from: jsonData) {
-        onLibraryDeleted?(dto)
+        dispatchToMain(handler: onLibraryDeleted, value: dto)
       }
 
     case "SeriesAdded":
       if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        onSeriesAdded?(dto)
+        dispatchToMain(handler: onSeriesAdded, value: dto)
       }
     case "SeriesChanged":
       if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        onSeriesChanged?(dto)
+        dispatchToMain(handler: onSeriesChanged, value: dto)
       }
     case "SeriesDeleted":
       if let dto = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        onSeriesDeleted?(dto)
+        dispatchToMain(handler: onSeriesDeleted, value: dto)
       }
 
     case "BookAdded":
       if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        onBookAdded?(dto)
+        dispatchToMain(handler: onBookAdded, value: dto)
       }
     case "BookChanged":
       if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        onBookChanged?(dto)
+        dispatchToMain(handler: onBookChanged, value: dto)
       }
     case "BookDeleted":
       if let dto = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        onBookDeleted?(dto)
+        dispatchToMain(handler: onBookDeleted, value: dto)
       }
     case "BookImported":
       if let dto = try? decoder.decode(BookImportSSEDto.self, from: jsonData) {
-        onBookImported?(dto)
+        dispatchToMain(handler: onBookImported, value: dto)
       }
 
     case "CollectionAdded":
       if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        onCollectionAdded?(dto)
+        dispatchToMain(handler: onCollectionAdded, value: dto)
       }
     case "CollectionChanged":
       if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        onCollectionChanged?(dto)
+        dispatchToMain(handler: onCollectionChanged, value: dto)
       }
     case "CollectionDeleted":
       if let dto = try? decoder.decode(CollectionSSEDto.self, from: jsonData) {
-        onCollectionDeleted?(dto)
+        dispatchToMain(handler: onCollectionDeleted, value: dto)
       }
 
     case "ReadListAdded":
       if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        onReadListAdded?(dto)
+        dispatchToMain(handler: onReadListAdded, value: dto)
       }
     case "ReadListChanged":
       if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        onReadListChanged?(dto)
+        dispatchToMain(handler: onReadListChanged, value: dto)
       }
     case "ReadListDeleted":
       if let dto = try? decoder.decode(ReadListSSEDto.self, from: jsonData) {
-        onReadListDeleted?(dto)
+        dispatchToMain(handler: onReadListDeleted, value: dto)
       }
 
     case "ReadProgressChanged":
       if let dto = try? decoder.decode(ReadProgressSSEDto.self, from: jsonData) {
-        onReadProgressChanged?(dto)
+        dispatchToMain(handler: onReadProgressChanged, value: dto)
       }
     case "ReadProgressDeleted":
       if let dto = try? decoder.decode(ReadProgressSSEDto.self, from: jsonData) {
-        onReadProgressDeleted?(dto)
+        dispatchToMain(handler: onReadProgressDeleted, value: dto)
       }
     case "ReadProgressSeriesChanged":
       if let dto = try? decoder.decode(ReadProgressSeriesSSEDto.self, from: jsonData) {
-        onReadProgressSeriesChanged?(dto)
+        dispatchToMain(handler: onReadProgressSeriesChanged, value: dto)
       }
     case "ReadProgressSeriesDeleted":
       if let dto = try? decoder.decode(ReadProgressSeriesSSEDto.self, from: jsonData) {
-        onReadProgressSeriesDeleted?(dto)
+        dispatchToMain(handler: onReadProgressSeriesDeleted, value: dto)
       }
 
     case "ThumbnailBookAdded":
       if let dto = try? decoder.decode(ThumbnailBookSSEDto.self, from: jsonData) {
-        onThumbnailBookAdded?(dto)
+        dispatchToMain(handler: onThumbnailBookAdded, value: dto)
       }
     case "ThumbnailBookDeleted":
       if let dto = try? decoder.decode(ThumbnailBookSSEDto.self, from: jsonData) {
-        onThumbnailBookDeleted?(dto)
+        dispatchToMain(handler: onThumbnailBookDeleted, value: dto)
       }
     case "ThumbnailSeriesAdded":
       if let dto = try? decoder.decode(ThumbnailSeriesSSEDto.self, from: jsonData) {
-        onThumbnailSeriesAdded?(dto)
+        dispatchToMain(handler: onThumbnailSeriesAdded, value: dto)
       }
     case "ThumbnailSeriesDeleted":
       if let dto = try? decoder.decode(ThumbnailSeriesSSEDto.self, from: jsonData) {
-        onThumbnailSeriesDeleted?(dto)
+        dispatchToMain(handler: onThumbnailSeriesDeleted, value: dto)
       }
     case "ThumbnailReadListAdded":
       if let dto = try? decoder.decode(ThumbnailReadListSSEDto.self, from: jsonData) {
-        onThumbnailReadListAdded?(dto)
+        dispatchToMain(handler: onThumbnailReadListAdded, value: dto)
       }
     case "ThumbnailReadListDeleted":
       if let dto = try? decoder.decode(ThumbnailReadListSSEDto.self, from: jsonData) {
-        onThumbnailReadListDeleted?(dto)
+        dispatchToMain(handler: onThumbnailReadListDeleted, value: dto)
       }
     case "ThumbnailSeriesCollectionAdded":
       if let dto = try? decoder.decode(ThumbnailCollectionSSEDto.self, from: jsonData) {
-        onThumbnailCollectionAdded?(dto)
+        dispatchToMain(handler: onThumbnailCollectionAdded, value: dto)
       }
     case "ThumbnailSeriesCollectionDeleted":
       if let dto = try? decoder.decode(ThumbnailCollectionSSEDto.self, from: jsonData) {
-        onThumbnailCollectionDeleted?(dto)
+        dispatchToMain(handler: onThumbnailCollectionDeleted, value: dto)
       }
 
     case "TaskQueueStatus":
@@ -369,21 +405,32 @@ class SSEService {
           AppConfig.taskQueueStatus = dto
 
           // Notify the listener
-          onTaskQueueStatus?(dto)
+          dispatchToMain(handler: onTaskQueueStatus, value: dto)
 
           // Notify if tasks completed (went from > 0 to 0) and notifications enabled
           if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
-            ErrorManager.shared.notify(message: "All server tasks finished")
+            await MainActor.run {
+              ErrorManager.shared.notify(message: "All server tasks finished")
+            }
           }
         }
       }
     case "SessionExpired":
       if let dto = try? decoder.decode(SessionExpiredSSEDto.self, from: jsonData) {
-        onSessionExpired?(dto)
+        dispatchToMain(handler: onSessionExpired, value: dto)
       }
 
     default:
       logger.debug("Unknown SSE event type: \(type)")
     }
   }
+
+  private func dispatchToMain<T>(handler: ((T) -> Void)?, value: T) {
+    guard let handler else { return }
+    Task { @MainActor in
+      handler(value)
+    }
+  }
 }
+
+extension SSEService: @unchecked Sendable {}
