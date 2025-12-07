@@ -158,6 +158,9 @@ enum SheetPresentationSize {
 
   #if os(iOS)
     var detents: Set<PresentationDetent> {
+      if PlatformHelper.isPad {
+        return [.large]
+      }
       switch self {
       case .medium:
         return [.medium, .large]
