@@ -86,8 +86,8 @@ class ReaderViewModel {
     regenerateDualPageState()
   }
 
-  func loadPages(bookId: String, initialPageNumber: Int? = nil) async {
-    self.bookId = bookId
+  func loadPages(book: Book, initialPageNumber: Int? = nil) async {
+    self.bookId = book.id
     isLoading = true
 
     // Cancel all ongoing download tasks when loading a new book
@@ -98,18 +98,36 @@ class ReaderViewModel {
     pageResources.removeAll()
 
     do {
-      let manifest = try await BookService.shared.getBookManifest(id: bookId)
-      let manifestResolution = await ReaderManifestService(
-        bookId: bookId,
-        logger: logger
-      ).resolve(manifest: manifest)
-      guard !manifestResolution.pages.isEmpty else {
-        throw AppErrorType.noRenderablePages
-      }
+      if book.media.mediaProfile == .epub {
+        let manifest = try await BookService.shared.getBookManifest(id: book.id)
+        let manifestResolution = await ReaderManifestService(
+          bookId: book.id,
+          logger: logger
+        ).resolve(manifest: manifest)
+        guard !manifestResolution.pages.isEmpty else {
+          throw AppErrorType.noRenderablePages
+        }
 
-      pages = manifestResolution.pages
-      tableOfContents = manifestResolution.tocEntries
-      pageResources = manifestResolution.pageResources
+        pages = manifestResolution.pages
+        tableOfContents = manifestResolution.tocEntries
+        pageResources = manifestResolution.pageResources
+      } else {
+        let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+        let normalizedPages = fetchedPages.map { page in
+          pageWithResolvedDownloadURL(page, bookId: book.id)
+        }
+        pages = normalizedPages
+        tableOfContents = []
+        pageResources = normalizedPages.reduce(into: [:]) { result, page in
+          if let url = page.downloadURL {
+            result[page.number] = .direct(url)
+          }
+        }
+
+        guard !pages.isEmpty else {
+          throw AppErrorType.noRenderablePages
+        }
+      }
 
       // Update page pairs and dual page indices after loading pages
       regenerateDualPageState()
@@ -284,6 +302,14 @@ class ReaderViewModel {
     case .xhtml(let url):
       return await resolveImageURLFromXHTML(pageNumber: page.number, xhtmlURL: url)
     }
+  }
+
+  private func pageWithResolvedDownloadURL(_ page: BookPage, bookId: String) -> BookPage {
+    guard page.downloadURL == nil else { return page }
+    guard let fallbackURL = BookService.shared.getBookPageURL(bookId: bookId, page: page.number) else {
+      return page
+    }
+    return page.withDownloadURL(fallbackURL)
   }
 
   private func resolveImageURLFromXHTML(pageNumber: Int, xhtmlURL: URL) async -> URL? {

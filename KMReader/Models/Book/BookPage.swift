@@ -19,7 +19,9 @@ struct BookPage: Codable, Identifiable, Sendable {
   let downloadURL: URL?
 
   var id: Int { number }
+}
 
+extension BookPage {
   /// Best-effort UTType detection using file extension first, then MIME type.
   var detectedUTType: UTType? {
     let fileExtension = (fileName as NSString).pathExtension.lowercased()
@@ -36,5 +38,18 @@ struct BookPage: Codable, Identifiable, Sendable {
   var isPortrait: Bool {
     guard let width = width, let height = height else { return false }
     return height > width
+  }
+
+  func withDownloadURL(_ url: URL?) -> BookPage {
+    BookPage(
+      number: number,
+      fileName: fileName,
+      mediaType: mediaType,
+      width: width,
+      height: height,
+      sizeBytes: sizeBytes,
+      size: size,
+      downloadURL: url
+    )
   }
 }

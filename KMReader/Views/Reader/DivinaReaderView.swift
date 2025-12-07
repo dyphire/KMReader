@@ -484,9 +484,14 @@ struct DivinaReaderView: View {
 
     let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
 
+    guard let activeBook = currentBook, activeBook.id == bookId else {
+      viewModel.isLoading = false
+      return
+    }
+
     await viewModel.loadPages(
-      bookId: bookId,
-      initialPageNumber: resumePageNumber,
+      book: activeBook,
+      initialPageNumber: resumePageNumber
     )
 
     // Only preload pages if pages are available
