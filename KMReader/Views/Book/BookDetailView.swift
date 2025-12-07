@@ -234,20 +234,7 @@ struct BookDetailView: View {
 
           if let summary = book.metadata.summary, !summary.isEmpty {
             Divider()
-            VStack(alignment: .leading, spacing: 8) {
-              HStack(spacing: 4) {
-                Image(systemName: "text.alignleft")
-                  .font(.caption)
-                Text("SUMMARY")
-                  .font(.caption)
-                  .fontWeight(.semibold)
-              }
-              .foregroundColor(.secondary)
-
-              Text(summary)
-                .font(.body)
-                .foregroundColor(.primary)
-            }
+            ExpandableSummaryView(summary: summary)
           }
         } else if isLoading {
           ProgressView()

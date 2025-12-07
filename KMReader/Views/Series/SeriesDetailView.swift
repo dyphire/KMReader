@@ -339,26 +339,22 @@ struct SeriesDetailView: View {
           }
 
           if let summary = series.metadata.summary, !summary.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-              Text("Summary")
-                .font(.headline)
-              Text(summary)
-                .font(.body)
-            }
+            ExpandableSummaryView(
+              summary: summary,
+              title: "Summary",
+              titleIcon: nil,
+              subtitle: nil,
+              titleStyle: .headline
+            )
           } else if let summary = series.booksMetadata.summary, !summary.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-              HStack {
-                Text("Summary")
-                  .font(.headline)
-                if let number = series.booksMetadata.summaryNumber, !number.isEmpty {
-                  Text("(from Book #\(number))")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-              Text(summary)
-                .font(.body)
-            }
+            let subtitle = series.booksMetadata.summaryNumber.map { "(from Book #\($0))" }
+            ExpandableSummaryView(
+              summary: summary,
+              title: "Summary",
+              titleIcon: nil,
+              subtitle: subtitle,
+              titleStyle: .headline
+            )
           }
 
           #if os(tvOS)
