@@ -195,6 +195,9 @@ struct DashboardView: View {
         } else if shouldRefreshAfterReading {
           shouldRefreshAfterReading = false
           refreshDashboard()
+        } else if !enableSSE {
+          // Without SSE events we refresh when exiting the reader
+          refreshDashboard()
         }
       }
       #if !os(tvOS)
