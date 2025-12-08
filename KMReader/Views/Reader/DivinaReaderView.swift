@@ -462,13 +462,18 @@ struct DivinaReaderView: View {
       // In incognito mode, always start from the first page
       initialPageNumber = incognito ? nil : book.readProgress?.page
 
-      // Get series reading direction
+      // Get series reading direction or fall back to user default
       let series = try await SeriesService.shared.getOneSeries(id: book.seriesId)
-      if let readingDirectionString = series.metadata.readingDirection {
-        let direction = ReadingDirection.fromString(readingDirectionString)
-        // Fallback to vertical if webtoon is not supported on current platform
-        readingDirection = direction.isSupported ? direction : .vertical
+      let rawReadingDirection = series.metadata.readingDirection?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      let preferredDirection: ReadingDirection
+      if let rawReadingDirection, !rawReadingDirection.isEmpty {
+        preferredDirection = ReadingDirection.fromString(rawReadingDirection)
+      } else {
+        preferredDirection = AppConfig.defaultReadingDirection
       }
+      // Fallback to vertical if the preferred direction is unsupported
+      readingDirection = preferredDirection.isSupported ? preferredDirection : .vertical
 
       // Load next book
       if let nextBook = try await BookService.shared.getNextBook(
