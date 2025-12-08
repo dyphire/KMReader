@@ -14,6 +14,7 @@ struct BookCardView: View {
   var onReadBook: ((Bool) -> Void)? = nil
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
+  var showSeriesNavigation: Bool = true
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @State private var showReadListPicker = false
@@ -119,7 +120,8 @@ struct BookCardView: View {
         },
         onDownloadRequested: {
           showDownloadSheet = true
-        }
+        },
+        showSeriesNavigation: showSeriesNavigation
       )
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {

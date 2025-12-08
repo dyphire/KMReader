@@ -17,6 +17,7 @@ struct BookContextMenu: View {
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
   var onDownloadRequested: (() -> Void)? = nil
+  var showSeriesNavigation: Bool = true
 
   @AppStorage("isAdmin") private var isAdmin: Bool = false
 
@@ -39,8 +40,10 @@ struct BookContextMenu: View {
       NavigationLink(value: NavDestination.bookDetail(bookId: book.id)) {
         Label("View Details", systemImage: "info.circle")
       }
-      NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-        Label("Go to Series", systemImage: "book.fill")
+      if showSeriesNavigation {
+        NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+          Label("Go to Series", systemImage: "book.fill")
+        }
       }
 
       Divider()

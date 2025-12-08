@@ -52,6 +52,7 @@ struct BooksListViewForSeries: View {
                     refreshBooks()
                   },
                   showSeriesTitle: false,
+                  showSeriesNavigation: false
                 )
                 .focusPadding()
                 .onAppear {
@@ -78,6 +79,7 @@ struct BooksListViewForSeries: View {
                     refreshBooks()
                   },
                   showSeriesTitle: false,
+                  showSeriesNavigation: false
                 )
                 .onAppear {
                   if book.id == bookViewModel.books.last?.id {

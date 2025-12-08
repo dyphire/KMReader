@@ -13,6 +13,7 @@ struct BookRowView: View {
   var onReadBook: ((Bool) -> Void)?
   var onBookUpdated: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
+  var showSeriesNavigation: Bool = true
 
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
@@ -126,7 +127,8 @@ struct BookRowView: View {
         },
         onDownloadRequested: {
           showDownloadSheet = true
-        }
+        },
+        showSeriesNavigation: showSeriesNavigation
       )
     }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
