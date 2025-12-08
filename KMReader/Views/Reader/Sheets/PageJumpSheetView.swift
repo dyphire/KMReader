@@ -18,17 +18,24 @@ private struct PreviewDimensions {
   let spacing: CGFloat
 }
 
-// Page transform properties for fan effect
+// Page transform properties for cover flow effect
 private struct PageTransform {
   let x: CGFloat
-  let rotation: Double
+  let yRotation: Double
   let scale: CGFloat
   let opacity: Double
   let zIndex: Int
 
   // Calculate constrained x position within slider bounds
-  func constrainedX(_ imageWidth: CGFloat, _ sliderWidth: CGFloat) -> CGFloat {
-    max(imageWidth / 2, min(x, sliderWidth - imageWidth / 2))
+  func constrainedX(
+    _ imageWidth: CGFloat,
+    containerWidth: CGFloat,
+    centerX: CGFloat
+  ) -> CGFloat {
+    let halfContainer = containerWidth / 2
+    let minX = centerX - halfContainer + imageWidth / 2
+    let maxX = centerX + halfContainer - imageWidth / 2
+    return max(minX, min(x, maxX))
   }
 }
 
@@ -40,7 +47,8 @@ private struct PagePreviewItem: View {
   let pageValue: Int
   let imageURL: URL?
   let availableHeight: CGFloat
-  let sliderWidth: CGFloat
+  let containerWidth: CGFloat
+  let containerCenterX: CGFloat
   let maxPage: Int
   let readingDirection: ReadingDirection
 
@@ -50,7 +58,7 @@ private struct PagePreviewItem: View {
     let baseHeight: CGFloat = 360
     let baseImageWidth: CGFloat = 180
     let baseImageHeight: CGFloat = 250
-    let baseSpacing: CGFloat = 120
+    let baseSpacing: CGFloat = 200
 
     // Calculate scale factor based on available height
     let scaleFactor = min(1.0, availableHeight / baseHeight)
@@ -85,21 +93,23 @@ private struct PagePreviewItem: View {
   private var transform: PageTransform {
     let isCenter = page == pageValue
     let offset = page - pageValue
-    let progress = (Double(pageValue) - 1) / Double(maxPage - 1)
-    let adjustedProgress = adjustedProgress(for: progress)
-    let baseX = adjustedProgress * sliderWidth
+    let clampedOffset = max(-2, min(2, offset))
+    let baseX = containerCenterX
 
-    // Calculate position with fan effect
-    let xOffset = CGFloat(offset) * dimensions.spacing * xOffsetMultiplier
+    // Cover flow style transform
+    let spacing = dimensions.spacing
+    let xOffset = CGFloat(offset) * spacing * xOffsetMultiplier
     let x = baseX + xOffset
-    let rotation = Double(offset) * 8.0 * rotationMultiplier
-    let scale = isCenter ? 1.0 : 0.75
-    let opacity = isCenter ? 1.0 : 0.6
-    let zIndex = isCenter ? 10 : abs(offset)
+    let yRotation = Double(clampedOffset) * 20.0 * rotationMultiplier
+    let centerScale = 1.1
+    let scaleDrop = 0.12 * Double(abs(clampedOffset))
+    let scale = isCenter ? centerScale : max(0.7, centerScale - scaleDrop)
+    let opacity = isCenter ? 1.0 : max(0.45, 0.75 - 0.1 * Double(abs(clampedOffset)))
+    let zIndex = isCenter ? 20 : 20 - abs(offset)
 
     return PageTransform(
       x: x,
-      rotation: rotation,
+      yRotation: yRotation,
       scale: scale,
       opacity: opacity,
       zIndex: zIndex
@@ -128,26 +138,36 @@ private struct PagePreviewItem: View {
         .aspectRatio(contentMode: .fit)
         .frame(width: dimensions.imageWidth, height: dimensions.imageHeight)
         .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(alignment: .bottom) {
+          if isCenter {
+            Text("\(page)")
+              .foregroundColor(.white)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 3)
+              .background {
+                RoundedRectangle(cornerRadius: 4)
+                  .fill(themeColor.color)
+              }
+              .offset(y: 30)  // place below image instead of overlaying on it
+          }
+        }
         .shadow(
           color: Color.black.opacity(isCenter ? 0.4 : 0.2),
           radius: isCenter ? 8 : 4, x: 0, y: 2)
-
-        if isCenter {
-          Text("\(page)")
-            .foregroundColor(.white)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background {
-              RoundedRectangle(cornerRadius: 4)
-                .fill(themeColor.color)
-            }
-        }
       }
       .scaleEffect(transform.scale)
       .opacity(transform.opacity)
-      .rotationEffect(.degrees(transform.rotation))
+      .rotation3DEffect(
+        .degrees(transform.yRotation),
+        axis: (x: 0, y: 1, z: 0),
+        perspective: 0.6
+      )
       .position(
-        x: transform.constrainedX(dimensions.imageWidth, sliderWidth),
+        x: transform.constrainedX(
+          dimensions.imageWidth,
+          containerWidth: containerWidth,
+          centerX: containerCenterX
+        ),
         y: dimensions.centerY
       )
       .zIndex(Double(transform.zIndex))
@@ -166,6 +186,7 @@ struct PageJumpSheetView: View {
   @Environment(\.dismiss) private var dismiss
 
   @State private var pageValue: Int
+  @State private var dragStartPage: Int?
 
   private var maxPage: Int {
     max(totalPages, 1)
@@ -173,10 +194,6 @@ struct PageJumpSheetView: View {
 
   private var canJump: Bool {
     totalPages > 0
-  }
-
-  private var rangeDescription: String {
-    canJump ? "Range: 1 – \(totalPages)" : "No pages available"
   }
 
   private var sliderBinding: Binding<Double> {
@@ -245,12 +262,8 @@ struct PageJumpSheetView: View {
       VStack(alignment: .leading, spacing: 16) {
         VStack(spacing: 24) {
           VStack(spacing: 8) {
-            Text(rangeDescription)
-              .font(.headline)
-              .foregroundStyle(.secondary)
             if canJump {
               Text("Current page: \(currentPage)")
-                .font(.subheadline)
                 .foregroundStyle(.secondary)
             }
           }
@@ -259,7 +272,8 @@ struct PageJumpSheetView: View {
             VStack(spacing: 16) {
               // Preview view above slider - scrolling fan effect
               GeometryReader { geometry in
-                let sliderWidth = geometry.size.width
+                let fullWidth = geometry.size.width
+                let centerX = fullWidth / 2
 
                 ZStack {
                   ForEach(previewPages, id: \.self) { page in
@@ -268,12 +282,36 @@ struct PageJumpSheetView: View {
                       pageValue: pageValue,
                       imageURL: getPreviewImageURL(page: page),
                       availableHeight: geometry.size.height,
-                      sliderWidth: sliderWidth,
+                      containerWidth: fullWidth,
+                      containerCenterX: centerX,
                       maxPage: maxPage,
                       readingDirection: readingDirection
                     )
                   }
                 }
+                .contentShape(Rectangle())
+                .gesture(
+                  DragGesture(minimumDistance: 5)
+                    .onChanged { value in
+                      if dragStartPage == nil {
+                        dragStartPage = pageValue
+                      }
+                      let base = Double(dragStartPage ?? pageValue)
+                      let projected =
+                        value.translation.width
+                        + (value.predictedEndTranslation.width - value.translation.width) * 0.2
+                      let normalized = Double(projected / (fullWidth * 8.0))
+                      let directionMultiplier = readingDirection == .rtl ? -1.0 : 1.0
+                      let deltaPages = normalized * directionMultiplier * Double(maxPage - 1)
+                      let target = base - deltaPages
+                      let clamped = Int(target.rounded())
+                      pageValue = min(max(clamped, 1), maxPage)
+                    }
+                    .onEnded { _ in
+                      dragStartPage = nil
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
               }
               .frame(minHeight: 200, maxHeight: 360)
 
@@ -328,7 +366,6 @@ struct PageJumpSheetView: View {
                     Spacer()
                     Text(pageLabels.right)
                   }
-                  .font(.footnote)
                   .foregroundStyle(.secondary)
                 }
 
