@@ -289,35 +289,39 @@ struct PageJumpSheetView: View {
                     )
                   }
                 }
-                .contentShape(Rectangle())
-                .gesture(
-                  DragGesture(minimumDistance: 5)
-                    .onChanged { value in
-                      if dragStartPage == nil {
-                        dragStartPage = pageValue
+                #if os(iOS)
+                  .contentShape(Rectangle())
+                  .gesture(
+                    DragGesture(minimumDistance: 5)
+                      .onChanged { value in
+                        if dragStartPage == nil {
+                          dragStartPage = pageValue
+                        }
+                        let base = Double(dragStartPage ?? pageValue)
+                        let projected =
+                          value.translation.width
+                          + (value.predictedEndTranslation.width - value.translation.width) * 0.2
+                        let normalized = Double(projected / (fullWidth * 8.0))
+                        let directionMultiplier = readingDirection == .rtl ? -1.0 : 1.0
+                        let deltaPages = normalized * directionMultiplier * Double(maxPage - 1)
+                        let target = base - deltaPages
+                        let clamped = Int(target.rounded())
+                        pageValue = min(max(clamped, 1), maxPage)
                       }
-                      let base = Double(dragStartPage ?? pageValue)
-                      let projected =
-                        value.translation.width
-                        + (value.predictedEndTranslation.width - value.translation.width) * 0.2
-                      let normalized = Double(projected / (fullWidth * 8.0))
-                      let directionMultiplier = readingDirection == .rtl ? -1.0 : 1.0
-                      let deltaPages = normalized * directionMultiplier * Double(maxPage - 1)
-                      let target = base - deltaPages
-                      let clamped = Int(target.rounded())
-                      pageValue = min(max(clamped, 1), maxPage)
-                    }
-                    .onEnded { _ in
-                      dragStartPage = nil
-                    }
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                      .onEnded { _ in
+                        dragStartPage = nil
+                      }
+                  )
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                #endif
               }
               .frame(minHeight: 200, maxHeight: 360)
 
               #if os(tvOS)
                 VStack(spacing: 40) {
                   HStack(spacing: 32) {
+                    Text(pageLabels.left)
+                      .foregroundStyle(.secondary)
                     Button {
                       adjustPage(step: readingDirection == .rtl ? 1 : -1)
                     } label: {
@@ -336,6 +340,8 @@ struct PageJumpSheetView: View {
                         systemName: readingDirection == .rtl
                           ? "minus.circle.fill" : "plus.circle.fill")
                     }
+                    Text(pageLabels.right)
+                      .foregroundStyle(.secondary)
                   }
 
                   Button {
