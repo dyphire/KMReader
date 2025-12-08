@@ -74,6 +74,7 @@ struct ThumbnailImage<Overlay: View>: View {
         .overlay {
           if thumbnailPreserveAspectRatio, let overlay = overlay {
             overlay()
+              .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
           } else {
             EmptyView()
           }
@@ -96,6 +97,7 @@ struct ThumbnailImage<Overlay: View>: View {
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
+          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
       } else {
         EmptyView()
       }
