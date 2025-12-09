@@ -17,29 +17,35 @@ struct LibraryListContent: View {
   @State private var performingLibraryIds: Set<String> = []
   @State private var isPerformingGlobalAction = false
   @State private var isLoading = false
-  @State private var selectedLibraryIds: [String] = []
+  @State private var isLoadingMetrics = false
+  @State private var selectedLibraryIds: [String]
 
-  let showMetrics: Bool
   let showDeleteAction: Bool
   let loadMetrics: Bool
+  let alwaysRefreshMetrics: Bool
+  let forceMetricsOnAppear: Bool
   let onLibrarySelected: ((String?) -> Void)?
   let onDeleteLibrary: ((KomgaLibrary) -> Void)?
 
   private let libraryService = LibraryService.shared
-  private let libraryStore = KomgaLibraryStore.shared
+  private let metricsLoader = LibraryMetricsLoader.shared
 
   init(
-    showMetrics: Bool = true,
     showDeleteAction: Bool = false,
     loadMetrics: Bool = true,
+    alwaysRefreshMetrics: Bool = false,
+    forceMetricsOnAppear: Bool = true,
     onLibrarySelected: ((String?) -> Void)? = nil,
     onDeleteLibrary: ((KomgaLibrary) -> Void)? = nil
   ) {
-    self.showMetrics = showMetrics
+    let initialSelection = AppConfig.dashboardConfiguration.libraryIds
     self.showDeleteAction = showDeleteAction
     self.loadMetrics = loadMetrics
+    self.alwaysRefreshMetrics = alwaysRefreshMetrics
+    self.forceMetricsOnAppear = forceMetricsOnAppear
     self.onLibrarySelected = onLibrarySelected
     self.onDeleteLibrary = onDeleteLibrary
+    _selectedLibraryIds = State(initialValue: initialSelection)
   }
 
   private var libraries: [KomgaLibrary] {
@@ -108,13 +114,15 @@ struct LibraryListContent: View {
       .scrollContentBackground(.hidden)
     #endif
     .task {
-      await loadLibraries()
+      await refreshLibraries(forceMetrics: forceMetricsOnAppear)
     }
     .refreshable {
-      await refreshLibraries()
+      await refreshLibraries(forceMetrics: true)
     }
-    .onAppear {
-      selectedLibraryIds = dashboard.libraryIds
+    .onChange(of: libraries) { _, _ in
+      Task {
+        await triggerMetricsUpdate(force: false)
+      }
     }
     .onDisappear {
       if dashboard.libraryIds != selectedLibraryIds {
@@ -123,209 +131,63 @@ struct LibraryListContent: View {
     }
   }
 
-  func loadLibraries() async {
-    isLoading = true
-    await LibraryManager.shared.loadLibraries()
-    if loadMetrics && isAdmin {
-      await loadLibraryMetrics()
-      await loadAllLibrariesMetrics()
-    }
-    isLoading = false
+  func refreshLibraries() async {
+    await refreshLibraries(forceMetrics: true)
   }
 
-  func refreshLibraries() async {
+  func refreshLibraries(forceMetrics: Bool) async {
     isLoading = true
     await LibraryManager.shared.refreshLibraries()
-    if loadMetrics && isAdmin {
-      await loadLibraryMetrics()
-      await loadAllLibrariesMetrics()
-    }
+    await triggerMetricsUpdate(force: forceMetrics)
     isLoading = false
   }
 
-  private func loadAllLibrariesMetrics() async {
-    // Ensure entry exists before loading to avoid flickering
-    if !currentInstanceId.isEmpty {
-      let hasEntry = await MainActor.run {
-        allLibrariesEntry != nil
-      }
-      if !hasEntry {
-        // Create empty entry as placeholder
-        do {
-          try await MainActor.run {
-            try libraryStore.upsertAllLibrariesEntry(
-              instanceId: currentInstanceId,
-              fileSize: nil,
-              booksCount: nil,
-              seriesCount: nil,
-              sidecarsCount: nil,
-              collectionsCount: nil,
-              readlistsCount: nil
-            )
-          }
-        } catch {
-          // Silently fail
-        }
-      }
+  private func triggerMetricsUpdate(force: Bool) async {
+    guard loadMetrics, isAdmin, !currentInstanceId.isEmpty else { return }
+
+    let shouldLoad = await MainActor.run {
+      force || alwaysRefreshMetrics || needsMetricsReload()
     }
 
-    var metrics = AllLibrariesMetricsData()
+    guard shouldLoad else { return }
 
-    await withTaskGroup(of: (String, Double?).self) { group in
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(
-          MetricName.booksFileSize.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("fileSize", value)
-        }
-        return ("fileSize", nil)
-      }
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(MetricName.books.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("books", value)
-        }
-        return ("books", nil)
-      }
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(MetricName.series.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("series", value)
-        }
-        return ("series", nil)
-      }
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(MetricName.sidecars.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("sidecars", value)
-        }
-        return ("sidecars", nil)
-      }
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(
-          MetricName.collections.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("collections", value)
-        }
-        return ("collections", nil)
-      }
-      group.addTask {
-        if let metric = try? await ManagementService.shared.getMetric(
-          MetricName.readlists.rawValue),
-          let value = metric.measurements.first?.value
-        {
-          return ("readlists", value)
-        }
-        return ("readlists", nil)
-      }
-
-      for await (key, value) in group {
-        switch key {
-        case "fileSize":
-          metrics.fileSize = value
-        case "books":
-          metrics.booksCount = value
-        case "series":
-          metrics.seriesCount = value
-        case "sidecars":
-          metrics.sidecarsCount = value
-        case "collections":
-          metrics.collectionsCount = value
-        case "readlists":
-          metrics.readlistsCount = value
-        default:
-          break
-        }
-      }
-    }
-
-    // Persist metrics to SwiftData
-    if !currentInstanceId.isEmpty {
-      do {
-        try libraryStore.upsertAllLibrariesEntry(
-          instanceId: currentInstanceId,
-          fileSize: metrics.fileSize,
-          booksCount: metrics.booksCount,
-          seriesCount: metrics.seriesCount,
-          sidecarsCount: metrics.sidecarsCount,
-          collectionsCount: metrics.collectionsCount,
-          readlistsCount: metrics.readlistsCount
-        )
-      } catch {
-        // Silently fail
-      }
-    }
-  }
-
-  private func loadLibraryMetrics() async {
-    // Load all 4 base metrics in parallel
-    await withTaskGroup(of: Void.self) { group in
-      group.addTask {
-        await self.processLibraryMetric(
-          metricName: MetricName.booksFileSize.rawValue,
-          setter: { library, value in library.fileSize = value }
-        )
-      }
-      group.addTask {
-        await self.processLibraryMetric(
-          metricName: MetricName.books.rawValue,
-          setter: { library, value in library.booksCount = value }
-        )
-      }
-      group.addTask {
-        await self.processLibraryMetric(
-          metricName: MetricName.series.rawValue,
-          setter: { library, value in library.seriesCount = value }
-        )
-      }
-      group.addTask {
-        await self.processLibraryMetric(
-          metricName: MetricName.sidecars.rawValue,
-          setter: { library, value in library.sidecarsCount = value }
-        )
-      }
-    }
-  }
-
-  private func processLibraryMetric(
-    metricName: String,
-    setter: @escaping (KomgaLibrary, Double) -> Void
-  ) async {
-    guard let metric = try? await ManagementService.shared.getMetric(metricName),
-      let libraryTag = metric.availableTags?.first(where: { $0.tag == "library" })
-    else {
+    let alreadyLoading = await MainActor.run { isLoadingMetrics }
+    if alreadyLoading {
       return
     }
 
-    // Process all libraries for this metric in parallel
-    await withTaskGroup(of: (String, Double?).self) { group in
-      for libraryId in libraryTag.values {
-        group.addTask {
-          if let libraryMetric = try? await ManagementService.shared.getMetric(
-            metricName,
-            tags: [MetricTag(key: "library", value: libraryId)]
-          ),
-            let value = libraryMetric.measurements.first(where: { $0.statistic == "VALUE" })?.value
-          {
-            return (libraryId, value)
-          }
-          return (libraryId, nil)
-        }
-      }
+    await MainActor.run { isLoadingMetrics = true }
 
-      for await (libraryId, value) in group {
-        if let value = value,
-          let library = libraries.first(where: { $0.libraryId == libraryId })
-        {
-          setter(library, value)
-        }
+    let libraryIds = await MainActor.run { libraries.map(\.libraryId) }
+    let hasAllEntry = await MainActor.run { allLibrariesEntry != nil }
+
+    let metricsByLibrary = await metricsLoader.refreshMetrics(
+      instanceId: currentInstanceId,
+      libraryIds: libraryIds,
+      ensureAllLibrariesEntry: hasAllEntry
+    )
+
+    await MainActor.run {
+      for library in libraries {
+        guard let metrics = metricsByLibrary[library.libraryId] else { continue }
+        library.fileSize = metrics.fileSize
+        library.booksCount = metrics.booksCount
+        library.seriesCount = metrics.seriesCount
+        library.sidecarsCount = metrics.sidecarsCount
       }
     }
+
+    await MainActor.run { isLoadingMetrics = false }
+  }
+
+  private func needsMetricsReload() -> Bool {
+    guard !libraries.isEmpty else { return false }
+
+    if allLibrariesEntry == nil || !hasAllLibrariesMetrics(allLibrariesEntry) {
+      return true
+    }
+
+    return libraries.contains { !hasMetrics($0) }
   }
 
   @ViewBuilder
@@ -355,9 +217,9 @@ struct LibraryListContent: View {
   @ViewBuilder
   private func allLibrariesRowContent(isSelected: Bool) -> some View {
     let entry = allLibrariesEntry
-    let hasMetrics = showMetrics && hasAllLibrariesMetrics(entry)
+    let hasMetrics = hasAllLibrariesMetrics(entry)
     let metricsText = hasMetrics ? formatAllLibrariesMetrics(entry) : ""
-    let fileSizeText = showMetrics ? (entry?.fileSize.map { formatFileSize($0) } ?? "") : ""
+    let fileSizeText = entry?.fileSize.map { formatFileSize($0) } ?? ""
 
     HStack(spacing: 8) {
       VStack(alignment: .leading, spacing: 2) {
@@ -372,7 +234,7 @@ struct LibraryListContent: View {
               .animation(.easeInOut(duration: 0.2), value: fileSizeText.isEmpty)
           }
         }
-        if isAdmin && showMetrics && hasMetrics {
+        if isAdmin && hasMetrics {
           Text(metricsText)
             .font(.caption)
             .foregroundColor(.secondary)
@@ -442,8 +304,8 @@ struct LibraryListContent: View {
   private func librarySummary(_ library: KomgaLibrary, isPerforming: Bool, isSelected: Bool)
     -> some View
   {
-    let metricsText = showMetrics && hasMetrics(library) ? formatMetrics(library) : ""
-    let fileSizeText = showMetrics ? (library.fileSize.map { formatFileSize($0) } ?? "") : ""
+    let metricsText = hasMetrics(library) ? formatMetrics(library) : ""
+    let fileSizeText = library.fileSize.map { formatFileSize($0) } ?? ""
 
     HStack(spacing: 8) {
       VStack(alignment: .leading, spacing: 2) {
@@ -777,15 +639,4 @@ struct LibraryListContent: View {
       }
     }
   }
-}
-
-// MARK: - Data Structures
-
-struct AllLibrariesMetricsData {
-  var fileSize: Double?
-  var seriesCount: Double?
-  var booksCount: Double?
-  var sidecarsCount: Double?
-  var collectionsCount: Double?
-  var readlistsCount: Double?
 }

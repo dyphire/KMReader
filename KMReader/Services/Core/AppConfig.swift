@@ -118,6 +118,22 @@ enum AppConfig {
     }
   }
 
+  // MARK: - Dashboard
+
+  static var dashboardConfiguration: DashboardConfiguration {
+    get {
+      guard let rawValue = UserDefaults.standard.string(forKey: "dashboard"),
+        let config = DashboardConfiguration(rawValue: rawValue)
+      else {
+        return DashboardConfiguration()
+      }
+      return config
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "dashboard")
+    }
+  }
+
   static var serverLastUpdate: Date? {
     get {
       guard

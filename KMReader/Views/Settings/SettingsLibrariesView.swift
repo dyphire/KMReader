@@ -26,8 +26,9 @@ struct SettingsLibrariesView: View {
 
   var body: some View {
     LibraryListContent(
-      showMetrics: true,
       showDeleteAction: true,
+      alwaysRefreshMetrics: true,
+      forceMetricsOnAppear: true,
       onDeleteLibrary: { library in
         libraryPendingDelete = library
         deleteConfirmationText = ""
@@ -96,9 +97,9 @@ struct SettingsLibrariesSheetView: View {
   var body: some View {
     SheetView(title: "Libraries", size: .large) {
       LibraryListContent(
-        showMetrics: true,
         showDeleteAction: true,
         loadMetrics: false,
+        forceMetricsOnAppear: true,
         onDeleteLibrary: { library in
           libraryPendingDelete = library
           deleteConfirmationText = ""

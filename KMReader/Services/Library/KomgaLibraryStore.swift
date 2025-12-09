@@ -49,12 +49,16 @@ final class KomgaLibraryStore {
     var existingMap = Dictionary(
       uniqueKeysWithValues: existing.map { ($0.libraryId, $0) }
     )
+    var didChange = false
 
     // Update existing libraries or insert new ones
     for library in libraries {
       if let existingLibrary = existingMap[library.id] {
         // Update existing library (preserves metrics)
-        existingLibrary.name = library.name
+        if existingLibrary.name != library.name {
+          existingLibrary.name = library.name
+          didChange = true
+        }
         existingMap.removeValue(forKey: library.id)
       } else {
         // Insert new library
@@ -64,6 +68,7 @@ final class KomgaLibraryStore {
             libraryId: library.id,
             name: library.name
           ))
+        didChange = true
       }
     }
 
@@ -72,10 +77,13 @@ final class KomgaLibraryStore {
     for (_, library) in existingMap {
       if library.libraryId != allLibrariesId {
         context.delete(library)
+        didChange = true
       }
     }
 
-    try context.save()
+    if didChange {
+      try context.save()
+    }
   }
 
   func deleteLibraries(instanceId: String?) throws {
