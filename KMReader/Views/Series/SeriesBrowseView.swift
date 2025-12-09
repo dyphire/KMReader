@@ -33,8 +33,8 @@ struct SeriesBrowseView: View {
         isLoading: viewModel.isLoading,
         isEmpty: viewModel.series.isEmpty,
         emptyIcon: "books.vertical",
-        emptyTitle: "No series found",
-        emptyMessage: "Try selecting a different library.",
+        emptyTitle: LocalizedStringKey("No series found"),
+        emptyMessage: LocalizedStringKey("Try selecting a different library."),
         onRetry: {
           Task {
             await loadSeries(refresh: true)

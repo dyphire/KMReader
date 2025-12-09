@@ -33,8 +33,8 @@ struct BooksBrowseView: View {
         isLoading: viewModel.isLoading,
         isEmpty: viewModel.books.isEmpty,
         emptyIcon: "book",
-        emptyTitle: "No books found",
-        emptyMessage: "Try selecting a different library.",
+        emptyTitle: LocalizedStringKey("No books found"),
+        emptyMessage: LocalizedStringKey("Try selecting a different library."),
         onRetry: {
           Task {
             await loadBooks(refresh: true)

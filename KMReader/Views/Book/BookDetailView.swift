@@ -68,7 +68,7 @@ struct BookDetailView: View {
                   foregroundColor: .gray
                 )
                 InfoChip(
-                  label: "\(book.media.pagesCount) pages",
+                  labelKey: "\(book.media.pagesCount) pages",
                   systemImage: "book.pages",
                   backgroundColor: Color.blue.opacity(0.2),
                   foregroundColor: .blue
@@ -77,7 +77,7 @@ struct BookDetailView: View {
 
               if book.deleted {
                 InfoChip(
-                  label: "Unavailable",
+                  labelKey: "Unavailable",
                   backgroundColor: Color.red.opacity(0.2),
                   foregroundColor: .red
                 )
@@ -86,14 +86,14 @@ struct BookDetailView: View {
               if let readProgress = book.readProgress {
                 if isCompleted {
                   InfoChip(
-                    label: "Completed",
+                    labelKey: "Completed",
                     systemImage: "checkmark.circle.fill",
                     backgroundColor: Color.green.opacity(0.2),
                     foregroundColor: .green
                   )
                 } else {
                   InfoChip(
-                    label: "Page \(readProgress.page) / \(book.media.pagesCount)",
+                    labelKey: "Page \(readProgress.page) / \(book.media.pagesCount)",
                     systemImage: "circle.righthalf.filled",
                     backgroundColor: Color.orange.opacity(0.2),
                     foregroundColor: .orange
@@ -101,7 +101,7 @@ struct BookDetailView: View {
                 }
               } else {
                 InfoChip(
-                  label: "Unread",
+                  labelKey: "Unread",
                   systemImage: "circle",
                   backgroundColor: Color.gray.opacity(0.2),
                   foregroundColor: .gray
@@ -136,13 +136,13 @@ struct BookDetailView: View {
           // Created and last modified dates
           HStack(spacing: 6) {
             InfoChip(
-              label: "Created: \(formatDate(book.created))",
+              labelKey: "Created: \(formatDate(book.created))",
               systemImage: "calendar.badge.plus",
               backgroundColor: Color.blue.opacity(0.2),
               foregroundColor: .blue
             )
             InfoChip(
-              label: "Modified: \(formatDate(book.lastModified))",
+              labelKey: "Modified: \(formatDate(book.lastModified))",
               systemImage: "clock",
               backgroundColor: Color.purple.opacity(0.2),
               foregroundColor: .purple

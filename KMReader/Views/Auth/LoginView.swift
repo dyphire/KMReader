@@ -72,11 +72,11 @@ struct LoginView: View {
         .aspectRatio(contentMode: .fit)
         .frame(height: 72)
 
-      Text("Sign in to Komga")
+      Text(String(localized: "Sign in to Komga"))
         .font(.system(size: 32, weight: .bold))
         .foregroundStyle(.primary)
 
-      Text("Enter the credentials you use to access your Komga server.")
+      Text(String(localized: "Enter the credentials you use to access your Komga server."))
         .font(.callout)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
@@ -93,7 +93,7 @@ struct LoginView: View {
         systemImage: "server.rack",
         containerBackground: fieldBackgroundColor
       ) {
-        TextField("Enter your server URL", text: $serverURLText)
+        TextField(String(localized: "Enter your server URL"), text: $serverURLText)
           .textContentType(.URL)
           #if os(iOS) || os(tvOS)
             .autocapitalization(.none)
@@ -110,7 +110,7 @@ struct LoginView: View {
         systemImage: "tag",
         containerBackground: fieldBackgroundColor
       ) {
-        TextField("e.g. \"Home\" or \"Work\"", text: $instanceName)
+        TextField(String(localized: "e.g. \"Home\" or \"Work\""), text: $instanceName)
           .autocorrectionDisabled()
       }
 
@@ -119,7 +119,7 @@ struct LoginView: View {
         systemImage: "person",
         containerBackground: fieldBackgroundColor
       ) {
-        TextField("Enter your username", text: $usernameText)
+        TextField(String(localized: "Enter your username"), text: $usernameText)
           .textContentType(.username)
           #if os(iOS) || os(tvOS)
             .autocapitalization(.none)
@@ -135,7 +135,7 @@ struct LoginView: View {
         systemImage: "lock",
         containerBackground: fieldBackgroundColor
       ) {
-        SecureField("Enter your password", text: $password)
+        SecureField(String(localized: "Enter your password"), text: $password)
           .textContentType(.password)
           .onChange(of: password) { _, _ in
             loginErrorMessage = nil
@@ -148,7 +148,7 @@ struct LoginView: View {
           if authViewModel.isLoading {
             ProgressView()
           } else {
-            Text("Login")
+            Text(String(localized: "Login"))
             Image(systemName: "arrow.right.circle.fill")
           }
           Spacer()
@@ -188,7 +188,8 @@ struct LoginView: View {
     if let apiError = error as? APIError {
       return apiError.description
     }
-    if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription {
+    if let localizedError = error as? LocalizedError, let message = localizedError.errorDescription
+    {
       return message
     }
     return error.localizedDescription
@@ -196,13 +197,13 @@ struct LoginView: View {
 }
 
 private struct FieldContainer<Content: View>: View {
-  let title: String
+  let title: LocalizedStringKey
   let systemImage: String
   let containerBackground: Color
   private let content: Content
 
   init(
-    title: String,
+    title: LocalizedStringKey,
     systemImage: String,
     containerBackground: Color,
     @ViewBuilder content: () -> Content

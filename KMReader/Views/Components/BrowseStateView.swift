@@ -12,8 +12,8 @@ struct BrowseStateView<Content: View>: View {
   let isLoading: Bool
   let isEmpty: Bool
   let emptyIcon: String
-  let emptyTitle: String
-  let emptyMessage: String
+  let emptyTitle: LocalizedStringKey
+  let emptyMessage: LocalizedStringKey
   let onRetry: () -> Void
   @ViewBuilder let content: () -> Content
 
@@ -33,7 +33,7 @@ struct BrowseStateView<Content: View>: View {
           Text(emptyMessage)
             .font(.subheadline)
             .foregroundColor(.secondary)
-          Button("Retry") {
+          Button(String(localized: "Retry")) {
             onRetry()
           }
         }

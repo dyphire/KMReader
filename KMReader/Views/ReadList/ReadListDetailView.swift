@@ -59,14 +59,14 @@ struct ReadListDetailView: View {
               VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                   InfoChip(
-                    label: "\(readList.bookIds.count) books",
+                    labelKey: "\(readList.bookIds.count) books",
                     systemImage: "books.vertical",
                     backgroundColor: Color.blue.opacity(0.2),
                     foregroundColor: .blue
                   )
                   if readList.ordered {
                     InfoChip(
-                      label: "Ordered",
+                      labelKey: "Ordered",
                       systemImage: "arrow.up.arrow.down",
                       backgroundColor: Color.cyan.opacity(0.2),
                       foregroundColor: .cyan
@@ -74,13 +74,13 @@ struct ReadListDetailView: View {
                   }
                 }
                 InfoChip(
-                  label: "Created: \(formatDate(readList.createdDate))",
+                  labelKey: "Created: \(formatDate(readList.createdDate))",
                   systemImage: "calendar.badge.plus",
                   backgroundColor: Color.blue.opacity(0.2),
                   foregroundColor: .blue
                 )
                 InfoChip(
-                  label: "Modified: \(formatDate(readList.lastModifiedDate))",
+                  labelKey: "Modified: \(formatDate(readList.lastModifiedDate))",
                   systemImage: "clock",
                   backgroundColor: Color.purple.opacity(0.2),
                   foregroundColor: .purple

@@ -12,13 +12,13 @@ extension Series {
     (metadata.status ?? "Unknown").uppercased()
   }
 
-  var statusDisplayName: String {
+  var statusDisplayName: LocalizedStringKey {
     switch normalizedStatus {
     case "ONGOING": return "Ongoing"
     case "ENDED": return "Ended"
     case "ABANDONED": return "Abandoned"
     case "HIATUS": return "Hiatus"
-    default: return (metadata.status ?? "Unknown").capitalized
+    default: return LocalizedStringKey((metadata.status ?? "Unknown").capitalized)
     }
   }
 

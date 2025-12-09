@@ -50,14 +50,14 @@ struct CollectionDetailView: View {
               VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                   InfoChip(
-                    label: "\(collection.seriesIds.count) series",
+                    labelKey: "\(collection.seriesIds.count) series",
                     systemImage: "square.grid.2x2",
                     backgroundColor: Color.blue.opacity(0.2),
                     foregroundColor: .blue
                   )
                   if collection.ordered {
                     InfoChip(
-                      label: "Ordered",
+                      labelKey: "Ordered",
                       systemImage: "arrow.up.arrow.down",
                       backgroundColor: Color.cyan.opacity(0.2),
                       foregroundColor: .cyan
@@ -65,13 +65,13 @@ struct CollectionDetailView: View {
                   }
                 }
                 InfoChip(
-                  label: "Created: \(formatDate(collection.createdDate))",
+                  labelKey: "Created: \(formatDate(collection.createdDate))",
                   systemImage: "calendar.badge.plus",
                   backgroundColor: Color.blue.opacity(0.2),
                   foregroundColor: .blue
                 )
                 InfoChip(
-                  label: "Modified: \(formatDate(collection.lastModifiedDate))",
+                  labelKey: "Modified: \(formatDate(collection.lastModifiedDate))",
                   systemImage: "clock",
                   backgroundColor: Color.purple.opacity(0.2),
                   foregroundColor: .purple

@@ -8,11 +8,25 @@
 import SwiftUI
 
 struct InfoChip: View {
-  let label: String
+  private let label: Text
   let systemImage: String?
   let backgroundColor: Color
   let foregroundColor: Color
   let cornerRadius: CGFloat
+
+  init(
+    labelKey: LocalizedStringKey,
+    systemImage: String? = nil,
+    backgroundColor: Color = Color.secondary.opacity(0.2),
+    foregroundColor: Color = .primary,
+    cornerRadius: CGFloat = 16
+  ) {
+    self.label = Text(labelKey)
+    self.systemImage = systemImage
+    self.backgroundColor = backgroundColor
+    self.foregroundColor = foregroundColor
+    self.cornerRadius = cornerRadius
+  }
 
   init(
     label: String,
@@ -21,7 +35,7 @@ struct InfoChip: View {
     foregroundColor: Color = .primary,
     cornerRadius: CGFloat = 16
   ) {
-    self.label = label
+    self.label = Text(label)
     self.systemImage = systemImage
     self.backgroundColor = backgroundColor
     self.foregroundColor = foregroundColor
@@ -34,7 +48,7 @@ struct InfoChip: View {
         Image(systemName: systemImage)
           .font(.caption2)
       }
-      Text(label)
+      label
         .font(.caption)
     }
     .foregroundColor(foregroundColor)

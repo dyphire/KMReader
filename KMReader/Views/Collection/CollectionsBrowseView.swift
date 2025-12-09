@@ -30,8 +30,8 @@ struct CollectionsBrowseView: View {
         isLoading: viewModel.isLoading,
         isEmpty: viewModel.collections.isEmpty,
         emptyIcon: "square.grid.2x2",
-        emptyTitle: "No collections found",
-        emptyMessage: "Try selecting a different library.",
+        emptyTitle: LocalizedStringKey("No collections found"),
+        emptyMessage: LocalizedStringKey("Try selecting a different library."),
         onRetry: {
           Task {
             await loadCollections(refresh: true)

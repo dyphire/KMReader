@@ -97,14 +97,14 @@ struct SeriesDetailView: View {
                 HStack(spacing: 6) {
                   if let totalBookCount = series.metadata.totalBookCount {
                     InfoChip(
-                      label: "\(series.booksCount) / \(totalBookCount) books",
+                      labelKey: "\(series.booksCount) / \(totalBookCount) books",
                       systemImage: "book",
                       backgroundColor: Color.blue.opacity(0.2),
                       foregroundColor: .blue
                     )
                   } else {
                     InfoChip(
-                      label: "\(series.booksCount) books",
+                      labelKey: "\(series.booksCount) books",
                       systemImage: "book",
                       backgroundColor: Color.blue.opacity(0.2),
                       foregroundColor: .blue
@@ -113,21 +113,21 @@ struct SeriesDetailView: View {
 
                   if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
                     InfoChip(
-                      label: "\(series.booksUnreadCount) unread",
+                      labelKey: "\(series.booksUnreadCount) unread",
                       systemImage: "circle",
                       backgroundColor: Color.gray.opacity(0.2),
                       foregroundColor: .gray
                     )
                   } else if series.booksInProgressCount > 0 {
                     InfoChip(
-                      label: "\(series.booksInProgressCount) in progress",
+                      labelKey: "\(series.booksInProgressCount) in progress",
                       systemImage: "circle.righthalf.filled",
                       backgroundColor: Color.orange.opacity(0.2),
                       foregroundColor: .orange
                     )
                   } else if series.booksUnreadCount == 0 && series.booksCount > 0 {
                     InfoChip(
-                      label: "All read",
+                      labelKey: "All read",
                       systemImage: "checkmark.circle.fill",
                       backgroundColor: Color.green.opacity(0.2),
                       foregroundColor: .green
@@ -147,7 +147,7 @@ struct SeriesDetailView: View {
                     }
                     if let status = series.metadata.status, !status.isEmpty {
                       InfoChip(
-                        label: series.statusDisplayName,
+                        labelKey: series.statusDisplayName,
                         systemImage: series.statusIcon,
                         backgroundColor: series.statusColor.opacity(0.8),
                         foregroundColor: .white
@@ -233,13 +233,13 @@ struct SeriesDetailView: View {
 
           HStack(spacing: 6) {
             InfoChip(
-              label: "Created: \(formatDate(series.created))",
+              labelKey: "Created: \(formatDate(series.created))",
               systemImage: "calendar.badge.plus",
               backgroundColor: Color.blue.opacity(0.2),
               foregroundColor: .blue
             )
             InfoChip(
-              label: "Modified: \(formatDate(series.lastModified))",
+              labelKey: "Modified: \(formatDate(series.lastModified))",
               systemImage: "clock",
               backgroundColor: Color.purple.opacity(0.2),
               foregroundColor: .purple

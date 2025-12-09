@@ -60,13 +60,13 @@ struct SettingsServersView: View {
             Image(systemName: "list.bullet.rectangle")
               .font(.largeTitle)
               .foregroundStyle(.secondary)
-            Text("No servers found")
+            Text(String(localized: "No servers found"))
               .font(.headline)
-            Text("Login to a Komga server to see it listed here.")
+            Text(String(localized: "Login to a Komga server to see it listed here."))
               .font(.caption)
               .foregroundStyle(.secondary)
               .multilineTextAlignment(.center)
-            Button("Retry") {
+            Button(String(localized: "Retry")) {
               showLogin = true
             }
           }
@@ -100,7 +100,7 @@ struct SettingsServersView: View {
           } label: {
             HStack {
               Spacer()
-              Label("Logout", systemImage: "rectangle.portrait.and.arrow.right")
+              Label(String(localized: "Logout"), systemImage: "rectangle.portrait.and.arrow.right")
               Spacer()
             }
           }
@@ -116,7 +116,7 @@ struct SettingsServersView: View {
       SettingsServerEditView(instance: instance)
     }
     .alert(
-      "Delete Server",
+      String(localized: "Delete Server"),
       isPresented: Binding(
         get: { instancePendingDeletion != nil },
         set: { isPresented in
@@ -127,22 +127,25 @@ struct SettingsServersView: View {
       ),
       presenting: instancePendingDeletion
     ) { instance in
-      Button("Delete", role: .destructive) {
+      Button(String(localized: "Delete"), role: .destructive) {
         delete(instance)
       }
-      Button("Cancel", role: .cancel) {}
+      Button(String(localized: "Cancel"), role: .cancel) {}
     } message: { instance in
       Text(
-        "This will remove \(instance.name), its credentials, and all cached data for this server."
+        String(
+          localized:
+            "This will remove \(instance.name), its credentials, and all cached data for this server."
+        )
       )
     }
-    .alert("Logout", isPresented: $showLogoutAlert) {
-      Button("Cancel", role: .cancel) {}
-      Button("Logout", role: .destructive) {
+    .alert(String(localized: "Logout"), isPresented: $showLogoutAlert) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Logout"), role: .destructive) {
         authViewModel.logout()
       }
     } message: {
-      Text("Are you sure you want to logout?")
+      Text(String(localized: "Are you sure you want to logout?"))
     }
     #if os(macOS)
       .sheet(isPresented: $showLogin) {
@@ -175,9 +178,9 @@ struct SettingsServersView: View {
   private var navigationTitle: String {
     switch mode {
     case .management:
-      return "Servers"
+      return String(localized: "Servers")
     case .onboarding:
-      return "Get Started"
+      return String(localized: "Get Started")
     }
   }
 
@@ -186,12 +189,17 @@ struct SettingsServersView: View {
     case .management:
       return nil
     case .onboarding:
-      return "Choose an existing Komga server or add a new one to begin."
+      return String(localized: "Choose an existing Komga server or add a new one to begin.")
     }
   }
 
   private var footerText: some View {
-    Text("Credentials are stored locally so you can switch servers without re-entering them.")
+    Text(
+      String(
+        localized:
+          "Credentials are stored locally so you can switch servers without re-entering them."
+      )
+    )
   }
 
   private var addServerSection: some View {
@@ -204,7 +212,7 @@ struct SettingsServersView: View {
     }
   }
 
-  private var addButtonTitle: String {
+  private var addButtonTitle: LocalizedStringKey {
     switch mode {
     case .management:
       return "Add Another Server"
@@ -244,7 +252,8 @@ struct SettingsServersView: View {
           infoDetailRow(icon: "envelope.fill", text: instance.username)
           infoDetailRow(
             icon: instance.isAdmin ? "shield.checkered" : "shield.fill",
-            text: instance.isAdmin ? "Admin Access" : "User Access",
+            text: instance.isAdmin
+              ? String(localized: "Admin Access") : String(localized: "User Access"),
             textColor: instance.isAdmin ? .green : .secondary
           )
           infoDetailRow(
@@ -269,13 +278,13 @@ struct SettingsServersView: View {
           Button {
             editingInstance = instance
           } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(String(localized: "Edit"), systemImage: "pencil")
           }
 
           Button(role: .destructive) {
             instancePendingDeletion = instance
           } label: {
-            Label("Delete", systemImage: "trash")
+            Label(String(localized: "Delete"), systemImage: "trash")
           }
         }
       }
@@ -285,13 +294,13 @@ struct SettingsServersView: View {
         Button {
           editingInstance = instance
         } label: {
-          Label("Edit", systemImage: "pencil")
+          Label(String(localized: "Edit"), systemImage: "pencil")
         }
 
         Button(role: .destructive) {
           instancePendingDeletion = instance
         } label: {
-          Label("Delete", systemImage: "trash")
+          Label(String(localized: "Delete"), systemImage: "trash")
         }
       }
     }
@@ -312,7 +321,7 @@ struct SettingsServersView: View {
         .scaleEffect(0.85)
     } else if isActive {
       infoTag(
-        icon: "checkmark.seal.fill", text: "Active", tint: themeColor.color,
+        icon: "checkmark.seal.fill", text: LocalizedStringKey("Active"), tint: themeColor.color,
         textColor: themeColor.color)
     } else {
       Image(systemName: "chevron.right")
@@ -323,7 +332,7 @@ struct SettingsServersView: View {
 
   private func infoTag(
     icon: String,
-    text: String,
+    text: LocalizedStringKey,
     tint: Color = .secondary,
     textColor: Color? = nil,
     fillOpacity: Double = 0.16
@@ -399,7 +408,7 @@ struct SettingsServersView: View {
   private func lastUsedDescription(for instance: KomgaInstance) -> String {
     let relativeText = instance.lastUsedAt.formatted(
       .relative(presentation: .named, unitsStyle: .abbreviated))
-    return "Last used \(relativeText)"
+    return String(localized: "Last used \(relativeText)")
   }
 
   private func cardBackground(isActive: Bool) -> some View {

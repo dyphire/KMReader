@@ -28,8 +28,8 @@ struct ReadListsBrowseView: View {
         isLoading: viewModel.isLoading,
         isEmpty: viewModel.readLists.isEmpty,
         emptyIcon: "list.bullet.rectangle",
-        emptyTitle: "No read lists found",
-        emptyMessage: "Try selecting a different library.",
+        emptyTitle: LocalizedStringKey("No read lists found"),
+        emptyMessage: LocalizedStringKey("Try selecting a different library."),
         onRetry: {
           Task {
             await loadReadLists(refresh: true)
