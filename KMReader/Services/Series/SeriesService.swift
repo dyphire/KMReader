@@ -109,6 +109,7 @@ class SeriesService {
     var queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
       URLQueryItem(name: "size", value: "\(size)"),
+      URLQueryItem(name: "oneshot", value: "false"),
     ]
 
     // Support multiple libraryIds
@@ -129,6 +130,7 @@ class SeriesService {
     var queryItems = [
       URLQueryItem(name: "page", value: "\(page)"),
       URLQueryItem(name: "size", value: "\(size)"),
+      URLQueryItem(name: "oneshot", value: "false"),
     ]
 
     // Support multiple libraryIds
