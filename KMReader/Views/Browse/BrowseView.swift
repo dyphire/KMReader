@@ -12,6 +12,7 @@ struct BrowseView: View {
   @AppStorage("browseColumns") private var browseColumns: BrowseColumns = BrowseColumns()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var refreshTrigger = UUID()
   @State private var isRefreshDisabled = false
@@ -113,6 +114,11 @@ struct BrowseView: View {
       }
       .onChange(of: dashboard.libraryIds) { _, _ in
         refreshBrowse()
+      }
+      .onChange(of: readerPresentation.readerState == nil) { _, isReaderClosed in
+        if isReaderClosed {
+          refreshBrowse()
+        }
       }
     }
   }
