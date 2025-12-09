@@ -102,7 +102,7 @@ struct CollectionDetailView: View {
       }
       .padding(.horizontal, horizontalPadding)
     }
-    .inlineNavigationBarTitle("Collection")
+    .inlineNavigationBarTitle(String(localized: "title.collection"))
     .alert("Delete Collection?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {

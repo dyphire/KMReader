@@ -20,9 +20,9 @@ struct SettingsSSEView: View {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
               Image(systemName: "antenna.radiowaves.left.and.right")
-              Text("Real-time Updates")
+              Text(String(localized: "Real-time Updates"))
             }
-            Text("Enable Server-Sent Events for real-time updates")
+            Text(String(localized: "Enable Server-Sent Events for real-time updates"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -36,10 +36,13 @@ struct SettingsSSEView: View {
           }
         }
       } header: {
-        Text("Connection")
+        Text(String(localized: "Connection"))
       } footer: {
         Text(
-          "Real-time updates allow the app to automatically refresh when content changes on the server."
+          String(
+            localized:
+              "Real-time updates allow the app to automatically refresh when content changes on the server."
+          )
         )
       }
 
@@ -48,21 +51,24 @@ struct SettingsSSEView: View {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
               Image(systemName: "arrow.clockwise")
-              Text("Auto-refresh Dashboard")
+              Text(String(localized: "Auto-refresh Dashboard"))
             }
-            Text("Automatically refresh dashboard when content changes")
+            Text(String(localized: "Automatically refresh dashboard when content changes"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
         }
         .disabled(!enableSSE)
       } header: {
-        Text("Auto-refresh")
+        Text(String(localized: "Auto-refresh"))
       } footer: {
         Text(
           enableSSE
-            ? "When disabled, the dashboard will not automatically refresh when SSE events are received. You can still manually refresh."
-            : "Enable Real-time Updates above to use this feature."
+            ? String(
+              localized:
+                "When disabled, the dashboard will not automatically refresh when SSE events are received. You can still manually refresh."
+            )
+            : String(localized: "Enable Real-time Updates above to use this feature.")
         )
       }
 
@@ -71,25 +77,28 @@ struct SettingsSSEView: View {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
               Image(systemName: "bell")
-              Text("Show Notifications")
+              Text(String(localized: "Show Notifications"))
             }
-            Text("Show connection status and task completion notifications")
+            Text(String(localized: "Show connection status and task completion notifications"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
         }
         .disabled(!enableSSE)
       } header: {
-        Text("Notifications")
+        Text(String(localized: "Notifications"))
       } footer: {
         Text(
           enableSSE
-            ? "When disabled, connection status and task completion messages will not be shown."
-            : "Enable Real-time Updates above to use this feature."
+            ? String(
+              localized:
+                "When disabled, connection status and task completion messages will not be shown."
+            )
+            : String(localized: "Enable Real-time Updates above to use this feature.")
         )
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle("Real-time Updates")
+    .inlineNavigationBarTitle(String(localized: "Real-time Updates"))
   }
 }

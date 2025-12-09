@@ -57,12 +57,15 @@ struct SettingsAppearanceView: View {
 
   var body: some View {
     Form {
-      Section(header: Text("Theme")) {
+      Section(header: Text(String(localized: "settings.appearance.theme"))) {
         #if os(iOS) || os(macOS)
-          ColorPicker("Color", selection: themeColorBinding, supportsOpacity: false)
+          ColorPicker(
+            String(localized: "settings.appearance.color"),
+            selection: themeColorBinding,
+            supportsOpacity: false)
         #elseif os(tvOS)
           VStack(alignment: .leading, spacing: 12) {
-            Text("Color")
+            Text(String(localized: "settings.appearance.color"))
               .font(.headline)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: 12) {
               ForEach(ThemeColor.presetColors, id: \.name) { preset in
@@ -93,7 +96,7 @@ struct SettingsAppearanceView: View {
         #endif
       }
 
-      Section(header: Text("Grid Columns")) {
+      Section(header: Text(String(localized: "settings.appearance.gridColumns"))) {
         #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
@@ -102,12 +105,12 @@ struct SettingsAppearanceView: View {
               step: 1
             ) {
               HStack {
-                Text("Portrait Columns")
+                Text(String(localized: "settings.appearance.portraitColumns.label"))
                 Text("\(browseColumns.portrait)")
                   .foregroundColor(.secondary)
               }
             }
-            Text("Number of columns in portrait orientation for grid browse layout")
+            Text(String(localized: "settings.appearance.portraitColumns.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -118,12 +121,12 @@ struct SettingsAppearanceView: View {
               step: 1
             ) {
               HStack {
-                Text("Landscape Columns")
+                Text(String(localized: "settings.appearance.landscapeColumns.label"))
                 Text("\(browseColumns.landscape)")
                   .foregroundColor(.secondary)
               }
             }
-            Text("Number of columns in landscape orientation for grid browse layout")
+            Text(String(localized: "settings.appearance.landscapeColumns.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -135,20 +138,20 @@ struct SettingsAppearanceView: View {
               step: 1
             ) {
               HStack {
-                Text("Number of Columns")
+                Text(String(localized: "settings.appearance.numberOfColumns.label"))
                 Text("\(browseColumns.landscape)")
                   .foregroundColor(.secondary)
               }
             }
-            Text("Number of columns for grid browse layout")
+            Text(String(localized: "settings.appearance.numberOfColumns.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
         #elseif os(tvOS)
           HStack {
             VStack(alignment: .leading, spacing: 4) {
-              Text("Number of Columns")
-              Text("Number of columns for grid browse layout")
+              Text(String(localized: "settings.appearance.numberOfColumns.label"))
+              Text(String(localized: "settings.appearance.numberOfColumns.caption"))
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
@@ -177,11 +180,11 @@ struct SettingsAppearanceView: View {
         #endif
       }
 
-      Section(header: Text("Cards")) {
+      Section(header: Text(String(localized: "settings.appearance.cards"))) {
         Toggle(isOn: $showSeriesCardTitle) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Show Series Card Titles")
-            Text("Show titles for series in view cards")
+            Text(String(localized: "settings.appearance.showSeriesCardTitles.title"))
+            Text(String(localized: "settings.appearance.showSeriesCardTitles.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -189,8 +192,8 @@ struct SettingsAppearanceView: View {
 
         Toggle(isOn: $showBookCardSeriesTitle) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Show Book Card Series Titles")
-            Text("Show series titles for books in view cards")
+            Text(String(localized: "settings.appearance.showBookCardSeriesTitles.title"))
+            Text(String(localized: "settings.appearance.showBookCardSeriesTitles.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -198,15 +201,18 @@ struct SettingsAppearanceView: View {
 
         Toggle(isOn: $thumbnailPreserveAspectRatio) {
           VStack(alignment: .leading, spacing: 4) {
-            Text("Preserve Thumbnail Aspect Ratio")
-            Text("Preserve aspect ratio for thumbnail images")
-              .font(.caption)
-              .foregroundColor(.secondary)
+            Text(
+              String(localized: "settings.appearance.preserveThumbnailAspectRatio.title"))
+            Text(
+              String(localized: "settings.appearance.preserveThumbnailAspectRatio.caption")
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
           }
         }
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle("Appearance")
+    .inlineNavigationBarTitle(String(localized: "settings.appearance.title"))
   }
 }

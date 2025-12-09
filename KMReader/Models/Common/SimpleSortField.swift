@@ -14,9 +14,9 @@ enum SimpleSortField: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .name: return "Name"
-    case .dateAdded: return "Date Added"
-    case .dateUpdated: return "Date Updated"
+    case .name: return String(localized: "simpleSort.name")
+    case .dateAdded: return String(localized: "simpleSort.dateAdded")
+    case .dateUpdated: return String(localized: "simpleSort.dateUpdated")
     }
   }
 

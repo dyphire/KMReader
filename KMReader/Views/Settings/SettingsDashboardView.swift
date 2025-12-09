@@ -29,7 +29,7 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       List {
-        Section(header: Text("Dashboard Sections")) {
+        Section(header: Text(String(localized: "dashboard.sections"))) {
           ForEach(controller.sections) { section in
             HStack {
               Label(section.displayName, systemImage: section.icon)
@@ -44,7 +44,7 @@ struct SettingsDashboardView: View {
         }
 
         if !controller.hiddenSections.isEmpty {
-          Section(header: Text("Hidden Sections")) {
+          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
             ForEach(controller.hiddenSections) { section in
               HStack {
                 Label(section.displayName, systemImage: section.icon)
@@ -63,14 +63,14 @@ struct SettingsDashboardView: View {
           } label: {
             HStack {
               Spacer()
-              Text("Reset to Default")
+              Text(String(localized: "dashboard.reset"))
               Spacer()
             }
           }
         }
       }
       .listStyle(.insetGrouped)
-      .inlineNavigationBarTitle("Dashboard")
+      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
       .animation(.default, value: dashboard)
     }
   }
@@ -84,7 +84,7 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       Form {
-        Section(header: Text("Dashboard Sections")) {
+        Section(header: Text(String(localized: "dashboard.sections"))) {
           List {
             ForEach(controller.sections) { section in
               HStack {
@@ -100,7 +100,7 @@ struct SettingsDashboardView: View {
         }
 
         if !controller.hiddenSections.isEmpty {
-          Section(header: Text("Hidden Sections")) {
+          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
             ForEach(controller.hiddenSections) { section in
               HStack {
                 Label(section.displayName, systemImage: section.icon)
@@ -119,14 +119,14 @@ struct SettingsDashboardView: View {
           } label: {
             HStack {
               Spacer()
-              Text("Reset to Default")
+              Text(String(localized: "dashboard.reset"))
               Spacer()
             }
           }
         }
       }
       .formStyle(.grouped)
-      .inlineNavigationBarTitle("Dashboard")
+      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
       .animation(.default, value: dashboard)
     }
   }
@@ -159,7 +159,7 @@ struct SettingsDashboardView: View {
         }
         .listRowBackground(Color.clear)
 
-        Section(header: Text("Dashboard Sections")) {
+        Section(header: Text(String(localized: "dashboard.sections"))) {
           ForEach(controller.sections) { section in
             HStack {
               Text(section.displayName)
@@ -221,7 +221,7 @@ struct SettingsDashboardView: View {
         }
 
         if isEditMode && !controller.hiddenSections.isEmpty {
-          Section(header: Text("Hidden Sections")) {
+          Section(header: Text(String(localized: "dashboard.hiddenSections"))) {
             ForEach(controller.hiddenSections) { section in
               HStack {
                 Text(section.displayName)
@@ -251,14 +251,14 @@ struct SettingsDashboardView: View {
           } label: {
             HStack {
               Spacer()
-              Text("Reset to Default")
+              Text(String(localized: "dashboard.reset"))
               Spacer()
             }
           }
         }
       }
       .formStyle(.grouped)
-      .inlineNavigationBarTitle("Dashboard")
+      .inlineNavigationBarTitle(String(localized: "dashboard.title"))
       .animation(.default, value: dashboard)
       .onAppear {
         movingSection = nil

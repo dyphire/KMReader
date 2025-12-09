@@ -27,21 +27,21 @@ enum SeriesSortOption: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .nameAsc: return "Name (A-Z)"
-    case .nameDesc: return "Name (Z-A)"
-    case .dateAddedAsc: return "Date Added (Oldest)"
-    case .dateAddedDesc: return "Date Added (Newest)"
-    case .dateUpdatedAsc: return "Date Updated (Oldest)"
-    case .dateUpdatedDesc: return "Date Updated (Newest)"
-    case .dateReadAsc: return "Date Read (Oldest)"
-    case .dateReadDesc: return "Date Read (Newest)"
-    case .releaseDateAsc: return "Release Date (Oldest)"
-    case .releaseDateDesc: return "Release Date (Newest)"
-    case .folderNameAsc: return "Folder Name (A-Z)"
-    case .folderNameDesc: return "Folder Name (Z-A)"
-    case .booksCountAsc: return "Books Count (Fewest)"
-    case .booksCountDesc: return "Books Count (Most)"
-    case .random: return "Random"
+    case .nameAsc: return String(localized: "series.sortOption.nameAsc")
+    case .nameDesc: return String(localized: "series.sortOption.nameDesc")
+    case .dateAddedAsc: return String(localized: "series.sortOption.dateAddedAsc")
+    case .dateAddedDesc: return String(localized: "series.sortOption.dateAddedDesc")
+    case .dateUpdatedAsc: return String(localized: "series.sortOption.dateUpdatedAsc")
+    case .dateUpdatedDesc: return String(localized: "series.sortOption.dateUpdatedDesc")
+    case .dateReadAsc: return String(localized: "series.sortOption.dateReadAsc")
+    case .dateReadDesc: return String(localized: "series.sortOption.dateReadDesc")
+    case .releaseDateAsc: return String(localized: "series.sortOption.releaseDateAsc")
+    case .releaseDateDesc: return String(localized: "series.sortOption.releaseDateDesc")
+    case .folderNameAsc: return String(localized: "series.sortOption.folderNameAsc")
+    case .folderNameDesc: return String(localized: "series.sortOption.folderNameDesc")
+    case .booksCountAsc: return String(localized: "series.sortOption.booksCountAsc")
+    case .booksCountDesc: return String(localized: "series.sortOption.booksCountDesc")
+    case .random: return String(localized: "series.sortOption.random")
     }
   }
 

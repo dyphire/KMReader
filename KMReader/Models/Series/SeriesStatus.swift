@@ -35,13 +35,13 @@ enum SeriesStatus: CaseIterable, Hashable {
   var displayName: String {
     switch self {
     case .ongoing:
-      return "Ongoing"
+      return String(localized: "series.status.ongoing")
     case .ended:
-      return "Ended"
+      return String(localized: "series.status.ended")
     case .hiatus:
-      return "Hiatus"
+      return String(localized: "series.status.hiatus")
     case .cancelled:
-      return "Cancelled"
+      return String(localized: "series.status.cancelled")
     }
   }
 

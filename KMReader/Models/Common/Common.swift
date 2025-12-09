@@ -24,8 +24,8 @@ enum SortDirection: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .ascending: return "Ascending"
-    case .descending: return "Descending"
+    case .ascending: return String(localized: "sort.direction.ascending")
+    case .descending: return String(localized: "sort.direction.descending")
     }
   }
 

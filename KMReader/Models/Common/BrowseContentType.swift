@@ -17,10 +17,10 @@ enum BrowseContentType: String, CaseIterable, Identifiable {
 
   var displayName: String {
     switch self {
-    case .series: return "Series"
-    case .books: return "Books"
-    case .collections: return "Collections"
-    case .readlists: return "Read Lists"
+    case .series: return String(localized: "browse.content.series")
+    case .books: return String(localized: "browse.content.books")
+    case .collections: return String(localized: "browse.content.collections")
+    case .readlists: return String(localized: "browse.content.readlists")
     }
   }
 

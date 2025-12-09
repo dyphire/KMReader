@@ -15,11 +15,11 @@ enum PageLayout: String, CaseIterable, Hashable {
   var displayName: String {
     switch self {
     case .single:
-      return "Single Page"
+      return String(localized: "reader.pageLayout.single")
     case .auto:
-      return "Auto"
+      return String(localized: "reader.pageLayout.auto")
     case .dual:
-      return "Dual Page"
+      return String(localized: "reader.pageLayout.dual")
     }
   }
 

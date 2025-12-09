@@ -17,12 +17,12 @@ enum TabItem: String, CaseIterable, Hashable {
   var title: String {
     switch self {
     case .home:
-      return "Home"
+      return String(localized: "tab.home")
     case .browse:
-      return "Browse"
+      return String(localized: "tab.browse")
     #if !os(macOS)
       case .settings:
-        return "Settings"
+        return String(localized: "tab.settings")
     #endif
     }
   }

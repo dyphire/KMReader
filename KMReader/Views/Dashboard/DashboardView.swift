@@ -160,7 +160,7 @@ struct DashboardView: View {
         .padding(.vertical)
       }
       .handleNavigation()
-      .inlineNavigationBarTitle("Dashboard")
+      .inlineNavigationBarTitle(String(localized: "title.dashboard"))
       .animation(.default, value: dashboard)
       .onChange(of: currentInstanceId) { _, _ in
         // Reset server last update time when switching servers

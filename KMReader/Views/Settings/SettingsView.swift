@@ -143,7 +143,7 @@ import SwiftUI
         }
         .formStyle(.grouped)
         .handleNavigation()
-        .inlineNavigationBarTitle("Settings")
+        .inlineNavigationBarTitle(String(localized: "title.settings"))
       }
     }
   }

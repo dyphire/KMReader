@@ -251,7 +251,7 @@ struct BookDetailView: View {
       }
       .padding()
     }
-    .inlineNavigationBarTitle("Book")
+    .inlineNavigationBarTitle(String(localized: "title.book"))
     .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteBook()

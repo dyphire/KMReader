@@ -34,22 +34,25 @@ struct SettingsLibrariesView: View {
         deleteConfirmationText = ""
       }
     )
-    .inlineNavigationBarTitle("Libraries")
-    .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
+    .inlineNavigationBarTitle(String(localized: "settings.libraries.title"))
+    .alert(String(localized: "settings.libraries.alert.title"), isPresented: isDeleteAlertPresented)
+    {
       if let libraryPendingDelete {
-        TextField("Enter library name", text: $deleteConfirmationText)
-        Button("Delete", role: .destructive) {
+        TextField(
+          String(localized: "settings.libraries.alert.placeholder"),
+          text: $deleteConfirmationText)
+        Button(String(localized: "settings.libraries.alert.delete"), role: .destructive) {
           deleteConfirmedLibrary(libraryPendingDelete)
         }
         .disabled(deleteConfirmationText != libraryPendingDelete.name)
-        Button("Cancel", role: .cancel) {
+        Button(String(localized: "common.cancel"), role: .cancel) {
           deleteConfirmationText = ""
         }
       }
     } message: {
       if let libraryPendingDelete {
         Text(
-          "This will permanently delete \(libraryPendingDelete.name) from Komga.\n\nTo confirm, please type the library name: \(libraryPendingDelete.name)"
+          deleteLibraryConfirmationMessage(for: libraryPendingDelete)
         )
       }
     }
@@ -61,7 +64,8 @@ struct SettingsLibrariesView: View {
         try await LibraryService.shared.deleteLibrary(id: library.libraryId)
         await LibraryManager.shared.refreshLibraries()
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Library deleted")
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.library.deleted"))
         }
       } catch {
         _ = await MainActor.run {
@@ -76,73 +80,11 @@ struct SettingsLibrariesView: View {
   }
 }
 
-// MARK: - Sheet Wrapper
-
-struct SettingsLibrariesSheetView: View {
-  @State private var libraryPendingDelete: KomgaLibrary?
-  @State private var deleteConfirmationText: String = ""
-
-  private var isDeleteAlertPresented: Binding<Bool> {
-    Binding(
-      get: { libraryPendingDelete != nil },
-      set: {
-        if !$0 {
-          libraryPendingDelete = nil
-          deleteConfirmationText = ""
-        }
-      }
-    )
-  }
-
-  var body: some View {
-    SheetView(title: "Libraries", size: .large) {
-      LibraryListContent(
-        showDeleteAction: true,
-        loadMetrics: false,
-        forceMetricsOnAppear: true,
-        onDeleteLibrary: { library in
-          libraryPendingDelete = library
-          deleteConfirmationText = ""
-        }
-      )
-      .alert("Delete Library?", isPresented: isDeleteAlertPresented) {
-        if let libraryPendingDelete {
-          TextField("Enter library name", text: $deleteConfirmationText)
-          Button("Delete", role: .destructive) {
-            deleteConfirmedLibrary(libraryPendingDelete)
-          }
-          .disabled(deleteConfirmationText != libraryPendingDelete.name)
-          Button("Cancel", role: .cancel) {
-            deleteConfirmationText = ""
-          }
-        }
-      } message: {
-        if let libraryPendingDelete {
-          Text(
-            "This will permanently delete \(libraryPendingDelete.name) from Komga.\n\nTo confirm, please type the library name: \(libraryPendingDelete.name)"
-          )
-        }
-      }
-    }
-  }
-
-  private func deleteConfirmedLibrary(_ library: KomgaLibrary) {
-    Task {
-      do {
-        try await LibraryService.shared.deleteLibrary(id: library.libraryId)
-        await LibraryManager.shared.refreshLibraries()
-        await MainActor.run {
-          ErrorManager.shared.notify(message: "Library deleted")
-        }
-      } catch {
-        _ = await MainActor.run {
-          ErrorManager.shared.alert(error: error)
-        }
-      }
-      _ = await MainActor.run {
-        libraryPendingDelete = nil
-        deleteConfirmationText = ""
-      }
-    }
-  }
+private func deleteLibraryConfirmationMessage(for library: KomgaLibrary) -> String {
+  let format = String(
+    localized: "settings.libraries.alert.message",
+    defaultValue:
+      "This will permanently delete %1$@ from Komga.\n\nTo confirm, please type the library name: %2$@"
+  )
+  return String(format: format, locale: Locale.current, library.name, library.name)
 }

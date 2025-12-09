@@ -89,21 +89,21 @@ struct ContentView: View {
       .padding(.horizontal, 8)
       .padding(.bottom, 64)
     }
-    .alert("Error", isPresented: $errorManager.hasAlert) {
-      Button("OK") {
+    .alert(String(localized: "error.title"), isPresented: $errorManager.hasAlert) {
+      Button(String(localized: "common.ok")) {
         ErrorManager.shared.vanishError()
       }
       #if os(iOS) || os(macOS)
-        Button("Copy") {
+        Button(String(localized: "common.copy")) {
           PlatformHelper.generalPasteboard.string = errorManager.currentError?.description
-          ErrorManager.shared.notify(message: "Copied")
+          ErrorManager.shared.notify(message: String(localized: "notification.copied"))
         }
       #endif
     } message: {
       if let error = errorManager.currentError {
         Text(verbatim: error.description)
       } else {
-        Text("Unknown Error")
+        Text(String(localized: "error.unknown"))
       }
     }
     #if os(iOS) || os(tvOS)
@@ -203,14 +203,14 @@ struct OldTabView: View {
         ProgressView()
           .progressViewStyle(.circular)
 
-        Text("Preparing reader…")
+        Text(String(localized: "reader.preparing"))
           .font(.headline)
           .foregroundColor(.secondary)
 
         Button {
           onClose()
         } label: {
-          Label("Cancel", systemImage: "xmark.circle")
+          Label(String(localized: "common.cancel"), systemImage: "xmark.circle")
             .font(.headline)
         }
         .adaptiveButtonStyle(.bordered)

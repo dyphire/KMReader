@@ -21,15 +21,15 @@ enum BookSortField: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .series: return "Series"
-    case .name: return "Name"
-    case .dateAdded: return "Date Added"
-    case .dateUpdated: return "Date Updated"
-    case .releaseDate: return "Release Date"
-    case .dateRead: return "Date Read"
-    case .fileSize: return "File Size"
-    case .fileName: return "File Name"
-    case .pageCount: return "Page Count"
+    case .series: return String(localized: "bookSort.series")
+    case .name: return String(localized: "bookSort.name")
+    case .dateAdded: return String(localized: "bookSort.dateAdded")
+    case .dateUpdated: return String(localized: "bookSort.dateUpdated")
+    case .releaseDate: return String(localized: "bookSort.releaseDate")
+    case .dateRead: return String(localized: "bookSort.dateRead")
+    case .fileSize: return String(localized: "bookSort.fileSize")
+    case .fileName: return String(localized: "bookSort.fileName")
+    case .pageCount: return String(localized: "bookSort.pageCount")
     }
   }
 

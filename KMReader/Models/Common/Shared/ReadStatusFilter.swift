@@ -16,10 +16,10 @@ enum ReadStatusFilter: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .all: return "All"
-    case .read: return "Read"
-    case .unread: return "Unread"
-    case .inProgress: return "In Progress"
+    case .all: return String(localized: "readStatus.all")
+    case .read: return String(localized: "readStatus.read")
+    case .unread: return String(localized: "readStatus.unread")
+    case .inProgress: return String(localized: "readStatus.inProgress")
     }
   }
 }

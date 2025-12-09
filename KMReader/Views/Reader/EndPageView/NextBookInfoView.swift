@@ -50,7 +50,8 @@ struct NextBookInfoView: View {
           .foregroundColor(.white.opacity(0.8))
         }
         Text(nextBook.metadata.title)
-        Text("\(nextBook.media.pagesCount) pages • \(nextBook.size)")
+        Text("\(nextBook.media.pagesCount) pages")
+          + Text(" • \(nextBook.size)")
           .font(.footnote)
       }
       .foregroundColor(.white)

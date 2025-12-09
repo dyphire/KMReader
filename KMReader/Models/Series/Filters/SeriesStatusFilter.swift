@@ -16,11 +16,11 @@ enum SeriesStatusFilter: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .all: return "All"
-    case .ongoing: return "Ongoing"
-    case .ended: return "Ended"
-    case .hiatus: return "Hiatus"
-    case .cancelled: return "Cancelled"
+    case .all: return String(localized: "series.status.all")
+    case .ongoing: return String(localized: "series.status.ongoing")
+    case .ended: return String(localized: "series.status.ended")
+    case .hiatus: return String(localized: "series.status.hiatus")
+    case .cancelled: return String(localized: "series.status.cancelled")
     }
   }
 }

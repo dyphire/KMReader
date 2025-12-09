@@ -49,7 +49,7 @@
           }
         }
         .padding(PlatformHelper.sheetPadding)
-        .inlineNavigationBarTitle("Chapters")
+        .inlineNavigationBarTitle(String(localized: "title.chapters"))
         .toolbar {
           ToolbarItem(placement: .cancellationAction) {
             Button {

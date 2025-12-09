@@ -65,7 +65,7 @@ struct SettingsTasksView: View {
             VStack(spacing: 12) {
               // Total Tasks with highlight
               HStack {
-                Label("Total Tasks", systemImage: "list.bullet.clipboard")
+                Label(String(localized: "Total Tasks"), systemImage: "list.bullet.clipboard")
                   .font(.headline)
                 Spacer()
                 Text("\(taskQueueStatus.count)")
@@ -101,7 +101,7 @@ struct SettingsTasksView: View {
             .padding(.vertical, 8)
           } header: {
             HStack {
-              Text("Task Queue Status")
+              Text(String(localized: "Task Queue Status"))
                 .font(.headline)
               Spacer()
               if taskQueueStatus.count > 0 {
@@ -120,7 +120,7 @@ struct SettingsTasksView: View {
 
         // Tasks Section
         if !tasksCountByType.isEmpty || metricErrors[.tasksExecuted] != nil {
-          Section(header: Text("Tasks Executed")) {
+          Section(header: Text(String(localized: "Tasks Executed"))) {
             ForEach(Array(tasksCountByType.keys.sorted()), id: \.self) { taskType in
               if let count = tasksCountByType[taskType] {
                 HStack {
@@ -146,7 +146,7 @@ struct SettingsTasksView: View {
         }
 
         if !tasksTotalTimeByType.isEmpty || metricErrors[.tasksTotalTime] != nil {
-          Section(header: Text("Tasks Total Time")) {
+          Section(header: Text(String(localized: "Tasks Total Time"))) {
             ForEach(Array(tasksTotalTimeByType.keys.sorted()), id: \.self) { taskType in
               if let time = tasksTotalTimeByType[taskType] {
                 HStack {
@@ -173,26 +173,28 @@ struct SettingsTasksView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle("Tasks")
+    .inlineNavigationBarTitle(String(localized: "Tasks"))
     #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button(role: .destructive) {
             showCancelAllConfirmation = true
           } label: {
-            Label("Cancel All Tasks", systemImage: "xmark.circle")
+            Label(String(localized: "Cancel All Tasks"), systemImage: "xmark.circle")
           }
           .disabled(isCancelling || isLoading)
         }
       }
     #endif
-    .alert("Cancel All Tasks", isPresented: $showCancelAllConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Confirm", role: .destructive) {
+    .alert(String(localized: "Cancel All Tasks"), isPresented: $showCancelAllConfirmation) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Confirm"), role: .destructive) {
         cancelAllTasks()
       }
     } message: {
-      Text("Are you sure you want to cancel all tasks? This action cannot be undone.")
+      Text(
+        String(localized: "Are you sure you want to cancel all tasks? This action cannot be undone.")
+      )
     }
     .task {
       if isAdmin {

@@ -251,7 +251,7 @@ struct SettingsServerInfoView: View {
       }
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle("Server Info")
+    .inlineNavigationBarTitle(String(localized: "title.serverInfo"))
     .task {
       if isAdmin {
         await loadServerInfo()

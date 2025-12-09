@@ -19,14 +19,14 @@ enum SeriesSortField: String, CaseIterable {
 
   var displayName: String {
     switch self {
-    case .name: return "Name"
-    case .dateAdded: return "Date Added"
-    case .dateUpdated: return "Date Updated"
-    case .dateRead: return "Date Read"
-    case .releaseDate: return "Release Date"
-    case .folderName: return "Folder Name"
-    case .booksCount: return "Books Count"
-    case .random: return "Random"
+    case .name: return String(localized: "series.sortField.name")
+    case .dateAdded: return String(localized: "series.sortField.dateAdded")
+    case .dateUpdated: return String(localized: "series.sortField.dateUpdated")
+    case .dateRead: return String(localized: "series.sortField.dateRead")
+    case .releaseDate: return String(localized: "series.sortField.releaseDate")
+    case .folderName: return String(localized: "series.sortField.folderName")
+    case .booksCount: return String(localized: "series.sortField.booksCount")
+    case .random: return String(localized: "series.sortField.random")
     }
   }
 

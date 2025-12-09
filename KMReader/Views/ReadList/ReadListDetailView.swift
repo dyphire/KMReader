@@ -113,7 +113,7 @@ struct ReadListDetailView: View {
       }
       .padding(.horizontal, horizontalPadding)
     }
-    .inlineNavigationBarTitle("Read List")
+    .inlineNavigationBarTitle(String(localized: "title.readList"))
     .alert("Delete Read List?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         Task {

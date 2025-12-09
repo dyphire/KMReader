@@ -120,6 +120,6 @@ struct SettingsReaderView: View {
 
     }
     .formStyle(.grouped)
-    .inlineNavigationBarTitle("Reader")
+    .inlineNavigationBarTitle(String(localized: "title.reader"))
   }
 }

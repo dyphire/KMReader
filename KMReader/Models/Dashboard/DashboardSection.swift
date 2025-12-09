@@ -22,19 +22,19 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   var displayName: String {
     switch self {
     case .keepReading:
-      return "Keep Reading"
+      return String(localized: "dashboard.keepReading")
     case .onDeck:
-      return "On Deck"
+      return String(localized: "dashboard.onDeck")
     case .recentlyReleasedBooks:
-      return "Recently Released Books"
+      return String(localized: "dashboard.recentlyReleasedBooks")
     case .recentlyAddedBooks:
-      return "Recently Added Books"
+      return String(localized: "dashboard.recentlyAddedBooks")
     case .recentlyUpdatedSeries:
-      return "Recently Updated Series"
+      return String(localized: "dashboard.recentlyUpdatedSeries")
     case .recentlyAddedSeries:
-      return "Recently Added Series"
+      return String(localized: "dashboard.recentlyAddedSeries")
     case .recentlyReadBooks:
-      return "Recently Read Books"
+      return String(localized: "dashboard.recentlyReadBooks")
     }
   }
 

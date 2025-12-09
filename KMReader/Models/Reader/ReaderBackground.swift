@@ -16,10 +16,10 @@ enum ReaderBackground: String, CaseIterable, Hashable {
 
   var displayName: String {
     switch self {
-    case .black: return "Black"
-    case .white: return "White"
-    case .gray: return "Gray"
-    case .system: return "System"
+    case .black: return String(localized: "reader.background.black")
+    case .white: return String(localized: "reader.background.white")
+    case .gray: return String(localized: "reader.background.gray")
+    case .system: return String(localized: "reader.background.system")
     }
   }
 

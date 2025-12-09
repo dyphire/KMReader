@@ -57,7 +57,7 @@ struct BrowseView: View {
         }
       }
       .handleNavigation()
-      .inlineNavigationBarTitle("Browse")
+      .inlineNavigationBarTitle(String(localized: "title.browse"))
       .searchable(text: $searchQuery)
       #if !os(tvOS)
         .toolbar {

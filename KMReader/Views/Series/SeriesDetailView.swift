@@ -374,7 +374,7 @@ struct SeriesDetailView: View {
       }
       .padding(.horizontal, horizontalPadding)
     }
-    .inlineNavigationBarTitle("Series")
+    .inlineNavigationBarTitle(String(localized: "title.series"))
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteSeries()

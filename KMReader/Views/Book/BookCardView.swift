@@ -85,7 +85,9 @@ struct BookCardView: View {
                 .foregroundColor(.red)
             } else {
               HStack(spacing: 4) {
-                Text("\(book.media.pagesCount) pages · \(book.size)")
+                Text("\(book.media.pagesCount) pages")
+                  + Text(" • \(book.size)")
+                  .font(.footnote)
                 if book.oneshot {
                   Text("•")
                   Text("Oneshot")
