@@ -16,12 +16,10 @@
 		19FDF1152EC9DDC700F7C3D9 /* SDWebImageSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6ACB831E4AA344E7B2C3D4DB1846B6A4 /* SDWebImageSwiftUI */; };
 		19FDF1162EC9DDC700F7C3D9 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 585D1923D403492AAB307C02B56DBF71 /* SDWebImage */; };
 		19FDF1172EC9DDC700F7C3D9 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 366522FBE7874AE69F5766E100695813 /* SDWebImageWebPCoder */; };
-		8C8E7A6C2FF63D81004E0AAB /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8C8E7A6B2FF63D81004E0AAB /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		192E6F7D2EC4B4E20040D165 /* KMReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KMReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		8C8E7A6B2FF63D81004E0AAB /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = KMReader/Resources/Localization/Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,7 +27,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Resources/Localization/Localizable.xcstrings,
 			);
 			target = 192E6F7C2EC4B4E20040D165 /* KMReader */;
 		};
@@ -70,7 +67,6 @@
 			isa = PBXGroup;
 			children = (
 				192E6F7F2EC4B4E20040D165 /* KMReader */,
-				19600B372ED616010066E8A4 /* Frameworks */,
 				192E6F7E2EC4B4E20040D165 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,13 +77,6 @@
 				192E6F7D2EC4B4E20040D165 /* KMReader.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		19600B372ED616010066E8A4 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -147,6 +136,8 @@
 				Base,
 				"zh-Hans",
 				"zh-Hant",
+				fr,
+				ja,
 			);
 			mainGroup = 192E6F742EC4B4E20040D165;
 			minimizedProjectReferenceProxies = 1;
@@ -172,7 +163,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8C8E7A6C2FF63D81004E0AAB /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
