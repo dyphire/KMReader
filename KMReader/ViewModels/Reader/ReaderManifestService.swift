@@ -146,8 +146,7 @@ struct ReaderManifestService {
       let trimmedTitle = item.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
       let title =
         trimmedTitle.isEmpty
-        ? String(
-          format: NSLocalizedString("Page %d", comment: "Fallback TOC title"), pageIndex + 1)
+        ? localizedPageLabel(pageIndex + 1)
         : trimmedTitle
 
       entries.append(ReaderTOCEntry(title: title, pageIndex: pageIndex))
@@ -168,6 +167,11 @@ struct ReaderManifestService {
       return relativeURL.absoluteURL
     }
     return nil
+  }
+
+  private func localizedPageLabel(_ pageNumber: Int) -> String {
+    let format = String(localized: "Page %d", bundle: .main, comment: "Fallback TOC title")
+    return String.localizedStringWithFormat(format, pageNumber)
   }
 }
 

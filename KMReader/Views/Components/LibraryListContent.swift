@@ -72,7 +72,7 @@ struct LibraryListContent: View {
         Section {
           HStack {
             Spacer()
-            ProgressView("Loading Libraries…")
+            ProgressView(String(localized: "Loading Libraries…"))
             Spacer()
           }
         }
@@ -83,13 +83,13 @@ struct LibraryListContent: View {
             Image(systemName: "books.vertical")
               .font(.largeTitle)
               .foregroundColor(.secondary)
-            Text("No libraries found")
+            Text(String(localized: "No libraries found"))
               .font(.headline)
-            Text("Add a library from Komga's web interface to manage it here.")
+            Text(String(localized: "Add a library from Komga's web interface to manage it here."))
               .font(.caption)
               .foregroundColor(.secondary)
               .multilineTextAlignment(.center)
-            Button("Retry") {
+            Button(String(localized: "Retry")) {
               Task {
                 await refreshLibraries()
               }
@@ -217,14 +217,13 @@ struct LibraryListContent: View {
   @ViewBuilder
   private func allLibrariesRowContent(isSelected: Bool) -> some View {
     let entry = allLibrariesEntry
-    let hasMetrics = hasAllLibrariesMetrics(entry)
-    let metricsText = hasMetrics ? formatAllLibrariesMetrics(entry) : ""
+    let metricsView = allLibrariesMetricsView(entry)
     let fileSizeText = entry?.fileSize.map { formatFileSize($0) } ?? ""
 
     HStack(spacing: 8) {
       VStack(alignment: .leading, spacing: 2) {
         HStack(spacing: 6) {
-          Text("All Libraries")
+          Text(String(localized: "All Libraries"))
             .font(.headline)
           if !fileSizeText.isEmpty {
             Text(fileSizeText)
@@ -234,8 +233,8 @@ struct LibraryListContent: View {
               .animation(.easeInOut(duration: 0.2), value: fileSizeText.isEmpty)
           }
         }
-        if isAdmin && hasMetrics {
-          Text(metricsText)
+        if isAdmin, let metricsView {
+          metricsView
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -304,7 +303,7 @@ struct LibraryListContent: View {
   private func librarySummary(_ library: KomgaLibrary, isPerforming: Bool, isSelected: Bool)
     -> some View
   {
-    let metricsText = hasMetrics(library) ? formatMetrics(library) : ""
+    let metricsText = metricsView(for: library)
     let fileSizeText = library.fileSize.map { formatFileSize($0) } ?? ""
 
     HStack(spacing: 8) {
@@ -318,8 +317,8 @@ struct LibraryListContent: View {
               .foregroundColor(.secondary)
           }
         }
-        if !metricsText.isEmpty {
-          Text(metricsText)
+        if let metricsText {
+          metricsText
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -360,7 +359,7 @@ struct LibraryListContent: View {
         try await scanAllLibraries(deep: false)
       }
     } label: {
-      Label("Scan All Libraries", systemImage: "arrow.clockwise")
+      Label(String(localized: "Scan All Libraries"), systemImage: "arrow.clockwise")
     }
     .disabled(isPerformingGlobalAction)
 
@@ -369,7 +368,10 @@ struct LibraryListContent: View {
         try await scanAllLibraries(deep: true)
       }
     } label: {
-      Label("Scan All Libraries (Deep)", systemImage: "arrow.triangle.2.circlepath")
+      Label(
+        String(localized: "Scan All Libraries (Deep)"),
+        systemImage: "arrow.triangle.2.circlepath"
+      )
     }
     .disabled(isPerformingGlobalAction)
 
@@ -378,7 +380,7 @@ struct LibraryListContent: View {
         try await emptyTrashAllLibraries()
       }
     } label: {
-      Label("Empty Trash for All Libraries", systemImage: "trash.slash")
+      Label(String(localized: "Empty Trash for All Libraries"), systemImage: "trash.slash")
     }
     .disabled(isPerformingGlobalAction)
   }
@@ -389,35 +391,38 @@ struct LibraryListContent: View {
       Button {
         scanLibrary(library)
       } label: {
-        Label("Scan Library Files", systemImage: "arrow.clockwise")
+        Label(String(localized: "Scan Library Files"), systemImage: "arrow.clockwise")
       }
       .disabled(isPerforming)
 
       Button {
         scanLibraryDeep(library)
       } label: {
-        Label("Scan Library Files (Deep)", systemImage: "arrow.triangle.2.circlepath")
+        Label(
+          String(localized: "Scan Library Files (Deep)"),
+          systemImage: "arrow.triangle.2.circlepath"
+        )
       }
       .disabled(isPerforming)
 
       Button {
         analyzeLibrary(library)
       } label: {
-        Label("Analyze", systemImage: "waveform.path.ecg")
+        Label(String(localized: "Analyze"), systemImage: "waveform.path.ecg")
       }
       .disabled(isPerforming)
 
       Button {
         refreshMetadata(library)
       } label: {
-        Label("Refresh Metadata", systemImage: "arrow.triangle.branch")
+        Label(String(localized: "Refresh Metadata"), systemImage: "arrow.triangle.branch")
       }
       .disabled(isPerforming)
 
       Button {
         emptyTrash(library)
       } label: {
-        Label("Empty Trash", systemImage: "trash.slash")
+        Label(String(localized: "Empty Trash"), systemImage: "trash.slash")
       }
       .disabled(isPerforming)
 
@@ -427,7 +432,7 @@ struct LibraryListContent: View {
         Button(role: .destructive) {
           onDeleteLibrary?(library)
         } label: {
-          Label("Delete Library", systemImage: "trash")
+          Label(String(localized: "Delete Library"), systemImage: "trash")
         }
         .disabled(isPerforming)
       }
@@ -441,20 +446,35 @@ struct LibraryListContent: View {
       || library.sidecarsCount != nil
   }
 
-  private func formatMetrics(_ library: KomgaLibrary) -> String {
-    var parts: [String] = []
+  private func metricsView(for library: KomgaLibrary) -> Text? {
+    var parts: [Text] = []
 
     if let seriesCount = library.seriesCount {
-      parts.append("\(formatNumber(seriesCount)) series")
+      parts.append(
+        formatMetricCount(
+          key: "library.list.metrics.series",
+          defaultValue: "%@ series",
+          value: seriesCount
+        ))
     }
     if let booksCount = library.booksCount {
-      parts.append("\(formatNumber(booksCount)) books")
+      parts.append(
+        formatMetricCount(
+          key: "library.list.metrics.books",
+          defaultValue: "%@ books",
+          value: booksCount
+        ))
     }
     if let sidecarsCount = library.sidecarsCount {
-      parts.append("\(formatNumber(sidecarsCount)) sidecars")
+      parts.append(
+        formatMetricCount(
+          key: "library.list.metrics.sidecars",
+          defaultValue: "%@ sidecars",
+          value: sidecarsCount
+        ))
     }
 
-    return parts.joined(separator: " · ")
+    return joinText(parts, separator: " · ")
   }
 
   private func formatNumber(_ value: Double) -> String {
@@ -462,6 +482,18 @@ struct LibraryListContent: View {
     formatter.numberStyle = .decimal
     formatter.maximumFractionDigits = 0
     return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+  }
+
+  private func formatMetricCount(key: String, defaultValue: String, value: Double) -> Text {
+    let format = Bundle.main.localizedString(forKey: key, value: defaultValue, table: nil)
+    return Text(String.localizedStringWithFormat(format, formatNumber(value)))
+  }
+
+  private func joinText(_ parts: [Text], separator: String) -> Text? {
+    guard let first = parts.first else { return nil }
+    return parts.dropFirst().reduce(first) { result, part in
+      result + Text(separator) + part
+    }
   }
 
   private func formatFileSize(_ bytes: Double) -> String {
@@ -475,38 +507,63 @@ struct LibraryListContent: View {
       || entry.readlistsCount != nil
   }
 
-  private func formatAllLibrariesMetrics(_ entry: KomgaLibrary?) -> String {
-    guard let entry else { return "" }
-    var lines: [String] = []
+  private func allLibrariesMetricsView(_ entry: KomgaLibrary?) -> Text? {
+    guard let entry else { return nil }
+    var lines: [Text] = []
 
     // First line: series, books, sidecars
-    var firstLineParts: [String] = []
+    var firstLineParts: [Text] = []
     if let seriesCount = entry.seriesCount {
-      firstLineParts.append("\(formatNumber(seriesCount)) series")
+      firstLineParts.append(
+        formatMetricCount(
+          key: "library.list.metrics.series",
+          defaultValue: "%@ series",
+          value: seriesCount
+        ))
     }
     if let booksCount = entry.booksCount {
-      firstLineParts.append("\(formatNumber(booksCount)) books")
+      firstLineParts.append(
+        formatMetricCount(
+          key: "library.list.metrics.books",
+          defaultValue: "%@ books",
+          value: booksCount
+        ))
     }
     if let sidecarsCount = entry.sidecarsCount {
-      firstLineParts.append("\(formatNumber(sidecarsCount)) sidecars")
+      firstLineParts.append(
+        formatMetricCount(
+          key: "library.list.metrics.sidecars",
+          defaultValue: "%@ sidecars",
+          value: sidecarsCount
+        ))
     }
-    if !firstLineParts.isEmpty {
-      lines.append(firstLineParts.joined(separator: " · "))
+    if let firstLine = joinText(firstLineParts, separator: " · ") {
+      lines.append(firstLine)
     }
 
     // Second line: collections, readlists
-    var secondLineParts: [String] = []
+    var secondLineParts: [Text] = []
     if let collectionsCount = entry.collectionsCount {
-      secondLineParts.append("\(formatNumber(collectionsCount)) collections")
+      secondLineParts.append(
+        formatMetricCount(
+          key: "library.list.metrics.collections",
+          defaultValue: "%@ collections",
+          value: collectionsCount
+        ))
     }
     if let readlistsCount = entry.readlistsCount {
-      secondLineParts.append("\(formatNumber(readlistsCount)) readlists")
+      secondLineParts.append(
+        formatMetricCount(
+          key: "library.list.metrics.readlists",
+          defaultValue: "%@ read lists",
+          value: readlistsCount
+        ))
     }
-    if !secondLineParts.isEmpty {
-      lines.append(secondLineParts.joined(separator: " · "))
+    if let secondLine = joinText(secondLineParts, separator: " · ") {
+      lines.append(secondLine)
     }
 
-    return lines.joined(separator: "\n")
+    return joinText(lines, separator: "\n")
   }
 
   // MARK: - Library Actions
@@ -518,7 +575,7 @@ struct LibraryListContent: View {
       do {
         try await libraryService.scanLibrary(id: library.libraryId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Library scan started")
+          ErrorManager.shared.notify(message: String(localized: "library.list.notify.scanStarted"))
         }
       } catch {
         _ = await MainActor.run {
@@ -538,7 +595,7 @@ struct LibraryListContent: View {
       do {
         try await libraryService.scanLibrary(id: library.libraryId, deep: true)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Library scan started")
+          ErrorManager.shared.notify(message: String(localized: "library.list.notify.scanStarted"))
         }
       } catch {
         _ = await MainActor.run {
@@ -558,7 +615,9 @@ struct LibraryListContent: View {
       do {
         try await libraryService.analyzeLibrary(id: library.libraryId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Library analysis started")
+          ErrorManager.shared.notify(
+            message: String(localized: "library.list.notify.analysisStarted")
+          )
         }
       } catch {
         _ = await MainActor.run {
@@ -578,7 +637,9 @@ struct LibraryListContent: View {
       do {
         try await libraryService.refreshMetadata(id: library.libraryId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Library metadata refresh started")
+          ErrorManager.shared.notify(
+            message: String(localized: "library.list.notify.metadataRefreshStarted")
+          )
         }
       } catch {
         _ = await MainActor.run {
@@ -598,7 +659,7 @@ struct LibraryListContent: View {
       do {
         try await libraryService.emptyTrash(id: library.libraryId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: "Trash emptied")
+          ErrorManager.shared.notify(message: String(localized: "library.list.notify.trashEmptied"))
         }
       } catch {
         _ = await MainActor.run {

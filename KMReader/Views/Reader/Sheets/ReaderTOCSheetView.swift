@@ -24,9 +24,10 @@ struct ReaderTOCSheetView: View {
                 Text(entry.title)
                   .font(.body)
                 Text(
-                  String(
-                    format: NSLocalizedString("Page %d", comment: "TOC page label"),
-                    entry.pageNumber)
+                  "Page \(entry.pageNumber)",
+                  tableName: nil,
+                  bundle: .main,
+                  comment: "TOC page label"
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
