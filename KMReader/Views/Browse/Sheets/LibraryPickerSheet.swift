@@ -39,7 +39,8 @@ struct LibraryPickerSheet: View {
     SheetView(title: String(localized: "Libraries"), size: .large) {
       LibraryListContent(
         showDeleteAction: false,
-        forceMetricsOnAppear: false
+        forceMetricsOnAppear: false,
+        enablePullToRefresh: false
       )
     } controls: {
       HStack(spacing: 12) {

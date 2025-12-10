@@ -7248,6 +7248,7 @@
       }
     },
     "Filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

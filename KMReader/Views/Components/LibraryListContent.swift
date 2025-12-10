@@ -24,6 +24,7 @@ struct LibraryListContent: View {
   let loadMetrics: Bool
   let alwaysRefreshMetrics: Bool
   let forceMetricsOnAppear: Bool
+  let enablePullToRefresh: Bool
   let onLibrarySelected: ((String?) -> Void)?
   let onDeleteLibrary: ((KomgaLibrary) -> Void)?
 
@@ -35,6 +36,7 @@ struct LibraryListContent: View {
     loadMetrics: Bool = true,
     alwaysRefreshMetrics: Bool = false,
     forceMetricsOnAppear: Bool = true,
+    enablePullToRefresh: Bool = true,
     onLibrarySelected: ((String?) -> Void)? = nil,
     onDeleteLibrary: ((KomgaLibrary) -> Void)? = nil
   ) {
@@ -43,6 +45,7 @@ struct LibraryListContent: View {
     self.loadMetrics = loadMetrics
     self.alwaysRefreshMetrics = alwaysRefreshMetrics
     self.forceMetricsOnAppear = forceMetricsOnAppear
+    self.enablePullToRefresh = enablePullToRefresh
     self.onLibrarySelected = onLibrarySelected
     self.onDeleteLibrary = onDeleteLibrary
     _selectedLibraryIds = State(initialValue: initialSelection)
@@ -67,6 +70,17 @@ struct LibraryListContent: View {
   }
 
   var body: some View {
+    if enablePullToRefresh {
+      formContent
+        .refreshable {
+          await refreshLibraries(forceMetrics: true)
+        }
+    } else {
+      formContent
+    }
+  }
+
+  private var formContent: some View {
     Form {
       if isLoading && libraries.isEmpty {
         Section {
@@ -115,9 +129,6 @@ struct LibraryListContent: View {
     #endif
     .task {
       await refreshLibraries(forceMetrics: forceMetricsOnAppear)
-    }
-    .refreshable {
-      await refreshLibraries(forceMetrics: true)
     }
     .onChange(of: libraries) { _, _ in
       Task {
