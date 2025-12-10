@@ -40,7 +40,7 @@ struct EndPageView: View {
             HStack(spacing: 8) {
               Image(systemName: "arrow.left")
                 .font(.system(size: 16, weight: .semibold))
-              Text("Next")
+              Text(String(localized: "reader.nextBook"))
                 .font(.system(size: 16, weight: .medium))
             }
             .foregroundColor(.white)
@@ -130,7 +130,7 @@ struct EndPageView: View {
             onNextBook(nextBook.id)
           } label: {
             HStack(spacing: 8) {
-              Text("Next")
+              Text(String(localized: "reader.nextBook"))
                 .font(.system(size: 16, weight: .medium))
               Image(systemName: "arrow.right")
                 .font(.system(size: 16, weight: .semibold))

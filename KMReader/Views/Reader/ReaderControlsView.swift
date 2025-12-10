@@ -75,7 +75,7 @@ struct ReaderControlsView: View {
   private var displayedCurrentPage: String {
     guard viewModel.pages.count > 0 else { return "0" }
     if viewModel.currentPageIndex >= viewModel.pages.count {
-      return "END"
+      return String(localized: "reader.page.end")
     } else {
       if dualPage, let pair = viewModel.dualPageIndices[viewModel.currentPageIndex] {
         return pair.display(readingDirection: readingDirection)

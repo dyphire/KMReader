@@ -28,9 +28,15 @@ struct NextBookInfoView: View {
 
   private var upNextLabel: String {
     if readList != nil {
-      return "UP NEXT IN READ LIST: #\(displayNumber)"
+      return String.localizedStringWithFormat(
+        String(localized: "UP NEXT IN READ LIST: #%lld"),
+        displayNumber
+      )
     } else {
-      return "UP NEXT IN SERIES: #\(displayNumber)"
+      return String.localizedStringWithFormat(
+        String(localized: "UP NEXT IN SERIES: #%lld"),
+        displayNumber
+      )
     }
   }
 
@@ -44,14 +50,29 @@ struct NextBookInfoView: View {
           HStack(spacing: 4) {
             Image(systemName: "list.bullet.rectangle")
               .font(.caption2)
-            Text("From: \(readList.name)")
-              .font(.caption)
+            Text(
+              String.localizedStringWithFormat(
+                String(localized: "From: %@"),
+                readList.name
+              )
+            )
+            .font(.caption)
           }
           .foregroundColor(.white.opacity(0.8))
         }
         Text(nextBook.metadata.title)
-        Text("\(nextBook.media.pagesCount) pages")
-          + Text(" • \(nextBook.size)")
+        Text(
+          String.localizedStringWithFormat(
+            String(localized: "%lld pages"),
+            nextBook.media.pagesCount
+          )
+        )
+          + Text(
+            String.localizedStringWithFormat(
+              String(localized: " • %@"),
+              nextBook.size
+            )
+          )
           .font(.footnote)
       }
       .foregroundColor(.white)
@@ -64,7 +85,7 @@ struct NextBookInfoView: View {
     } else {
       HStack(spacing: 8) {
         Image(systemName: "checkmark.circle")
-        Text("You're all caught up!")
+        Text(String(localized: "You're all caught up!"))
       }
       .foregroundColor(.white)
       .padding(.horizontal, 16)
