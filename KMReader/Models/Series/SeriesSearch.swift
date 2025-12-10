@@ -41,8 +41,15 @@ struct SeriesSearch: Encodable {
 extension SeriesSearch {
   static func buildCondition(
     libraryIds: [String]? = nil,
-    readStatus: ReadStatus? = nil,
-    seriesStatus: String? = nil,
+    includeReadStatuses: [ReadStatus] = [],
+    excludeReadStatuses: [ReadStatus] = [],
+    includeSeriesStatuses: [String] = [],
+    excludeSeriesStatuses: [String] = [],
+    seriesStatusLogic: StatusFilterLogic = .all,
+    includeOneshot: Bool? = nil,
+    excludeOneshot: Bool? = nil,
+    includeDeleted: Bool? = nil,
+    excludeDeleted: Bool? = nil,
     collectionId: String? = nil
   ) -> [String: Any]? {
     var conditions: [[String: Any]] = []
@@ -63,24 +70,64 @@ extension SeriesSearch {
       }
     }
 
-    if let readStatus = readStatus {
-      // For series, readStatus needs to be wrapped in anyOf
+    if !includeReadStatuses.isEmpty {
+      let statusConditions = includeReadStatuses.map {
+        ["readStatus": ["operator": "is", "value": $0.rawValue]]
+      }
+      conditions.append(["anyOf": statusConditions])
+    }
+
+    if !excludeReadStatuses.isEmpty {
+      let statusConditions = excludeReadStatuses.map {
+        ["readStatus": ["operator": "isnot", "value": $0.rawValue]]
+      }
+      conditions.append(["allOf": statusConditions])
+    }
+
+    if !includeSeriesStatuses.isEmpty {
+      let statusConditions = includeSeriesStatuses.map { status in
+        ["seriesStatus": ["operator": "is", "value": status]]
+      }
+      let wrapperKey = seriesStatusLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: statusConditions])
+    }
+
+    if !excludeSeriesStatuses.isEmpty {
+      let statusConditions = excludeSeriesStatuses.map { status in
+        ["seriesStatus": ["operator": "isnot", "value": status]]
+      }
+      let wrapperKey = seriesStatusLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: statusConditions])
+    }
+
+    if let includeOneshot {
       conditions.append([
-        "anyOf": [
-          [
-            "readStatus": ["operator": "is", "value": readStatus.rawValue]
-          ]
+        "oneshot": [
+          "operator": includeOneshot ? "istrue" : "isfalse"
         ]
       ])
     }
 
-    if let seriesStatus = seriesStatus {
-      // Series status also needs to be wrapped in anyOf
+    if let excludeOneshot {
       conditions.append([
-        "anyOf": [
-          [
-            "seriesStatus": ["operator": "is", "value": seriesStatus]
-          ]
+        "oneshot": [
+          "operator": excludeOneshot ? "isfalse" : "istrue"
+        ]
+      ])
+    }
+
+    if let includeDeleted {
+      conditions.append([
+        "deleted": [
+          "operator": includeDeleted ? "istrue" : "isfalse"
+        ]
+      ])
+    }
+
+    if let excludeDeleted {
+      conditions.append([
+        "deleted": [
+          "operator": excludeDeleted ? "isfalse" : "istrue"
         ]
       ])
     }

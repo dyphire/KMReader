@@ -27,19 +27,45 @@ struct BookFilterView: View {
             .padding(.leading, 4)
             .foregroundColor(.secondary)
 
-          if browseOpts.readStatusFilter != .all {
-            FilterChip(
-              label: browseOpts.readStatusFilter.displayName,
-              systemImage: "eye",
-              openSheet: $showFilterSheet
-            )
-          }
-
           FilterChip(
             label: sortString,
             systemImage: "arrow.up.arrow.down",
             openSheet: $showFilterSheet
           )
+
+          if let label = buildReadStatusLabel(
+            include: browseOpts.includeReadStatuses,
+            exclude: browseOpts.excludeReadStatuses
+          ) {
+            FilterChip(
+              label: label,
+              systemImage: "eye",
+              variant: label.contains("≠") ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
+
+          if browseOpts.oneshotFilter.isActive,
+            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in "Oneshot" })
+          {
+            FilterChip(
+              label: label,
+              systemImage: "dot.circle",
+              variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
+
+          if browseOpts.deletedFilter.isActive,
+            let label = browseOpts.deletedFilter.displayLabel(using: { _ in "Deleted" })
+          {
+            FilterChip(
+              label: label,
+              systemImage: "trash",
+              variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
         }
         .padding(4)
       }

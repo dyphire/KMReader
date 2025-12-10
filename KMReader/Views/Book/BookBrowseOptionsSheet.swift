@@ -24,12 +24,53 @@ struct BookBrowseOptionsSheet: View {
     ) {
       Form {
         Section("Filters") {
-          Picker("Read Status", selection: $tempOpts.readStatusFilter) {
-            ForEach(ReadStatusFilter.allCases, id: \.self) { filter in
-              Text(filter.displayName).tag(filter)
+          ForEach(ReadStatusFilter.selectableCases, id: \.self) { filter in
+            Button {
+              withAnimation(.easeInOut) {
+                toggleReadStatus(filter)
+              }
+            } label: {
+              HStack {
+                Text(filter.displayName)
+                Spacer()
+                let state = resolveReadStatusState(
+                  for: filter,
+                  include: tempOpts.includeReadStatuses,
+                  exclude: tempOpts.excludeReadStatuses
+                )
+                Image(systemName: icon(for: state))
+                  .foregroundStyle(color(for: state))
+              }
             }
           }
-          .pickerStyle(.menu)
+        }
+
+        Section("Flags") {
+          Button {
+            withAnimation(.easeInOut) {
+              tempOpts.oneshotFilter.cycle(to: .yes)
+            }
+          } label: {
+            HStack {
+              Text("Oneshot")
+              Spacer()
+              Image(systemName: icon(for: tempOpts.oneshotFilter.state(for: .yes)))
+                .foregroundStyle(color(for: tempOpts.oneshotFilter.state(for: .yes)))
+            }
+          }
+
+          Button {
+            withAnimation(.easeInOut) {
+              tempOpts.deletedFilter.cycle(to: .yes)
+            }
+          } label: {
+            HStack {
+              Text("Deleted")
+              Spacer()
+              Image(systemName: icon(for: tempOpts.deletedFilter.state(for: .yes)))
+                .foregroundStyle(color(for: tempOpts.deletedFilter.state(for: .yes)))
+            }
+          }
         }
 
         SortOptionView(
@@ -56,5 +97,45 @@ struct BookBrowseOptionsSheet: View {
       browseOpts = tempOpts
     }
     dismiss()
+  }
+
+  private func icon(for state: TriStateSelection) -> String {
+    switch state {
+    case .off:
+      return "circle"
+    case .include:
+      return "checkmark.circle.fill"
+    case .exclude:
+      return "xmark.circle.fill"
+    }
+  }
+
+  private func color(for state: TriStateSelection) -> Color {
+    switch state {
+    case .off:
+      return .secondary
+    case .include:
+      return .accentColor
+    case .exclude:
+      return .red
+    }
+  }
+
+  private func state(for status: ReadStatusFilter) -> TriStateSelection {
+    if tempOpts.includeReadStatuses.contains(status) {
+      return .include
+    }
+    if tempOpts.excludeReadStatuses.contains(status) {
+      return .exclude
+    }
+    return .off
+  }
+
+  private func toggleReadStatus(_ status: ReadStatusFilter) {
+    var include = tempOpts.includeReadStatuses
+    var exclude = tempOpts.excludeReadStatuses
+    KMReader.applyReadStatusToggle(status, include: &include, exclude: &exclude)
+    tempOpts.includeReadStatuses = include
+    tempOpts.excludeReadStatuses = exclude
   }
 }

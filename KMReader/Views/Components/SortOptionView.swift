@@ -23,14 +23,10 @@ struct SortOptionView<SortField: SortFieldProtocol>: View {
       if sortField.supportsDirection {
         Picker("Direction", selection: $sortDirection) {
           ForEach(Array(SortDirection.allCases), id: \.self) { direction in
-            HStack {
-              Image(systemName: direction.icon)
-              Text(direction.displayName)
-            }
-            .tag(direction)
+            Label(direction.displayName, systemImage: direction.icon).tag(direction)
           }
         }
-        .pickerStyle(.menu)
+        .pickerStyle(.segmented)
       }
     }
   }

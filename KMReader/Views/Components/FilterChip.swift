@@ -10,6 +10,7 @@ import SwiftUI
 struct FilterChip: View {
   let label: String
   let systemImage: String
+  var variant: FilterChipVariant = .normal
 
   @Binding var openSheet: Bool
 
@@ -27,5 +28,11 @@ struct FilterChip: View {
     }
     .adaptiveButtonStyle(.bordered)
     .controlSize(.mini)
+    .tint(variant == .negative ? .red : .accentColor)
   }
+}
+
+enum FilterChipVariant {
+  case normal
+  case negative
 }

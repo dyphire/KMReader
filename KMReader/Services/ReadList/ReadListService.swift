@@ -60,28 +60,23 @@ class ReadListService {
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
-    var queryItems = [
-      URLQueryItem(name: "page", value: "\(page)"),
-      URLQueryItem(name: "size", value: "\(size)"),
-    ]
-
-    // Support multiple libraryIds
-    if let libraryIds = libraryIds, !libraryIds.isEmpty {
-      for id in libraryIds where !id.isEmpty {
-        queryItems.append(URLQueryItem(name: "library_id", value: id))
-      }
-    }
-
-    // Support readStatus filter
-    let readStatus = browseOpts.readStatusFilter.toReadStatus()
-    if let readStatus = readStatus {
-      queryItems.append(URLQueryItem(name: "read_status", value: readStatus.rawValue))
-    }
-
-    // Note: readlist books API does not support sort, only filter
-    return try await apiClient.request(
-      path: "/api/v1/readlists/\(readListId)/books",
-      queryItems: queryItems
+    let condition = BookSearch.buildCondition(
+      libraryIds: libraryIds,
+      includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
+      excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+      includeOneshot: browseOpts.oneshotFilter.includedBool,
+      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
+      includeDeleted: browseOpts.deletedFilter.includedBool,
+      excludeDeleted: browseOpts.deletedFilter.excludedBool,
+      seriesId: nil,
+      readListId: readListId
+    )
+    let search = BookSearch(condition: condition)
+    return try await BookService.shared.getBooksList(
+      search: search,
+      page: page,
+      size: size,
+      sort: nil
     )
   }
 

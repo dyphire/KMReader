@@ -11,7 +11,10 @@ import SwiftUI
 struct BookBrowseOptions: Equatable, RawRepresentable {
   typealias RawValue = String
 
-  var readStatusFilter: ReadStatusFilter = .all
+  var includeReadStatuses: Set<ReadStatusFilter> = []
+  var excludeReadStatuses: Set<ReadStatusFilter> = []
+  var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
+  var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var sortField: BookSortField = .series
   var sortDirection: SortDirection = .ascending
 
@@ -21,7 +24,10 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
 
   var rawValue: String {
     let dict: [String: String] = [
-      "readStatusFilter": readStatusFilter.rawValue,
+      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.joined(separator: ","),
+      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.joined(separator: ","),
+      "oneshotFilter": oneshotFilter.storageValue,
+      "deletedFilter": deletedFilter.storageValue,
       "sortField": sortField.rawValue,
       "sortDirection": sortDirection.rawValue,
     ]
@@ -42,7 +48,30 @@ struct BookBrowseOptions: Equatable, RawRepresentable {
     else {
       return nil
     }
-    self.readStatusFilter = ReadStatusFilter(rawValue: dict["readStatusFilter"] ?? "") ?? .all
+    let includeRaw = dict["includeReadStatuses"] ?? ""
+    let excludeRaw = dict["excludeReadStatuses"] ?? ""
+    self.includeReadStatuses = Set(
+      includeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+    self.excludeReadStatuses = Set(
+      excludeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+
+    self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
+    self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
+
+    // backward compatibility with legacy tri-state
+    if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
+      let legacy = dict["readStatusFilter"]
+    {
+      let tri = TriStateFilter<ReadStatusFilter>.decode(legacy, offValues: [.all])
+      if let value = tri.value {
+        if tri.state == .exclude {
+          excludeReadStatuses.insert(value)
+        } else if tri.state == .include {
+          includeReadStatuses.insert(value)
+        }
+      }
+    }
+
     self.sortField = BookSortField(rawValue: dict["sortField"] ?? "") ?? .series
     self.sortDirection = SortDirection(rawValue: dict["sortDirection"] ?? "") ?? .ascending
   }

@@ -47,7 +47,12 @@ struct BookSearch: Encodable {
 extension BookSearch {
   static func buildCondition(
     libraryIds: [String]? = nil,
-    readStatus: ReadStatus? = nil,
+    includeReadStatuses: [ReadStatus] = [],
+    excludeReadStatuses: [ReadStatus] = [],
+    includeOneshot: Bool? = nil,
+    excludeOneshot: Bool? = nil,
+    includeDeleted: Bool? = nil,
+    excludeDeleted: Bool? = nil,
     seriesId: String? = nil,
     readListId: String? = nil
   ) -> [String: Any]? {
@@ -69,10 +74,18 @@ extension BookSearch {
       }
     }
 
-    if let readStatus = readStatus {
-      conditions.append([
-        "readStatus": ["operator": "is", "value": readStatus.rawValue]
-      ])
+    if !includeReadStatuses.isEmpty {
+      let statusConditions = includeReadStatuses.map {
+        ["readStatus": ["operator": "is", "value": $0.rawValue]]
+      }
+      conditions.append(["anyOf": statusConditions])
+    }
+
+    if !excludeReadStatuses.isEmpty {
+      let statusConditions = excludeReadStatuses.map {
+        ["readStatus": ["operator": "isnot", "value": $0.rawValue]]
+      }
+      conditions.append(["allOf": statusConditions])
     }
 
     if let seriesId = seriesId {
@@ -84,6 +97,38 @@ extension BookSearch {
     if let readListId = readListId {
       conditions.append([
         "readListId": ["operator": "is", "value": readListId]
+      ])
+    }
+
+    if let includeOneshot {
+      conditions.append([
+        "oneshot": [
+          "operator": includeOneshot ? "istrue" : "isfalse"
+        ]
+      ])
+    }
+
+    if let excludeOneshot {
+      conditions.append([
+        "oneshot": [
+          "operator": excludeOneshot ? "isfalse" : "istrue"
+        ]
+      ])
+    }
+
+    if let includeDeleted {
+      conditions.append([
+        "deleted": [
+          "operator": includeDeleted ? "istrue" : "isfalse"
+        ]
+      ])
+    }
+
+    if let excludeDeleted {
+      conditions.append([
+        "deleted": [
+          "operator": excludeDeleted ? "isfalse" : "istrue"
+        ]
       ])
     }
 

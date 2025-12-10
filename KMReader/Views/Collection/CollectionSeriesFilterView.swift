@@ -13,7 +13,12 @@ struct CollectionSeriesFilterView: View {
   @Binding var layoutMode: BrowseLayoutMode
 
   var emptyFilter: Bool {
-    return browseOpts.readStatusFilter == .all && browseOpts.seriesStatusFilter == .all
+    return browseOpts.includeReadStatuses.isEmpty
+      && browseOpts.excludeReadStatuses.isEmpty
+      && browseOpts.includeSeriesStatuses.isEmpty
+      && browseOpts.excludeSeriesStatuses.isEmpty
+      && !browseOpts.oneshotFilter.isActive
+      && !browseOpts.deletedFilter.isActive
   }
 
   var body: some View {
@@ -26,29 +31,52 @@ struct CollectionSeriesFilterView: View {
             .padding(.leading, 4)
             .foregroundColor(.secondary)
 
-          if browseOpts.readStatusFilter != .all {
+          FilterChip(
+            label: String(localized: "Filter"),
+            systemImage: "line.3.horizontal.decrease.circle",
+            openSheet: $showFilterSheet
+          )
+
+          if let readLabel = readStatusLabel() {
             FilterChip(
-              label: browseOpts.readStatusFilter.displayName,
+              label: readLabel,
               systemImage: "eye",
+              variant: readLabel.contains("≠") ? .negative : .normal,
               openSheet: $showFilterSheet
             )
           }
 
-          if browseOpts.seriesStatusFilter != .all {
+          if let statusLabel = seriesStatusLabel() {
             FilterChip(
-              label: browseOpts.seriesStatusFilter.displayName,
+              label: statusLabel.label,
               systemImage: "chart.bar",
+              variant: statusLabel.variant,
               openSheet: $showFilterSheet
             )
           }
 
-          if emptyFilter {
+          if browseOpts.oneshotFilter.isActive,
+            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in "Oneshot" })
+          {
             FilterChip(
-              label: String(localized: "Filter"),
-              systemImage: "line.3.horizontal.decrease.circle",
+              label: label,
+              systemImage: "dot.circle",
+              variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
               openSheet: $showFilterSheet
             )
           }
+
+          if browseOpts.deletedFilter.isActive,
+            let label = browseOpts.deletedFilter.displayLabel(using: { _ in "Deleted" })
+          {
+            FilterChip(
+              label: label,
+              systemImage: "trash",
+              variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
+
         }
         .padding(4)
       }
@@ -57,5 +85,37 @@ struct CollectionSeriesFilterView: View {
     .sheet(isPresented: $showFilterSheet) {
       CollectionSeriesBrowseOptionsSheet(browseOpts: $browseOpts)
     }
+  }
+
+  private func seriesStatusLabel() -> (label: String, variant: FilterChipVariant)? {
+    let includeNames = browseOpts.includeSeriesStatuses
+      .map { $0.displayName }
+      .sorted()
+    let excludeNames = browseOpts.excludeSeriesStatuses
+      .map { $0.displayName }
+      .sorted()
+
+    let logicSymbol = browseOpts.seriesStatusLogic == .all ? "∧" : "∨"
+
+    var parts: [String] = []
+    if !includeNames.isEmpty {
+      parts.append(includeNames.joined(separator: " \(logicSymbol) "))
+    }
+    if !excludeNames.isEmpty {
+      parts.append("≠ " + excludeNames.joined(separator: " \(logicSymbol) "))
+    }
+
+    guard !parts.isEmpty else { return nil }
+    let variant: FilterChipVariant = includeNames.isEmpty ? .negative : .normal
+    return (label: parts.joined(separator: ", "), variant: variant)
+  }
+}
+
+extension CollectionSeriesFilterView {
+  fileprivate func readStatusLabel() -> String? {
+    buildReadStatusLabel(
+      include: browseOpts.includeReadStatuses,
+      exclude: browseOpts.excludeReadStatuses
+    )
   }
 }

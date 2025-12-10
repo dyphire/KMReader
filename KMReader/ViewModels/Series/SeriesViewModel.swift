@@ -65,11 +65,7 @@ class SeriesViewModel {
     async
   {
     // Check if parameters changed - if so, reset pagination
-    let paramsChanged =
-      currentState?.readStatusFilter != browseOpts.readStatusFilter
-      || currentState?.seriesStatusFilter != browseOpts.seriesStatusFilter
-      || currentState?.sortString != browseOpts.sortString
-      || currentSearchText != searchText
+    let paramsChanged = currentState != browseOpts || currentSearchText != searchText
 
     let shouldReset = refresh || paramsChanged
 
@@ -90,8 +86,13 @@ class SeriesViewModel {
         page: currentPage,
         size: 20,
         sort: browseOpts.sortString,
-        readStatus: browseOpts.readStatusFilter,
-        seriesStatus: browseOpts.seriesStatusFilter,
+        includeReadStatuses: browseOpts.includeReadStatuses,
+        excludeReadStatuses: browseOpts.excludeReadStatuses,
+        includeSeriesStatuses: browseOpts.includeSeriesStatuses,
+        excludeSeriesStatuses: browseOpts.excludeSeriesStatuses,
+        seriesStatusLogic: browseOpts.seriesStatusLogic,
+        oneshotFilter: browseOpts.oneshotFilter,
+        deletedFilter: browseOpts.deletedFilter,
         searchTerm: searchText.isEmpty ? nil : searchText
       )
 

@@ -27,11 +27,18 @@ class BookService {
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
     let sort = browseOpts.sortString
-    let readStatus = browseOpts.readStatusFilter.toReadStatus()
-
     let condition = BookSearch.buildCondition(
       libraryIds: libraryIds,
-      readStatus: readStatus,
+      includeReadStatuses: browseOpts.includeReadStatuses.map { $0.readStatusValue }.compactMap {
+        $0
+      },
+      excludeReadStatuses: browseOpts.excludeReadStatuses.map { $0.readStatusValue }.compactMap {
+        $0
+      },
+      includeOneshot: browseOpts.oneshotFilter.includedBool,
+      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
+      includeDeleted: browseOpts.deletedFilter.includedBool,
+      excludeDeleted: browseOpts.deletedFilter.excludedBool,
       seriesId: seriesId,
       readListId: nil
     )
@@ -276,7 +283,7 @@ class BookService {
     // Get books with READ status, sorted by last read date
     let condition = BookSearch.buildCondition(
       libraryIds: libraryIds,
-      readStatus: .read
+      includeReadStatuses: [.read]
     )
 
     let search = BookSearch(condition: condition)

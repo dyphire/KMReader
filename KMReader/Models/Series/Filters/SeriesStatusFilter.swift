@@ -12,7 +12,11 @@ enum SeriesStatusFilter: String, CaseIterable {
   case ongoing = "ONGOING"
   case ended = "ENDED"
   case hiatus = "HIATUS"
-  case cancelled = "CANCELLED"
+  case abandoned = "ABANDONED"
+
+  static var selectableCases: [SeriesStatusFilter] {
+    [.ongoing, .ended, .hiatus, .abandoned]
+  }
 
   var displayName: String {
     switch self {
@@ -20,7 +24,19 @@ enum SeriesStatusFilter: String, CaseIterable {
     case .ongoing: return String(localized: "series.status.ongoing")
     case .ended: return String(localized: "series.status.ended")
     case .hiatus: return String(localized: "series.status.hiatus")
-    case .cancelled: return String(localized: "series.status.cancelled")
+    case .abandoned: return String(localized: "series.status.abandoned")
     }
+  }
+
+  var apiValue: String? {
+    self == .all ? nil : rawValue
+  }
+
+  static func decodeCompat(_ raw: String?) -> SeriesStatusFilter? {
+    guard let raw else { return nil }
+    if raw == "CANCELLED" {
+      return .abandoned
+    }
+    return SeriesStatusFilter(rawValue: raw)
   }
 }

@@ -260,8 +260,7 @@ class BookViewModel {
     async
   {
     let sort = browseOpts.sortString
-    let paramsChanged =
-      currentBrowseState?.readStatusFilter != browseOpts.readStatusFilter
+    let paramsChanged = currentBrowseState != browseOpts
       || currentBrowseSort != sort
       || currentBrowseSearch != searchText
 
@@ -282,7 +281,8 @@ class BookViewModel {
     do {
       let condition = BookSearch.buildCondition(
         libraryIds: libraryIds,
-        readStatus: browseOpts.readStatusFilter.toReadStatus()
+        includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
+        excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue }
       )
 
       let search = BookSearch(

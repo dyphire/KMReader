@@ -13,7 +13,7 @@ struct ReadListBookFilterView: View {
   @Binding var layoutMode: BrowseLayoutMode
 
   var emptyFilter: Bool {
-    return browseOpts.readStatusFilter == .all
+    return browseOpts.includeReadStatuses.isEmpty && browseOpts.excludeReadStatuses.isEmpty
   }
 
   var body: some View {
@@ -26,10 +26,33 @@ struct ReadListBookFilterView: View {
             .padding(.leading, 4)
             .foregroundColor(.secondary)
 
-          if browseOpts.readStatusFilter != .all {
+          if let label = readStatusLabel() {
             FilterChip(
-              label: browseOpts.readStatusFilter.displayName,
+              label: label,
               systemImage: "eye",
+              variant: label.contains("≠") ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
+
+          if browseOpts.oneshotFilter.isActive,
+            let label = browseOpts.oneshotFilter.displayLabel(using: { _ in "Oneshot" })
+          {
+            FilterChip(
+              label: label,
+              systemImage: "dot.circle",
+              variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
+              openSheet: $showFilterSheet
+            )
+          }
+
+          if browseOpts.deletedFilter.isActive,
+            let label = browseOpts.deletedFilter.displayLabel(using: { _ in "Deleted" })
+          {
+            FilterChip(
+              label: label,
+              systemImage: "trash",
+              variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
               openSheet: $showFilterSheet
             )
           }
@@ -49,5 +72,14 @@ struct ReadListBookFilterView: View {
     .sheet(isPresented: $showFilterSheet) {
       ReadListBookBrowseOptionsSheet(browseOpts: $browseOpts)
     }
+  }
+}
+
+extension ReadListBookFilterView {
+  fileprivate func readStatusLabel() -> String? {
+    buildReadStatusLabel(
+      include: browseOpts.includeReadStatuses,
+      exclude: browseOpts.excludeReadStatuses
+    )
   }
 }

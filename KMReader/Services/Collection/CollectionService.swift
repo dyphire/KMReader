@@ -60,34 +60,25 @@ class CollectionService {
     browseOpts: CollectionSeriesBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Series> {
-    var queryItems = [
-      URLQueryItem(name: "page", value: "\(page)"),
-      URLQueryItem(name: "size", value: "\(size)"),
-    ]
-
-    // Note: collection series API does not support sort, only filter
-
-    // Support multiple libraryIds
-    if let libraryIds = libraryIds, !libraryIds.isEmpty {
-      for id in libraryIds where !id.isEmpty {
-        queryItems.append(URLQueryItem(name: "library_id", value: id))
-      }
-    }
-
-    // Support readStatus filter
-    let readStatus = browseOpts.readStatusFilter.toReadStatus()
-    if let readStatus = readStatus {
-      queryItems.append(URLQueryItem(name: "read_status", value: readStatus.rawValue))
-    }
-
-    // Support seriesStatus filter
-    if browseOpts.seriesStatusFilter != .all {
-      queryItems.append(URLQueryItem(name: "status", value: browseOpts.seriesStatusFilter.rawValue))
-    }
-
-    return try await apiClient.request(
-      path: "/api/v1/collections/\(collectionId)/series",
-      queryItems: queryItems
+    let condition = SeriesSearch.buildCondition(
+      libraryIds: libraryIds,
+      includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
+      excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+      includeSeriesStatuses: browseOpts.includeSeriesStatuses.compactMap { $0.apiValue },
+      excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.compactMap { $0.apiValue },
+      seriesStatusLogic: browseOpts.seriesStatusLogic,
+      includeOneshot: browseOpts.oneshotFilter.includedBool,
+      excludeOneshot: browseOpts.oneshotFilter.excludedBool,
+      includeDeleted: browseOpts.deletedFilter.includedBool,
+      excludeDeleted: browseOpts.deletedFilter.excludedBool,
+      collectionId: collectionId
+    )
+    let search = SeriesSearch(condition: condition)
+    return try await SeriesService.shared.getSeriesList(
+      search: search,
+      page: page,
+      size: size,
+      sort: nil
     )
   }
 

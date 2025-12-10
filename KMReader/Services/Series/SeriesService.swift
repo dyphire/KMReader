@@ -18,20 +18,39 @@ class SeriesService {
     page: Int = 0,
     size: Int = 20,
     sort: String = "metadata.titleSort,asc",
-    readStatus: ReadStatusFilter? = nil,
-    seriesStatus: SeriesStatusFilter? = nil,
+    includeReadStatuses: Set<ReadStatusFilter>,
+    excludeReadStatuses: Set<ReadStatusFilter>,
+    includeSeriesStatuses: Set<SeriesStatusFilter>,
+    excludeSeriesStatuses: Set<SeriesStatusFilter>,
+    seriesStatusLogic: StatusFilterLogic,
+    oneshotFilter: TriStateFilter<BoolTriStateFlag>,
+    deletedFilter: TriStateFilter<BoolTriStateFlag>,
     searchTerm: String? = nil
   ) async throws -> Page<Series> {
     // Check if we have any filters - if so, use getSeriesList
     let hasLibraryFilter = libraryIds != nil && !libraryIds!.isEmpty
-    let hasReadStatusFilter = readStatus != nil && readStatus != .all
-    let hasSeriesStatusFilter = seriesStatus != nil && seriesStatus != .all
+    let hasReadStatusFilter =
+      !includeReadStatuses.isEmpty || !excludeReadStatuses.isEmpty
+    let hasSeriesStatusFilter =
+      !includeSeriesStatuses.isEmpty || !excludeSeriesStatuses.isEmpty || oneshotFilter.isActive
+      || deletedFilter.isActive
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
       let condition = SeriesSearch.buildCondition(
         libraryIds: libraryIds,
-        readStatus: hasReadStatusFilter ? readStatus!.toReadStatus() : nil,
-        seriesStatus: hasSeriesStatusFilter ? seriesStatus!.rawValue : nil
+        includeReadStatuses: includeReadStatuses.compactMap { $0.readStatusValue },
+        excludeReadStatuses: excludeReadStatuses.compactMap { $0.readStatusValue },
+        includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
+          !$0.isEmpty
+        },
+        excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
+          !$0.isEmpty
+        },
+        seriesStatusLogic: seriesStatusLogic,
+        includeOneshot: oneshotFilter.includedBool,
+        excludeOneshot: oneshotFilter.excludedBool,
+        includeDeleted: deletedFilter.includedBool,
+        excludeDeleted: deletedFilter.excludedBool
       )
 
       let search = SeriesSearch(

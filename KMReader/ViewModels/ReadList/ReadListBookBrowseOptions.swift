@@ -11,11 +11,17 @@ import SwiftUI
 struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
   typealias RawValue = String
 
-  var readStatusFilter: ReadStatusFilter = .all
+  var includeReadStatuses: Set<ReadStatusFilter> = []
+  var excludeReadStatuses: Set<ReadStatusFilter> = []
+  var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
+  var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
 
   var rawValue: String {
     let dict: [String: String] = [
-      "readStatusFilter": readStatusFilter.rawValue
+      "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.joined(separator: ","),
+      "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.joined(separator: ","),
+      "oneshotFilter": oneshotFilter.storageValue,
+      "deletedFilter": deletedFilter.storageValue,
     ]
     if let data = try? JSONSerialization.data(withJSONObject: dict),
       let json = String(data: data, encoding: .utf8)
@@ -34,7 +40,28 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
     else {
       return nil
     }
-    self.readStatusFilter = ReadStatusFilter(rawValue: dict["readStatusFilter"] ?? "") ?? .all
+    let includeRaw = dict["includeReadStatuses"] ?? ""
+    let excludeRaw = dict["excludeReadStatuses"] ?? ""
+    self.includeReadStatuses = Set(
+      includeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+    self.excludeReadStatuses = Set(
+      excludeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+
+    self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
+    self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
+
+    if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
+      let legacy = dict["readStatusFilter"]
+    {
+      let tri = TriStateFilter<ReadStatusFilter>.decode(legacy, offValues: [.all])
+      if let value = tri.value {
+        if tri.state == .exclude {
+          excludeReadStatuses.insert(value)
+        } else if tri.state == .include {
+          includeReadStatuses.insert(value)
+        }
+      }
+    }
   }
 
   init() {}

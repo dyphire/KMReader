@@ -125,7 +125,7 @@ struct DashboardBooksSection: View {
       case .keepReading:
         let condition = BookSearch.buildCondition(
           libraryIds: libraryIds,
-          readStatus: ReadStatus.inProgress
+          includeReadStatuses: [ReadStatus.inProgress]
         )
         let search = BookSearch(condition: condition)
         page = try await BookService.shared.getBooksList(
