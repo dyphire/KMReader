@@ -62,51 +62,7 @@ import SwiftUI
             SettingsSectionRow(section: .authenticationActivity)
           }
 
-          Section {
-            Link(destination: URL(string: "https://everpcpc.github.io/KMReader/privacy/")!) {
-              HStack {
-                Label("Privacy Policy", systemImage: "hand.raised")
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            Link(destination: URL(string: "https://kmreader.userjot.com/")!) {
-              HStack {
-                Label("Feedback", systemImage: "message")
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            Link(destination: URL(string: "https://discord.gg/komga-678794935368941569")!) {
-              HStack {
-                Label("Discuss", systemImage: "bubble.left.and.bubble.right")
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            Link(destination: URL(string: "https://github.com/everpcpc/KMReader")!) {
-              HStack {
-                Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            HStack {
-              Spacer()
-              Text(Bundle.main.appVersion)
-                .foregroundColor(.secondary)
-                .font(.caption)
-              Spacer()
-            }
-          }
+          SettingsAboutSection()
         }
         .toolbar(removing: .sidebarToggle)
         .listStyle(.sidebar)
