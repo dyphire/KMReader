@@ -121,20 +121,19 @@ struct ContentView: View {
                 readList: state.readList,
                 onClose: { readerPresentation.closeReader() }
               )
-              .transition(
-                .asymmetric(
-                  insertion: .scale(scale: 0.9).combined(with: .opacity),
-                  removal: .scale(scale: 0.94).combined(with: .opacity)
-                )
-              )
             } else {
               ReaderPlaceholderView {
                 readerPresentation.closeReader()
               }
-              .transition(.opacity)
             }
           }
           .allowsHitTesting(true)
+          .transition(
+            .asymmetric(
+              insertion: .opacity,
+              removal: .scale(scale: 0.8).combined(with: .opacity)
+            )
+          )
         }
       }
       .animation(
