@@ -70,6 +70,19 @@ struct CollectionSeriesBrowseOptionsSheet: View {
         Section("Flags") {
           Button {
             withAnimation(.easeInOut) {
+              tempOpts.completeFilter.cycle(to: .yes)
+            }
+          } label: {
+            HStack {
+              Text(FilterStrings.complete)
+              Spacer()
+              Image(systemName: icon(for: tempOpts.completeFilter.state(for: .yes)))
+                .foregroundStyle(color(for: tempOpts.completeFilter.state(for: .yes)))
+            }
+          }
+
+          Button {
+            withAnimation(.easeInOut) {
               tempOpts.oneshotFilter.cycle(to: .yes)
             }
           } label: {

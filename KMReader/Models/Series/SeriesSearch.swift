@@ -48,6 +48,8 @@ struct SeriesSearchFilters {
   var oneshot: Bool? = nil
   /// deleted = true / false / nil
   var deleted: Bool? = nil
+  /// complete = true / false / nil
+  var complete: Bool? = nil
   var collectionId: String? = nil
 }
 
@@ -106,6 +108,14 @@ extension SeriesSearch {
       conditions.append([
         "oneshot": [
           "operator": oneshot ? "istrue" : "isfalse"
+        ]
+      ])
+    }
+
+    if let complete = filters.complete {
+      conditions.append([
+        "complete": [
+          "operator": complete ? "istrue" : "isfalse"
         ]
       ])
     }

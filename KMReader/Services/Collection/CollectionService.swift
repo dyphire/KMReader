@@ -70,6 +70,7 @@ class CollectionService {
         seriesStatusLogic: browseOpts.seriesStatusLogic,
         oneshot: browseOpts.oneshotFilter.effectiveBool,
         deleted: browseOpts.deletedFilter.effectiveBool,
+        complete: browseOpts.completeFilter.effectiveBool,
         collectionId: collectionId
       ))
     let search = SeriesSearch(condition: condition)

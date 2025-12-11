@@ -23,6 +23,7 @@ class SeriesService {
     includeSeriesStatuses: Set<SeriesStatus>,
     excludeSeriesStatuses: Set<SeriesStatus>,
     seriesStatusLogic: StatusFilterLogic,
+    completeFilter: TriStateFilter<BoolTriStateFlag>,
     oneshotFilter: TriStateFilter<BoolTriStateFlag>,
     deletedFilter: TriStateFilter<BoolTriStateFlag>,
     searchTerm: String? = nil
@@ -33,7 +34,7 @@ class SeriesService {
       !includeReadStatuses.isEmpty || !excludeReadStatuses.isEmpty
     let hasSeriesStatusFilter =
       !includeSeriesStatuses.isEmpty || !excludeSeriesStatuses.isEmpty || oneshotFilter.isActive
-      || deletedFilter.isActive
+      || deletedFilter.isActive || completeFilter.isActive
 
     if hasLibraryFilter || hasReadStatusFilter || hasSeriesStatusFilter {
       let condition = SeriesSearch.buildCondition(
@@ -45,7 +46,8 @@ class SeriesService {
           excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue }.filter { !$0.isEmpty },
           seriesStatusLogic: seriesStatusLogic,
           oneshot: oneshotFilter.effectiveBool,
-          deleted: deletedFilter.effectiveBool
+          deleted: deletedFilter.effectiveBool,
+          complete: completeFilter.effectiveBool,
         ))
 
       let search = SeriesSearch(

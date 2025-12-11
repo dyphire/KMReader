@@ -16,6 +16,7 @@ struct CollectionSeriesBrowseOptions: Equatable, RawRepresentable {
   var includeSeriesStatuses: Set<SeriesStatus> = []
   var excludeSeriesStatuses: Set<SeriesStatus> = []
   var seriesStatusLogic: StatusFilterLogic = .all
+  var completeFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
 
@@ -26,6 +27,7 @@ struct CollectionSeriesBrowseOptions: Equatable, RawRepresentable {
       "includeSeriesStatuses": includeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
       "excludeSeriesStatuses": excludeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
       "seriesStatusLogic": seriesStatusLogic.rawValue,
+      "completeFilter": completeFilter.storageValue,
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
     ]
@@ -89,6 +91,7 @@ struct CollectionSeriesBrowseOptions: Equatable, RawRepresentable {
     self.seriesStatusLogic =
       StatusFilterLogic(rawValue: logicRaw)
       ?? (logicRaw == "AND" ? .all : logicRaw == "OR" ? .any : .all)
+    self.completeFilter = TriStateFilter.decode(dict["completeFilter"])
     self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
     self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
   }

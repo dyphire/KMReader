@@ -91,6 +91,7 @@ class SeriesViewModel {
         includeSeriesStatuses: browseOpts.includeSeriesStatuses,
         excludeSeriesStatuses: browseOpts.excludeSeriesStatuses,
         seriesStatusLogic: browseOpts.seriesStatusLogic,
+        completeFilter: browseOpts.completeFilter,
         oneshotFilter: browseOpts.oneshotFilter,
         deletedFilter: browseOpts.deletedFilter,
         searchTerm: searchText.isEmpty ? nil : searchText
