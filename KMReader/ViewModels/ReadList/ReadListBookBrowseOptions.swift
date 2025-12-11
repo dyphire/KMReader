@@ -11,8 +11,8 @@ import SwiftUI
 struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
   typealias RawValue = String
 
-  var includeReadStatuses: Set<ReadStatusFilter> = []
-  var excludeReadStatuses: Set<ReadStatusFilter> = []
+  var includeReadStatuses: Set<ReadStatus> = []
+  var excludeReadStatuses: Set<ReadStatus> = []
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
 
@@ -43,9 +43,9 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
     let includeRaw = dict["includeReadStatuses"] ?? ""
     let excludeRaw = dict["excludeReadStatuses"] ?? ""
     self.includeReadStatuses = Set(
-      includeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+      includeRaw.split(separator: ",").compactMap { ReadStatus(rawValue: String($0)) })
     self.excludeReadStatuses = Set(
-      excludeRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+      excludeRaw.split(separator: ",").compactMap { ReadStatus(rawValue: String($0)) })
 
     self.oneshotFilter = TriStateFilter.decode(dict["oneshotFilter"])
     self.deletedFilter = TriStateFilter.decode(dict["deletedFilter"])
@@ -53,7 +53,7 @@ struct ReadListBookBrowseOptions: Equatable, RawRepresentable {
     if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
       let legacy = dict["readStatusFilter"]
     {
-      let tri = TriStateFilter<ReadStatusFilter>.decode(legacy, offValues: [.all])
+      let tri = TriStateFilter<ReadStatus>.decode(legacy)
       if let value = tri.value {
         if tri.state == .exclude {
           excludeReadStatuses.insert(value)

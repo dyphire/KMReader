@@ -11,10 +11,10 @@ import SwiftUI
 struct SeriesBrowseOptions: Equatable, RawRepresentable {
   typealias RawValue = String
 
-  var includeReadStatuses: Set<ReadStatusFilter> = []
-  var excludeReadStatuses: Set<ReadStatusFilter> = []
-  var includeSeriesStatuses: Set<SeriesStatusFilter> = []
-  var excludeSeriesStatuses: Set<SeriesStatusFilter> = []
+  var includeReadStatuses: Set<ReadStatus> = []
+  var excludeReadStatuses: Set<ReadStatus> = []
+  var includeSeriesStatuses: Set<SeriesStatus> = []
+  var excludeSeriesStatuses: Set<SeriesStatus> = []
   var seriesStatusLogic: StatusFilterLogic = .all
   var oneshotFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
@@ -32,8 +32,8 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
     let dict: [String: String] = [
       "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.joined(separator: ","),
       "excludeReadStatuses": excludeReadStatuses.map { $0.rawValue }.joined(separator: ","),
-      "includeSeriesStatuses": includeSeriesStatuses.map { $0.rawValue }.joined(separator: ","),
-      "excludeSeriesStatuses": excludeSeriesStatuses.map { $0.rawValue }.joined(separator: ","),
+      "includeSeriesStatuses": includeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
+      "excludeSeriesStatuses": excludeSeriesStatuses.map { $0.apiValue }.joined(separator: ","),
       "seriesStatusLogic": seriesStatusLogic.rawValue,
       "oneshotFilter": oneshotFilter.storageValue,
       "deletedFilter": deletedFilter.storageValue,
@@ -60,14 +60,14 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
     let includeReadRaw = dict["includeReadStatuses"] ?? ""
     let excludeReadRaw = dict["excludeReadStatuses"] ?? ""
     self.includeReadStatuses = Set(
-      includeReadRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+      includeReadRaw.split(separator: ",").compactMap { ReadStatus(rawValue: String($0)) })
     self.excludeReadStatuses = Set(
-      excludeReadRaw.split(separator: ",").compactMap { ReadStatusFilter(rawValue: String($0)) })
+      excludeReadRaw.split(separator: ",").compactMap { ReadStatus(rawValue: String($0)) })
 
     if includeReadStatuses.isEmpty && excludeReadStatuses.isEmpty,
       let legacy = dict["readStatusFilter"]
     {
-      let tri = TriStateFilter<ReadStatusFilter>.decode(legacy, offValues: [.all])
+      let tri = TriStateFilter<ReadStatus>.decode(legacy)
       if let value = tri.value {
         if tri.state == .exclude {
           excludeReadStatuses.insert(value)
@@ -80,15 +80,15 @@ struct SeriesBrowseOptions: Equatable, RawRepresentable {
     let includeRaw = dict["includeSeriesStatuses"] ?? ""
     let excludeRaw = dict["excludeSeriesStatuses"] ?? ""
     self.includeSeriesStatuses = Set(
-      includeRaw.split(separator: ",").compactMap { SeriesStatusFilter.decodeCompat(String($0)) })
+      includeRaw.split(separator: ",").compactMap { SeriesStatus.fromAPIValue(String($0)) })
     self.excludeSeriesStatuses = Set(
-      excludeRaw.split(separator: ",").compactMap { SeriesStatusFilter.decodeCompat(String($0)) })
+      excludeRaw.split(separator: ",").compactMap { SeriesStatus.fromAPIValue(String($0)) })
 
     // Backward compatibility for legacy single-value tri-state
     if includeSeriesStatuses.isEmpty && excludeSeriesStatuses.isEmpty,
       let legacy = dict["seriesStatusFilter"]
     {
-      let tri = TriStateFilter<SeriesStatusFilter>.decode(legacy, offValues: [.all])
+      let tri = TriStateFilter<SeriesStatus>.decode(legacy)
       if let value = tri.value {
         if tri.state == .exclude {
           excludeSeriesStatuses.insert(value)

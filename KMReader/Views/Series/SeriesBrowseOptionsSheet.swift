@@ -24,7 +24,7 @@ struct SeriesBrowseOptionsSheet: View {
     ) {
       Form {
         Section("Read Status") {
-          ForEach(ReadStatusFilter.selectableCases, id: \.self) { filter in
+          ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
                 toggleReadStatus(filter)
@@ -52,7 +52,7 @@ struct SeriesBrowseOptionsSheet: View {
           }
           .pickerStyle(.segmented)
 
-          ForEach(SeriesStatusFilter.selectableCases, id: \.self) { filter in
+          ForEach(SeriesStatus.allCases, id: \.self) { filter in
             Button {
               withAnimation(.easeInOut) {
                 cycleSeriesStatus(filter)
@@ -144,7 +144,7 @@ struct SeriesBrowseOptionsSheet: View {
     }
   }
 
-  private func state(for status: ReadStatusFilter) -> TriStateSelection {
+  private func state(for status: ReadStatus) -> TriStateSelection {
     if tempOpts.includeReadStatuses.contains(status) {
       return .include
     }
@@ -154,7 +154,7 @@ struct SeriesBrowseOptionsSheet: View {
     return .off
   }
 
-  private func toggleReadStatus(_ status: ReadStatusFilter) {
+  private func toggleReadStatus(_ status: ReadStatus) {
     var include = tempOpts.includeReadStatuses
     var exclude = tempOpts.excludeReadStatuses
     KMReader.applyReadStatusToggle(status, include: &include, exclude: &exclude)
@@ -162,7 +162,7 @@ struct SeriesBrowseOptionsSheet: View {
     tempOpts.excludeReadStatuses = exclude
   }
 
-  private func state(for status: SeriesStatusFilter) -> TriStateSelection {
+  private func state(for status: SeriesStatus) -> TriStateSelection {
     if tempOpts.includeSeriesStatuses.contains(status) {
       return .include
     }
@@ -172,7 +172,7 @@ struct SeriesBrowseOptionsSheet: View {
     return .off
   }
 
-  private func cycleSeriesStatus(_ status: SeriesStatusFilter) {
+  private func cycleSeriesStatus(_ status: SeriesStatus) {
     if tempOpts.includeSeriesStatuses.contains(status) {
       tempOpts.includeSeriesStatuses.remove(status)
       tempOpts.excludeSeriesStatuses.insert(status)

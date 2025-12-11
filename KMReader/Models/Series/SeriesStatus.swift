@@ -8,28 +8,19 @@
 import Foundation
 import SwiftUI
 
-enum SeriesStatus: CaseIterable, Hashable {
-  case ongoing
-  case ended
-  case hiatus
-  case cancelled
+enum SeriesStatus: String, CaseIterable, Hashable {
+  case ongoing = "ONGOING"
+  case ended = "ENDED"
+  case hiatus = "HIATUS"
+  case abandoned = "ABANDONED"
 
   static func fromString(_ status: String?) -> SeriesStatus {
-    guard let status = status else {
-      return .ongoing
-    }
-    switch status.uppercased() {
-    case "ONGOING":
-      return .ongoing
-    case "ENDED", "COMPLETED":
-      return .ended
-    case "HIATUS":
-      return .hiatus
-    case "CANCELLED":
-      return .cancelled
-    default:
-      return .ongoing
-    }
+    fromAPIValue(status) ?? .ongoing
+  }
+
+  static func fromAPIValue(_ status: String?) -> SeriesStatus? {
+    guard let status else { return nil }
+    return SeriesStatus(rawValue: status.uppercased())
   }
 
   var displayName: String {
@@ -40,8 +31,8 @@ enum SeriesStatus: CaseIterable, Hashable {
       return String(localized: "series.status.ended")
     case .hiatus:
       return String(localized: "series.status.hiatus")
-    case .cancelled:
-      return String(localized: "series.status.cancelled")
+    case .abandoned:
+      return String(localized: "series.status.abandoned")
     }
   }
 
@@ -53,21 +44,12 @@ enum SeriesStatus: CaseIterable, Hashable {
       return "checkmark.circle"
     case .hiatus:
       return "pause.circle"
-    case .cancelled:
+    case .abandoned:
       return "exclamationmark.circle"
     }
   }
 
   var apiValue: String {
-    switch self {
-    case .ongoing:
-      return "ONGOING"
-    case .ended:
-      return "ENDED"
-    case .hiatus:
-      return "HIATUS"
-    case .cancelled:
-      return "CANCELLED"
-    }
+    rawValue
   }
 }

@@ -7,12 +7,6 @@
 
 import Foundation
 
-enum ReadStatus: String, Codable {
-  case unread = "UNREAD"
-  case inProgress = "IN_PROGRESS"
-  case read = "READ"
-}
-
 // Simplified search structure that can encode to the correct JSON format
 struct BookSearch: Encodable {
   let condition: [String: Any]?

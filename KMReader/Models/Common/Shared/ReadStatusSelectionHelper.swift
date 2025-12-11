@@ -7,10 +7,24 @@
 
 import Foundation
 
+enum ReadStatus: String, Codable, CaseIterable {
+  case unread = "UNREAD"
+  case inProgress = "IN_PROGRESS"
+  case read = "READ"
+
+  var displayName: String {
+    switch self {
+    case .read: return String(localized: "readStatus.read")
+    case .unread: return String(localized: "readStatus.unread")
+    case .inProgress: return String(localized: "readStatus.inProgress")
+    }
+  }
+}
+
 func resolveReadStatusState(
-  for status: ReadStatusFilter,
-  include: Set<ReadStatusFilter>,
-  exclude: Set<ReadStatusFilter>
+  for status: ReadStatus,
+  include: Set<ReadStatus>,
+  exclude: Set<ReadStatus>
 ) -> TriStateSelection {
   if include.contains(status) {
     return .include
@@ -22,9 +36,9 @@ func resolveReadStatusState(
 }
 
 func applyReadStatusToggle(
-  _ status: ReadStatusFilter,
-  include: inout Set<ReadStatusFilter>,
-  exclude: inout Set<ReadStatusFilter>
+  _ status: ReadStatus,
+  include: inout Set<ReadStatus>,
+  exclude: inout Set<ReadStatus>
 ) {
   if include.contains(status) {
     include.remove(status)
@@ -36,8 +50,7 @@ func applyReadStatusToggle(
   }
 }
 
-func buildReadStatusLabel(include: Set<ReadStatusFilter>, exclude: Set<ReadStatusFilter>) -> String?
-{
+func buildReadStatusLabel(include: Set<ReadStatus>, exclude: Set<ReadStatus>) -> String? {
   let includeNames = include.map { $0.displayName }.sorted()
   let excludeNames = exclude.map { $0.displayName }.sorted()
 

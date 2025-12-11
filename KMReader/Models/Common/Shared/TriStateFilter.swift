@@ -121,17 +121,17 @@ where Value.RawValue == String {
   }
 }
 
-extension TriStateFilter where Value == ReadStatusFilter {
+extension TriStateFilter where Value == ReadStatus {
   var includedReadStatus: ReadStatus? {
-    includedValue?.readStatusValue
+    includedValue
   }
 
   var excludedReadStatus: ReadStatus? {
-    excludedValue?.readStatusValue
+    excludedValue
   }
 }
 
-extension TriStateFilter where Value == SeriesStatusFilter {
+extension TriStateFilter where Value == SeriesStatus {
   var includedSeriesStatus: String? {
     includedValue?.apiValue
   }

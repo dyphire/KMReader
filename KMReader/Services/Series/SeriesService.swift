@@ -18,10 +18,10 @@ class SeriesService {
     page: Int = 0,
     size: Int = 20,
     sort: String = "metadata.titleSort,asc",
-    includeReadStatuses: Set<ReadStatusFilter>,
-    excludeReadStatuses: Set<ReadStatusFilter>,
-    includeSeriesStatuses: Set<SeriesStatusFilter>,
-    excludeSeriesStatuses: Set<SeriesStatusFilter>,
+    includeReadStatuses: Set<ReadStatus>,
+    excludeReadStatuses: Set<ReadStatus>,
+    includeSeriesStatuses: Set<SeriesStatus>,
+    excludeSeriesStatuses: Set<SeriesStatus>,
     seriesStatusLogic: StatusFilterLogic,
     oneshotFilter: TriStateFilter<BoolTriStateFlag>,
     deletedFilter: TriStateFilter<BoolTriStateFlag>,
@@ -39,14 +39,10 @@ class SeriesService {
       let condition = SeriesSearch.buildCondition(
         filters: SeriesSearchFilters(
           libraryIds: libraryIds,
-          includeReadStatuses: includeReadStatuses.compactMap { $0.readStatusValue },
-          excludeReadStatuses: excludeReadStatuses.compactMap { $0.readStatusValue },
-          includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
-            !$0.isEmpty
-          },
-          excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue ?? "" }.filter {
-            !$0.isEmpty
-          },
+          includeReadStatuses: Array(includeReadStatuses),
+          excludeReadStatuses: Array(excludeReadStatuses),
+          includeSeriesStatuses: includeSeriesStatuses.map { $0.apiValue }.filter { !$0.isEmpty },
+          excludeSeriesStatuses: excludeSeriesStatuses.map { $0.apiValue }.filter { !$0.isEmpty },
           seriesStatusLogic: seriesStatusLogic,
           oneshot: oneshotFilter.effectiveBool,
           deleted: deletedFilter.effectiveBool

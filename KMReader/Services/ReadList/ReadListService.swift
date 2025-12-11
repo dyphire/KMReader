@@ -62,8 +62,8 @@ class ReadListService {
   ) async throws -> Page<Book> {
     let filters = BookSearchFilters(
       libraryIds: libraryIds,
-      includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
-      excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+      includeReadStatuses: Array(browseOpts.includeReadStatuses),
+      excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
       oneshot: browseOpts.oneshotFilter.effectiveBool,
       deleted: browseOpts.deletedFilter.effectiveBool,
       readListId: readListId

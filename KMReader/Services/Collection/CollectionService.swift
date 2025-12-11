@@ -63,8 +63,8 @@ class CollectionService {
     let condition = SeriesSearch.buildCondition(
       filters: SeriesSearchFilters(
         libraryIds: libraryIds,
-        includeReadStatuses: browseOpts.includeReadStatuses.compactMap { $0.readStatusValue },
-        excludeReadStatuses: browseOpts.excludeReadStatuses.compactMap { $0.readStatusValue },
+        includeReadStatuses: Array(browseOpts.includeReadStatuses),
+        excludeReadStatuses: Array(browseOpts.excludeReadStatuses),
         includeSeriesStatuses: browseOpts.includeSeriesStatuses.compactMap { $0.apiValue },
         excludeSeriesStatuses: browseOpts.excludeSeriesStatuses.compactMap { $0.apiValue },
         seriesStatusLogic: browseOpts.seriesStatusLogic,

@@ -133,19 +133,3 @@ extension SeriesSearch {
     }
   }
 }
-
-// Extension to convert ReadStatusFilter to ReadStatus
-extension ReadStatusFilter {
-  func toReadStatus() -> ReadStatus? {
-    switch self {
-    case .all:
-      return nil
-    case .read:
-      return .read
-    case .unread:
-      return .unread
-    case .inProgress:
-      return .inProgress
-    }
-  }
-}
