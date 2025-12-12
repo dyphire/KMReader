@@ -1,24 +1,11 @@
 //
-//  WebtoonLayout.swift
+//  WebtoonLayout_macOS.swift
 //  Komga
 //
 //  Created by Komga iOS Client
 //
 
-#if os(iOS)
-  import UIKit
-
-  class WebtoonLayout: UICollectionViewFlowLayout {
-    override func prepare() {
-      super.prepare()
-      scrollDirection = .vertical
-      minimumLineSpacing = 0
-      minimumInteritemSpacing = 0
-      sectionInset = .zero
-    }
-  }
-
-#elseif os(macOS)
+#if os(macOS)
   import AppKit
 
   class WebtoonLayout: NSCollectionViewFlowLayout {
