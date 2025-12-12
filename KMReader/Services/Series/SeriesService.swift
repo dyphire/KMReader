@@ -167,15 +167,9 @@ class SeriesService {
   }
 
   func markAsRead(seriesId: String) async throws {
-    // Use PATCH to mark series as read
-    // For series, we don't need page number, just mark as completed
-    let body = ["completed": true] as [String: Any]
-    let jsonData = try JSONSerialization.data(withJSONObject: body)
-
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/read-progress",
-      method: "PATCH",
-      body: jsonData
+      method: "POST"
     )
   }
 
