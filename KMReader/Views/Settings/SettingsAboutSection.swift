@@ -21,15 +21,6 @@ struct SettingsAboutSection: View {
             .foregroundColor(.secondary)
         }
       }
-      Link(destination: URL(string: "https://discord.gg/komga-678794935368941569")!) {
-        HStack {
-          Label("Discuss", systemImage: "bubble.left.and.bubble.right")
-          Spacer()
-          Image(systemName: "arrow.up.right.square")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-      }
       Link(destination: URL(string: "https://testflight.apple.com/join/kHXDCdjv")!) {
         HStack {
           Label(String(localized: "Join Beta"), systemImage: "sparkles")
