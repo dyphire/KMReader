@@ -32,17 +32,19 @@ struct SettingsReaderView: View {
             .foregroundColor(.secondary)
         }
 
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Page Transition", selection: $pageTransitionStyle) {
-            ForEach(PageTransitionStyle.allCases, id: \.self) { style in
-              Text(style.displayName).tag(style)
+        #if os(iOS)
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Page Transition", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.allCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
             }
+            .pickerStyle(.menu)
+            Text(pageTransitionStyle.description)
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
-          .pickerStyle(.menu)
-          Text(pageTransitionStyle.description)
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
+        #endif
 
         #if os(macOS)
           Toggle(isOn: $showReaderHelperOverlay) {

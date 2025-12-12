@@ -7479,6 +7479,9 @@
         }
       }
     },
+    "GB" : {
+
+    },
     "General" : {
       "localizations" : {
         "en" : {
@@ -9432,6 +9435,9 @@
           }
         }
       }
+    },
+    "Maximum Size (GB)" : {
+
     },
     "Missing required data: %@" : {
       "localizations" : {
@@ -12573,74 +12579,6 @@
         }
       }
     },
-    "reader.transition.fancy" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fancy"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Élaboré"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "派手"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "精美"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "精美"
-          }
-        }
-      }
-    },
-    "reader.transition.fancy.description" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scale and blur effect when turning pages"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effet de zoom et de flou lors du changement de page"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ページめくり時にスケールとぼかし効果"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻页时带有缩放和模糊效果"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻頁時帶有縮放和模糊效果"
-          }
-        }
-      }
-    },
     "reader.transition.default" : {
       "localizations" : {
         "en" : {
@@ -12705,6 +12643,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標準滑動，無過渡效果"
+          }
+        }
+      }
+    },
+    "reader.transition.fancy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fancy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Élaboré"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "派手"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "精美"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "精美"
+          }
+        }
+      }
+    },
+    "reader.transition.fancy.description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scale and blur effect when turning pages"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effet de zoom et de flou lors du changement de page"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページめくり時にスケールとぼかし効果"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻页时带有缩放和模糊效果"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻頁時帶有縮放和模糊效果"
           }
         }
       }
@@ -13354,6 +13360,9 @@
           }
         }
       }
+    },
+    "Reset" : {
+
     },
     "Resource not found: %@" : {
       "localizations" : {
