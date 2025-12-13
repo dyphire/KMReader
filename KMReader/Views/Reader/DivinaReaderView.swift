@@ -27,6 +27,7 @@ struct DivinaReaderView: View {
   @State private var currentBook: Book?
   @State private var seriesId: String?
   @State private var nextBook: Book?
+  @State private var previousBook: Book?
   @State private var isAtBottom = false
   @State private var showHelperOverlay = false
   @State private var helperOverlayTimer: Timer?
@@ -296,7 +297,9 @@ struct DivinaReaderView: View {
           onDismiss: { closeReader() },
           goToNextPage: { goToNextPage(dualPageEnabled: useDualPage) },
           goToPreviousPage: { goToPreviousPage(dualPageEnabled: useDualPage) },
+          previousBook: previousBook,
           nextBook: nextBook,
+          onPreviousBook: { openPreviousBook(previousBookId: $0) },
           onNextBook: { openNextBook(nextBookId: $0) }
         )
         .padding(.vertical, 24)
@@ -504,6 +507,13 @@ struct DivinaReaderView: View {
       } else {
         nextBook = nil
       }
+
+      // Load previous book
+      if let previousBook = try await BookService.shared.getPreviousBook(bookId: bookId) {
+        self.previousBook = previousBook
+      } else {
+        previousBook = nil
+      }
     } catch {
       // Silently fail, will start from first page
     }
@@ -698,6 +708,21 @@ struct DivinaReaderView: View {
     // Reset viewModel state for new book
     viewModel = ReaderViewModel(dualPageNoCover: dualPageNoCover, pageLayout: pageLayout)
     // Preserve incognito mode for next book
+    viewModel.incognitoMode = incognito
+    // Reset isAtBottom so buttons hide until user scrolls to bottom
+    isAtBottom = false
+    // Reset overlay state
+    hideOverlay()
+  }
+
+  private func openPreviousBook(previousBookId: String) {
+    // Switch to previous book by updating currentBookId
+    // This will trigger the .task(id: currentBookId) to reload
+    preserveReaderOptions = true
+    currentBookId = previousBookId
+    // Reset viewModel state for new book
+    viewModel = ReaderViewModel(dualPageNoCover: dualPageNoCover, pageLayout: pageLayout)
+    // Preserve incognito mode for previous book
     viewModel.incognitoMode = incognito
     // Reset isAtBottom so buttons hide until user scrolls to bottom
     isAtBottom = false

@@ -23,7 +23,9 @@ struct ReaderControlsView: View {
   let onDismiss: () -> Void
   let goToNextPage: () -> Void
   let goToPreviousPage: () -> Void
+  let previousBook: Book?
   let nextBook: Book?
+  let onPreviousBook: ((String) -> Void)?
   let onNextBook: ((String) -> Void)?
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
@@ -38,8 +40,10 @@ struct ReaderControlsView: View {
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
+      case previousBook
+      case pageNumber
       case toc
-      case jump
+      case nextBook
       case settings
     }
     @FocusState private var focusedControl: ControlFocus?
@@ -102,7 +106,7 @@ struct ReaderControlsView: View {
     VStack {
 
       // Top bar
-      HStack {
+      HStack(alignment: .top) {
         // Close button
         Button {
           onDismiss()
@@ -122,42 +126,25 @@ struct ReaderControlsView: View {
 
         Spacer()
 
+        // Series and book title
+        if let book = currentBook {
+          VStack(spacing: 4) {
+            Text(book.seriesTitle)
+              .font(.footnote)
+              .foregroundColor(.white)
+            Text("#\(Int(book.number)) - \(book.metadata.title)")
+              .font(.callout)
+              .foregroundColor(.white)
+          }
+          .padding(buttonPadding)
+          .background(themeColor.color.opacity(0.9))
+          .cornerRadius(12)
+        }
+
+        Spacer()
+
         // Action buttons
         HStack(spacing: PlatformHelper.buttonSpacing) {
-          // TOC button (only show if TOC exists)
-          if !viewModel.tableOfContents.isEmpty {
-            Button {
-              showingTOCSheet = true
-            } label: {
-              Image(systemName: "list.bullet.rectangle.portrait")
-                .foregroundColor(.white)
-                .frame(width: 40, height: 40)
-                .padding(buttonPadding)
-                .background(themeColor.color.opacity(0.9))
-                .clipShape(Circle())
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-            }
-            #if os(tvOS)
-              .focused($focusedControl, equals: .toc)
-            #endif
-          }
-
-          // Jump to page button
-          Button {
-            guard !viewModel.pages.isEmpty else { return }
-            showingPageJumpSheet = true
-          } label: {
-            Image(systemName: "photo.stack")
-              .foregroundColor(.white)
-              .frame(width: 40, height: 40)
-              .padding(buttonPadding)
-              .background(themeColor.color.opacity(0.9))
-              .clipShape(Circle())
-              .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          }
-          #if os(tvOS)
-            .focused($focusedControl, equals: .jump)
-          #endif
 
           // Reader settings button
           Button {
@@ -182,43 +169,134 @@ struct ReaderControlsView: View {
       .padding(.vertical, buttonPadding)
       .allowsHitTesting(true)
 
-      // Series and book title
-      if let book = currentBook {
-        VStack(spacing: 4) {
-          Text(book.seriesTitle)
-            .font(.headline)
-            .foregroundColor(.white)
-          Text("#\(Int(book.number)) - \(book.metadata.title)")
-            .font(.subheadline)
-            .foregroundColor(.white)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(themeColor.color.opacity(0.9))
-        .cornerRadius(12)
-      }
-
       Spacer()
 
       // Bottom section with page info and slider
       VStack(spacing: 12) {
-        // Page info display
-        HStack(spacing: 6) {
-          Image(systemName: "bookmark")
+        // Page info display with navigation buttons
+        HStack(spacing: PlatformHelper.buttonSpacing) {
+          // Left button (previous for LTR, next for RTL)
+          Button {
+            if readingDirection == .rtl {
+              if let nextBook = nextBook, let onNextBook = onNextBook {
+                onNextBook(nextBook.id)
+              }
+            } else {
+              if let previousBook = previousBook, let onPreviousBook = onPreviousBook {
+                onPreviousBook(previousBook.id)
+              }
+            }
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: "chevron.left")
+                .font(.footnote.weight(.semibold))
+              Text(
+                String(
+                  localized: readingDirection == .rtl ? "reader.nextBook" : "reader.previousBook")
+              )
+              .font(.footnote.weight(.medium))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, buttonMargin)
+            .padding(.vertical, buttonPadding)
+            .background(themeColor.color.opacity(0.9))
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          }
+          .adaptiveButtonStyle(.plain)
+          .opacity((readingDirection == .rtl ? nextBook : previousBook) != nil ? 1.0 : 0.0)
+          .disabled((readingDirection == .rtl ? nextBook : previousBook) == nil)
+          #if os(tvOS)
+            .focused(
+              $focusedControl, equals: readingDirection == .rtl ? .nextBook : .previousBook)
+          #endif
+
+          Spacer()
+
+          // Page info - tappable to open jump sheet
+          Button {
+            guard !viewModel.pages.isEmpty else { return }
+            showingPageJumpSheet = true
+          } label: {
+            HStack(spacing: 6) {
+              Image(systemName: "bookmark")
+              Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
+                .monospacedDigit()
+            }
             .font(.footnote)
-          Text("\(displayedCurrentPage) / \(viewModel.pages.count)")
-            .monospacedDigit()
+            .foregroundColor(.white)
+            .padding(.horizontal, buttonMargin)
+            .padding(.vertical, buttonPadding)
+            .background(themeColor.color.opacity(0.9))
+            .cornerRadius(16)
+            .overlay(
+              RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          }
+          .adaptiveButtonStyle(.plain)
+          #if os(tvOS)
+            .focused($focusedControl, equals: .pageNumber)
+          #endif
+
+          // TOC button (only show if TOC exists)
+          if !viewModel.tableOfContents.isEmpty {
+            Button {
+              showingTOCSheet = true
+            } label: {
+              Image(systemName: "list.bullet")
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(buttonPadding)
+                .background(themeColor.color.opacity(0.9))
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            }
+            .adaptiveButtonStyle(.plain)
+            #if os(tvOS)
+              .focused($focusedControl, equals: .toc)
+            #endif
+          }
+
+          Spacer()
+
+          // Right button (next for LTR, previous for RTL)
+          Button {
+            if readingDirection == .rtl {
+              if let previousBook = previousBook, let onPreviousBook = onPreviousBook {
+                onPreviousBook(previousBook.id)
+              }
+            } else {
+              if let nextBook = nextBook, let onNextBook = onNextBook {
+                onNextBook(nextBook.id)
+              }
+            }
+          } label: {
+            HStack(spacing: 4) {
+              Text(
+                String(
+                  localized: readingDirection == .rtl ? "reader.previousBook" : "reader.nextBook")
+              )
+              .font(.footnote.weight(.medium))
+              Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, buttonMargin)
+            .padding(.vertical, buttonPadding)
+            .background(themeColor.color.opacity(0.9))
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          }
+          .adaptiveButtonStyle(.plain)
+          .opacity((readingDirection == .rtl ? previousBook : nextBook) != nil ? 1.0 : 0.0)
+          .disabled((readingDirection == .rtl ? previousBook : nextBook) == nil)
+          #if os(tvOS)
+            .focused(
+              $focusedControl, equals: readingDirection == .rtl ? .previousBook : .nextBook)
+          #endif
         }
-        .foregroundColor(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(themeColor.color.opacity(0.9))
-        .cornerRadius(20)
-        .overlay(
-          RoundedRectangle(cornerRadius: 20)
-            .stroke(Color.white.opacity(0.3), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
         // Bottom slider
         ReadingProgressBar(progress: progress, backgroundColor: .gray)
@@ -267,15 +345,6 @@ struct ReaderControlsView: View {
         onJump: jumpToPage
       )
     }
-    .sheet(isPresented: $showingReaderSettingsSheet) {
-      ReaderSettingsSheet(
-        readingDirection: $readingDirection,
-        readerBackground: $readerBackground,
-        pageLayout: $pageLayout,
-        dualPageNoCover: $dualPageNoCover,
-        webtoonPageWidthPercentage: $webtoonPageWidthPercentage
-      )
-    }
     .sheet(isPresented: $showingTOCSheet) {
       ReaderTOCSheetView(
         entries: viewModel.tableOfContents,
@@ -284,6 +353,15 @@ struct ReaderControlsView: View {
           showingTOCSheet = false
           jumpToTOCEntry(entry)
         }
+      )
+    }
+    .sheet(isPresented: $showingReaderSettingsSheet) {
+      ReaderSettingsSheet(
+        readingDirection: $readingDirection,
+        readerBackground: $readerBackground,
+        pageLayout: $pageLayout,
+        dualPageNoCover: $dualPageNoCover,
+        webtoonPageWidthPercentage: $webtoonPageWidthPercentage
       )
     }
     .onChange(of: dualPageNoCover) { _, newValue in
@@ -336,6 +414,12 @@ struct ReaderControlsView: View {
         return
       }
 
+      // Handle C key for toggle controls
+      if keyCode == 8 {  // C key
+        showingControls.toggle()
+        return
+      }
+
       // Handle T key for TOC
       if keyCode == 17 {  // T key
         if !viewModel.tableOfContents.isEmpty {
@@ -349,12 +433,6 @@ struct ReaderControlsView: View {
         if !viewModel.pages.isEmpty {
           showingPageJumpSheet = true
         }
-        return
-      }
-
-      // Handle C key for toggle controls
-      if keyCode == 8 {  // C key
-        showingControls.toggle()
         return
       }
 
