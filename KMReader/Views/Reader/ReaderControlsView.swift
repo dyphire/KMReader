@@ -132,7 +132,7 @@ struct ReaderControlsView: View {
             Text(book.seriesTitle)
               .font(.footnote)
               .foregroundColor(.white)
-            Text("#\(Int(book.number)) - \(book.metadata.title)")
+            Text("#\(book.metadata.number) - \(book.metadata.title)")
               .font(.callout)
               .foregroundColor(.white)
           }

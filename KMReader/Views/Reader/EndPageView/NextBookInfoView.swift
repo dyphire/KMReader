@@ -13,29 +13,21 @@ struct NextBookInfoView: View {
 
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
-  private var displayNumber: Int {
-    guard let readList = readList, let nextBook = nextBook else {
-      return Int(nextBook?.number ?? 0)
-    }
-
-    guard let index = readList.bookIds.firstIndex(of: nextBook.id) else {
-      return Int(nextBook.number)
-    }
-
-    // Index is 0-based, so add 1 for display (1-based)
-    return index + 1
+  private var bookNumber: String {
+    guard let book = nextBook else { return "" }
+    return "#\(book.metadata.number)"
   }
 
   private var upNextLabel: String {
     if readList != nil {
       return String.localizedStringWithFormat(
-        String(localized: "UP NEXT IN READ LIST: #%lld"),
-        displayNumber
+        String(localized: "UP NEXT IN READ LIST: %@"),
+        bookNumber
       )
     } else {
       return String.localizedStringWithFormat(
-        String(localized: "UP NEXT IN SERIES: #%lld"),
-        displayNumber
+        String(localized: "UP NEXT IN SERIES: %@"),
+        bookNumber
       )
     }
   }
@@ -44,36 +36,25 @@ struct NextBookInfoView: View {
     if let nextBook = nextBook {
       VStack(spacing: 4) {
         HStack(spacing: 6) {
-          Label(upNextLabel, systemImage: "arrow.right.circle")
+          Image(systemName: "arrow.right.circle")
+          Text(upNextLabel)
         }
         if let readList = readList {
           HStack(spacing: 4) {
             Image(systemName: "list.bullet.rectangle")
               .font(.caption2)
-            Text(
-              String.localizedStringWithFormat(
-                String(localized: "From: %@"),
-                readList.name
-              )
-            )
-            .font(.caption)
+            Text("From: \(readList.name)")
+              .font(.caption)
           }
           .foregroundColor(.white.opacity(0.8))
         }
         Text(nextBook.metadata.title)
-        Text(
-          String.localizedStringWithFormat(
-            String(localized: "%lld pages"),
-            nextBook.media.pagesCount
-          )
-        )
-          + Text(
-            String.localizedStringWithFormat(
-              String(localized: " • %@"),
-              nextBook.size
-            )
-          )
-          .font(.footnote)
+        HStack(spacing: 4) {
+          Text("\(nextBook.media.pagesCount) pages")
+          Text("•")
+          Text(nextBook.size)
+        }
+        .font(.footnote)
       }
       .foregroundColor(.white)
       .padding(.horizontal, 16)

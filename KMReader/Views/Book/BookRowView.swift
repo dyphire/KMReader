@@ -57,7 +57,7 @@ struct BookRowView: View {
               .lineLimit(1)
           }
 
-          Text("#\(formatNumber(book.number)) - \(book.metadata.title)")
+          Text("#\(book.metadata.number) - \(book.metadata.title)")
             .font(.body)
             .foregroundColor(completed ? .secondary : .primary)
             .lineLimit(bookTitleLineLimit)
@@ -170,7 +170,8 @@ struct BookRowView: View {
           bookIds: [book.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.booksAddedToReadList"))
           onBookUpdated?()
         }
       } catch {
@@ -195,14 +196,6 @@ struct BookRowView: View {
           ErrorManager.shared.alert(error: error)
         }
       }
-    }
-  }
-
-  private func formatNumber(_ number: Double) -> String {
-    if number.truncatingRemainder(dividingBy: 1) == 0 {
-      return String(format: "%.0f", number)
-    } else {
-      return String(format: "%.1f", number)
     }
   }
 }

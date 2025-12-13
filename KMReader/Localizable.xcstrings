@@ -18652,70 +18652,58 @@
         }
       }
     },
-    "UP NEXT IN READ LIST: #%lld" : {
+    "UP NEXT IN READ LIST: %@" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UP NEXT IN READ LIST: #%lld"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "À SUIVRE DANS LA LISTE DE LECTURE : n°%lld"
+            "value" : "À SUIVRE DANS LA LISTE DE LECTURE : %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "次の本（読書リスト）：#%lld"
+            "value" : "次の本（読書リスト）: %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "阅读列表中的下一本：#%lld"
+            "value" : "阅读列表中的下一本： %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "閱讀列表中的下一本：#%lld"
+            "value" : "閱讀列表中的下一本: %@"
           }
         }
       }
     },
-    "UP NEXT IN SERIES: #%lld" : {
+    "UP NEXT IN SERIES: %@" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UP NEXT IN SERIES: #%lld"
-          }
-        },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "À SUIVRE DANS LA SÉRIE : n°%lld"
+            "value" : "À SUIVRE DANS LA SÉRIE : %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "次の本（シリーズ）：#%lld"
+            "value" : "次の本（シリーズ）: %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系列中的下一本：#%lld"
+            "value" : "系列中的下一本： %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系列中的下一本：#%lld"
+            "value" : "系列中的下一本: %@"
           }
         }
       }

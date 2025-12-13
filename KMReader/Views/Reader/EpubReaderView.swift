@@ -228,7 +228,7 @@
             Text(book.seriesTitle)
               .font(.headline)
               .foregroundColor(.white)
-            Text("#\(Int(book.number)) - \(book.metadata.title)")
+            Text("#\(book.metadata.number) - \(book.metadata.title)")
               .font(.subheadline)
               .foregroundColor(.white)
           }
