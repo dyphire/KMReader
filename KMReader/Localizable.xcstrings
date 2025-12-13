@@ -14098,6 +14098,34 @@
         }
       }
     },
+    "Release Date (YYYY-MM-DD)" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date de publication (YYYY-MM-DD)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行日 (YYYY-MM-DD)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发行日期 (YYYY-MM-DD)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "發行日期 (YYYY-MM-DD)"
+          }
+        }
+      }
+    },
     "Release: %@" : {
       "localizations" : {
         "en" : {

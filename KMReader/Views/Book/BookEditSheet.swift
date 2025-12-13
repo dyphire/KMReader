@@ -22,6 +22,7 @@ struct BookEditSheet: View {
   @State private var numberSort: String
   @State private var numberSortLock: Bool
   @State private var releaseDate: Date?
+  @State private var releaseDateString: String
   @State private var releaseDateLock: Bool
   @State private var isbn: String
   @State private var isbnLock: Bool
@@ -56,8 +57,10 @@ struct BookEditSheet: View {
       let formatter = ISO8601DateFormatter()
       formatter.formatOptions = [.withFullDate]
       _releaseDate = State(initialValue: formatter.date(from: dateString))
+      _releaseDateString = State(initialValue: dateString)
     } else {
       _releaseDate = State(initialValue: nil)
+      _releaseDateString = State(initialValue: "")
     }
     _releaseDateLock = State(initialValue: book.metadata.releaseDateLock ?? false)
 
@@ -85,32 +88,57 @@ struct BookEditSheet: View {
             #endif
             .lockToggle(isLocked: $numberSortLock)
 
-          HStack {
-            DatePicker(
-              "Release Date",
-              selection: Binding(
-                get: { releaseDate ?? Date(timeIntervalSince1970: 0) },
-                set: {
-                  releaseDate = $0
+          #if os(tvOS)
+            HStack {
+              TextField("Release Date (YYYY-MM-DD)", text: $releaseDateString)
+                .onChange(of: releaseDateString) { _, newValue in
+                  let formatter = ISO8601DateFormatter()
+                  formatter.formatOptions = [.withFullDate]
+                  releaseDate = formatter.date(from: newValue)
                 }
-              ),
-              displayedComponents: .date
-            )
-            .datePickerStyle(.compact)
 
-            if releaseDate != nil {
-              Button(action: {
-                withAnimation {
-                  releaseDate = nil
+              if !releaseDateString.isEmpty {
+                Button(action: {
+                  withAnimation {
+                    releaseDateString = ""
+                    releaseDate = nil
+                  }
+                }) {
+                  Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
                 }
-              }) {
-                Image(systemName: "xmark.circle.fill")
-                  .foregroundColor(.secondary)
+                .buttonStyle(.plain)
               }
-              .buttonStyle(.plain)
             }
-          }
-          .lockToggle(isLocked: $releaseDateLock)
+            .lockToggle(isLocked: $releaseDateLock)
+          #else
+            HStack {
+              DatePicker(
+                "Release Date",
+                selection: Binding(
+                  get: { releaseDate ?? Date(timeIntervalSince1970: 0) },
+                  set: {
+                    releaseDate = $0
+                  }
+                ),
+                displayedComponents: .date
+              )
+              .datePickerStyle(.compact)
+
+              if releaseDate != nil {
+                Button(action: {
+                  withAnimation {
+                    releaseDate = nil
+                  }
+                }) {
+                  Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+              }
+            }
+            .lockToggle(isLocked: $releaseDateLock)
+          #endif
 
           TextField("ISBN", text: $isbn)
             #if os(iOS) || os(tvOS)
@@ -158,7 +186,6 @@ struct BookEditSheet: View {
             if case .custom = newAuthorRole {
               HStack {
                 TextField("Custom Role", text: $customRoleName)
-                  .textFieldStyle(.roundedBorder)
               }
             }
 
