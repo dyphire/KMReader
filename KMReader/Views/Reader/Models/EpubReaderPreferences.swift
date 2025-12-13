@@ -145,8 +145,8 @@
     var id: String { rawValue }
     var title: String {
       switch self {
-      case .paged: return "Paged"
-      case .scroll: return "Continuous Scroll"
+      case .paged: return String(localized: "Paged")
+      case .scroll: return String(localized: "Continuous Scroll")
       }
     }
     var icon: String {
@@ -166,9 +166,9 @@
 
     var title: String {
       switch self {
-      case .auto: return "Auto"
-      case .single: return "Single Page"
-      case .dual: return "Dual Page"
+      case .auto: return String(localized: "Auto")
+      case .single: return String(localized: "Single Page")
+      case .dual: return String(localized: "Dual Page")
       }
     }
 
@@ -206,10 +206,10 @@
     var id: String { rawValue }
     var title: String {
       switch self {
-      case .system: return "System"
-      case .light: return "Light"
-      case .sepia: return "Sepia"
-      case .dark: return "Dark"
+      case .system: return String(localized: "System")
+      case .light: return String(localized: "Light")
+      case .sepia: return String(localized: "Sepia")
+      case .dark: return String(localized: "Dark")
       }
     }
     func resolvedTheme(for colorScheme: ColorScheme?) -> Theme? {
@@ -237,7 +237,7 @@
     case publisher
     case system(String)
 
-    static let publisherValue = "Publisher Default"
+    static let publisherValue = String(localized: "Publisher Default")
 
     var id: String { rawValue }
 

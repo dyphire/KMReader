@@ -40,8 +40,8 @@
           .background(Color(uiColor: .systemGroupedBackground))
 
           Form {
-            Section("Theme") {
-              Picker("Appearance", selection: $draft.theme) {
+            Section(String(localized: "Theme")) {
+              Picker(String(localized: "Appearance"), selection: $draft.theme) {
                 ForEach(ThemeChoice.allCases) { choice in
                   Text(choice.title).tag(choice)
                 }
@@ -49,21 +49,21 @@
               .pickerStyle(.segmented)
             }
 
-            Section("Pagination") {
-              Picker("Reading Mode", selection: $draft.pagination) {
+            Section(String(localized: "Pagination")) {
+              Picker(String(localized: "Reading Mode"), selection: $draft.pagination) {
                 ForEach(PaginationMode.allCases) { mode in
                   Label(mode.title, systemImage: mode.icon).tag(mode)
                 }
               }
-              Picker("Page Layout", selection: $draft.layout) {
+              Picker(String(localized: "Page Layout"), selection: $draft.layout) {
                 ForEach(LayoutChoice.allCases) { layout in
                   Label(layout.title, systemImage: layout.icon).tag(layout)
                 }
               }
             }
 
-            Section("Font") {
-              Picker("Typeface", selection: $draft.fontFamily) {
+            Section(String(localized: "Font")) {
+              Picker(String(localized: "Typeface"), selection: $draft.fontFamily) {
                 ForEach(FontProvider.allChoices, id: \.id) { choice in
                   Text(choice.rawValue).tag(choice)
                 }
@@ -71,14 +71,14 @@
               .id(fontListRefreshId)
               VStack(alignment: .leading) {
                 Slider(value: $draft.fontSize, in: 0.5...2.0, step: 0.05)
-                Text("Size: \(String(format: "%.2f", draft.fontSize))")
+                Text(String(localized: "Size: \(String(format: "%.2f", draft.fontSize))"))
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.fontWeight, in: 0.0...2.5, step: 0.1)
-                Text("Weight: \(String(format: "%.1f", draft.fontWeight))")
+                Text(String(localized: "Weight: \(String(format: "%.1f", draft.fontWeight))"))
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
@@ -87,7 +87,7 @@
                 showCustomFontsSheet = true
               } label: {
                 HStack {
-                  Label("Manage Custom Fonts", systemImage: "textformat")
+                  Label(String(localized: "Manage Custom Fonts"), systemImage: "textformat")
                   Spacer()
                   if !customFonts.isEmpty {
                     Text("\(customFonts.count)")
@@ -99,51 +99,65 @@
               }
             }
 
-            Section("Character & Word") {
+            Section(String(localized: "Character & Word")) {
               VStack(alignment: .leading) {
                 Slider(value: $draft.letterSpacing, in: 0.0...2.0, step: 0.1)
-                Text("Letter Spacing: \(String(format: "%.1f", draft.letterSpacing))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(
+                    localized: "Letter Spacing: \(String(format: "%.1f", draft.letterSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.wordSpacing, in: 0.0...3.0, step: 0.1)
-                Text("Word Spacing: \(String(format: "%.1f", draft.wordSpacing))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(localized: "Word Spacing: \(String(format: "%.1f", draft.wordSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
             }
 
-            Section("Line & Paragraph") {
+            Section(String(localized: "Line & Paragraph")) {
               VStack(alignment: .leading) {
                 Slider(value: $draft.lineHeight, in: 0.5...3.0, step: 0.1)
-                Text("Line Height: \(String(format: "%.1f", draft.lineHeight))")
+                Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
-                Text("Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(
+                    localized:
+                      "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.paragraphIndent, in: 0.0...2.0, step: 0.1)
-                Text("Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(
+                    localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
             }
 
-            Section("Page Layout") {
+            Section(String(localized: "Page Layout")) {
               VStack(alignment: .leading) {
                 Slider(value: $draft.pageMargins, in: 0.0...2.0, step: 0.1)
-                Text("Page Margins: \(String(format: "%.1f", draft.pageMargins))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(localized: "Page Margins: \(String(format: "%.1f", draft.pageMargins))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
             }
           }
@@ -153,7 +167,7 @@
           onApply(draft)
           dismiss()
         } label: {
-          Label("Save", systemImage: "checkmark")
+          Label(String(localized: "Save"), systemImage: "checkmark")
         }
       }
       .sheet(isPresented: $showCustomFontsSheet) {

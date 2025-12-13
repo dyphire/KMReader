@@ -1809,6 +1809,34 @@
         }
       }
     },
+    "Auto" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
+          }
+        }
+      }
+    },
     "Auto-refresh" : {
       "localizations" : {
         "en" : {
@@ -2942,13 +2970,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Caractères et mots"
+            "value" : "Caractère et mot"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文字・単語"
+            "value" : "文字と単語"
           }
         },
         "zh-Hans" : {
@@ -2960,7 +2988,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字元與單詞"
+            "value" : "字元與單字"
           }
         }
       }
@@ -3695,6 +3723,34 @@
         }
       }
     },
+    "Continuous Scroll" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défilement continu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続スクロール"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续滚动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續捲動"
+          }
+        }
+      }
+    },
     "Create" : {
       "localizations" : {
         "en" : {
@@ -4025,6 +4081,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自訂字體"
+          }
+        }
+      }
+    },
+    "Dark" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sombre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダーク"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深色"
           }
         }
       }
@@ -5339,6 +5423,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下載…"
+          }
+        }
+      }
+    },
+    "Dual Page" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double page"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見開き"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙頁"
           }
         }
       }
@@ -8569,19 +8681,19 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文字間隔: %@"
+            "value" : "字間 : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字距：%@"
+            "value" : "字间距: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字距：%@"
+            "value" : "字元間距: %@"
           }
         }
       }
@@ -8926,6 +9038,34 @@
         }
       }
     },
+    "Light" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clair"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浅色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "淺色"
+          }
+        }
+      }
+    },
     "Line & Paragraph" : {
       "localizations" : {
         "en" : {
@@ -8977,19 +9117,19 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "行の高さ: %@"
+            "value" : "行の高さ : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "行高：%@"
+            "value" : "行高: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "行高：%@"
+            "value" : "行高: %@"
           }
         }
       }
@@ -11635,25 +11775,25 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marge des pages"
+            "value" : "Marges de page : %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ページ余白"
+            "value" : "ページ余白 : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "页边距：%@"
+            "value" : "页边距: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "頁邊距：%@"
+            "value" : "頁邊距: %@"
           }
         }
       }
@@ -11688,6 +11828,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻頁效果"
+          }
+        }
+      }
+    },
+    "Paged" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paginé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分頁"
           }
         }
       }
@@ -11737,25 +11905,25 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indentation de paragraphe : %@"
+            "value" : "Retrait de paragraphe : %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落インデント: %@"
+            "value" : "段落インデント : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落缩进：%@"
+            "value" : "段落缩进: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落縮排：%@"
+            "value" : "段落縮排: %@"
           }
         }
       }
@@ -11771,25 +11939,25 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Espacement de paragraphe : %@"
+            "value" : "Espacement des paragraphes : %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落間隔: %@"
+            "value" : "段落間隔 : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落间距：%@"
+            "value" : "段落间距: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "段落間距：%@"
+            "value" : "段落間距: %@"
           }
         }
       }
@@ -11994,6 +12162,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "出版商"
+          }
+        }
+      }
+    },
+    "Publisher Default" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par défaut de l'éditeur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出版社デフォルト"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出版商默认"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出版商預設"
           }
         }
       }
@@ -14096,6 +14292,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇閱讀列表"
+          }
+        }
+      }
+    },
+    "Sepia" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sépia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セピア"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棕褐色"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "棕褐色"
           }
         }
       }
@@ -16480,6 +16704,34 @@
         }
       }
     },
+    "Single Page" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page simple"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単ページ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單頁"
+          }
+        }
+      }
+    },
     "Size: %@" : {
       "localizations" : {
         "en" : {
@@ -16918,6 +17170,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "摘要（可選）"
+          }
+        }
+      }
+    },
+    "System" : {
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Système"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随系统"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟隨系統"
           }
         }
       }
@@ -18927,19 +19207,19 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ウェイト: %@"
+            "value" : "太さ : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字重：%@"
+            "value" : "字重: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字重：%@"
+            "value" : "字重: %@"
           }
         }
       }
@@ -19029,19 +19309,19 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "単語間隔: %@"
+            "value" : "単語間隔 : %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字间距：%@"
+            "value" : "词间距: %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "字間距：%@"
+            "value" : "詞間距: %@"
           }
         }
       }

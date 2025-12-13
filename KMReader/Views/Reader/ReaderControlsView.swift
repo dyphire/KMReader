@@ -136,7 +136,8 @@ struct ReaderControlsView: View {
               .font(.callout)
               .foregroundColor(.white)
           }
-          .padding(buttonPadding)
+          .padding(.vertical, buttonPadding)
+          .padding(.horizontal, buttonMargin)
           .background(themeColor.color.opacity(0.9))
           .cornerRadius(12)
         }
