@@ -43,7 +43,6 @@ struct SettingsAboutSection: View {
         Spacer()
         Text(Bundle.main.appVersion)
           .foregroundColor(.secondary)
-          .font(.caption)
         Spacer()
       }
     }
