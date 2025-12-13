@@ -123,7 +123,7 @@ struct BookDetailView: View {
                   ForEach(authors, id: \.self) { author in
                     InfoChip(
                       label: author.name,
-                      systemImage: author.roleIcon,
+                      systemImage: author.role.icon,
                       backgroundColor: Color.indigo.opacity(0.2),
                       foregroundColor: .indigo
                     )
@@ -309,7 +309,8 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.analyzeBook(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.analysisStarted"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.analysisStarted"))
         }
         await loadBook()
       } catch {
@@ -325,7 +326,8 @@ struct BookDetailView: View {
       do {
         try await BookService.shared.refreshMetadata(bookId: bookId)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.metadataRefreshed"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.metadataRefreshed"))
         }
         await loadBook()
       } catch {
@@ -449,7 +451,8 @@ struct BookDetailView: View {
           bookIds: [bookId]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.booksAddedToReadList"))
         }
         await loadBook()
       } catch {

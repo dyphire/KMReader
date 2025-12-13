@@ -16,14 +16,17 @@ struct BookEditSheet: View {
   @State private var title: String
   @State private var summary: String
   @State private var number: String
-  @State private var releaseDate: String
+  @State private var numberSort: String
+  @State private var releaseDate: Date?
   @State private var isbn: String
   @State private var authors: [Author]
   @State private var tags: [String]
   @State private var links: [WebLink]
 
   @State private var newAuthorName: String = ""
-  @State private var newAuthorRole: String = "Writer"
+  @State private var newAuthorRole: AuthorRole = .writer
+  @State private var showCustomRoleInput: Bool = false
+  @State private var customRoleName: String = ""
   @State private var newTag: String = ""
   @State private var newLinkLabel: String = ""
   @State private var newLinkURL: String = ""
@@ -33,7 +36,17 @@ struct BookEditSheet: View {
     _title = State(initialValue: book.metadata.title)
     _summary = State(initialValue: book.metadata.summary ?? "")
     _number = State(initialValue: book.metadata.number)
-    _releaseDate = State(initialValue: book.metadata.releaseDate ?? "")
+    _numberSort = State(initialValue: String(book.metadata.numberSort))
+
+    // Parse release date from string
+    if let dateString = book.metadata.releaseDate, !dateString.isEmpty {
+      let formatter = ISO8601DateFormatter()
+      formatter.formatOptions = [.withFullDate]
+      _releaseDate = State(initialValue: formatter.date(from: dateString))
+    } else {
+      _releaseDate = State(initialValue: nil)
+    }
+
     _isbn = State(initialValue: book.metadata.isbn ?? "")
     _authors = State(initialValue: book.metadata.authors ?? [])
     _tags = State(initialValue: book.metadata.tags ?? [])
@@ -46,10 +59,28 @@ struct BookEditSheet: View {
         Section("Basic Information") {
           TextField("Title", text: $title)
           TextField("Number", text: $number)
-          TextField("Release Date", text: $releaseDate)
+          TextField("Number Sort", text: $numberSort)
             #if os(iOS) || os(tvOS)
-              .keyboardType(.default)
+              .keyboardType(.decimalPad)
             #endif
+
+          DatePicker(
+            "Release Date",
+            selection: Binding(
+              get: { releaseDate ?? Date() },
+              set: { releaseDate = $0 }
+            ),
+            displayedComponents: .date
+          )
+          .datePickerStyle(.compact)
+
+          if releaseDate != nil {
+            Button("Clear Date") {
+              releaseDate = nil
+            }
+            .foregroundColor(.red)
+          }
+
           TextField("ISBN", text: $isbn)
             #if os(iOS) || os(tvOS)
               .keyboardType(.default)
@@ -64,7 +95,7 @@ struct BookEditSheet: View {
               VStack(alignment: .leading) {
                 Text(authors[index].name)
                   .font(.body)
-                Text(authors[index].role)
+                Text(authors[index].role.displayName)
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
@@ -76,17 +107,40 @@ struct BookEditSheet: View {
               }
             }
           }
-          HStack {
-            TextField("Name", text: $newAuthorName)
-            TextField("Role", text: $newAuthorRole)
+          VStack {
+            HStack {
+              TextField("Name", text: $newAuthorName)
+              Picker("Role", selection: $newAuthorRole) {
+                ForEach(AuthorRole.predefinedCases, id: \.self) { role in
+                  Text(role.displayName).tag(role)
+                }
+                Text("Custom").tag(AuthorRole.custom(""))
+              }
+              .frame(maxWidth: 150)
+            }
+
+            if case .custom = newAuthorRole {
+              HStack {
+                TextField("Custom Role", text: $customRoleName)
+                  .textFieldStyle(.roundedBorder)
+              }
+            }
+
             Button {
               if !newAuthorName.isEmpty {
-                authors.append(Author(name: newAuthorName, role: newAuthorRole))
+                let finalRole: AuthorRole
+                if case .custom = newAuthorRole {
+                  finalRole = .custom(customRoleName.isEmpty ? "Custom" : customRoleName)
+                } else {
+                  finalRole = newAuthorRole
+                }
+                authors.append(Author(name: newAuthorName, role: finalRole))
                 newAuthorName = ""
-                newAuthorRole = "Writer"
+                newAuthorRole = .writer
+                customRoleName = ""
               }
             } label: {
-              Image(systemName: "plus.circle.fill")
+              Label("Add Author", systemImage: "plus.circle.fill")
             }
             .disabled(newAuthorName.isEmpty)
           }
@@ -183,8 +237,18 @@ struct BookEditSheet: View {
         if number != book.metadata.number {
           metadata["number"] = number
         }
-        if releaseDate != (book.metadata.releaseDate ?? "") {
-          metadata["releaseDate"] = releaseDate.isEmpty ? NSNull() : releaseDate
+        if let numberSortDouble = Double(numberSort), numberSortDouble != book.metadata.numberSort {
+          metadata["numberSort"] = numberSortDouble
+        }
+        if let date = releaseDate {
+          let formatter = ISO8601DateFormatter()
+          formatter.formatOptions = [.withFullDate]
+          let dateString = formatter.string(from: date)
+          if dateString != (book.metadata.releaseDate ?? "") {
+            metadata["releaseDate"] = dateString
+          }
+        } else if book.metadata.releaseDate != nil {
+          metadata["releaseDate"] = NSNull()
         }
         if isbn != (book.metadata.isbn ?? "") {
           metadata["isbn"] = isbn.isEmpty ? NSNull() : isbn

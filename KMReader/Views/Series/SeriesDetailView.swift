@@ -192,7 +192,7 @@ struct SeriesDetailView: View {
                     ForEach(authors, id: \.self) { author in
                       InfoChip(
                         label: author.name,
-                        systemImage: author.roleIcon,
+                        systemImage: author.role.icon,
                         backgroundColor: Color.indigo.opacity(0.2),
                         foregroundColor: .indigo
                       )
@@ -591,17 +591,6 @@ extension SeriesDetailView {
 
   private func languageDisplayName(_ language: String) -> String {
     LanguageCodeHelper.displayName(for: language)
-  }
-
-  private func groupAuthorsByRole(_ authors: [Author]) -> [String: [String]] {
-    var grouped: [String: [String]] = [:]
-    for author in authors {
-      if grouped[author.role] == nil {
-        grouped[author.role] = []
-      }
-      grouped[author.role]?.append(author.name)
-    }
-    return grouped
   }
 
   private func formatDate(_ date: Date) -> String {
