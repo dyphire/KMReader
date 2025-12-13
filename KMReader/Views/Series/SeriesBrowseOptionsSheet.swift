@@ -23,6 +23,11 @@ struct SeriesBrowseOptionsSheet: View {
       applyFormStyle: true
     ) {
       Form {
+        SortOptionView(
+          sortField: $tempOpts.sortField,
+          sortDirection: $tempOpts.sortDirection
+        )
+
         Section("Read Status") {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
@@ -108,11 +113,6 @@ struct SeriesBrowseOptionsSheet: View {
             }
           }
         }
-
-        SortOptionView(
-          sortField: $tempOpts.sortField,
-          sortDirection: $tempOpts.sortDirection
-        )
 
       }
     } controls: {
