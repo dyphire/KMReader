@@ -33,7 +33,7 @@ struct ExpandableSummaryView: View {
 
   init(
     summary: String,
-    title: String = "Summary",
+    title: String = String(localized: "Summary"),
     titleIcon: String? = "text.alignleft",
     subtitle: String? = nil,
     titleStyle: TitleStyle = .caption

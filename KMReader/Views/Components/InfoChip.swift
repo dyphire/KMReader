@@ -50,6 +50,8 @@ struct InfoChip: View {
       }
       label
         .font(.caption)
+        .lineLimit(1)
+        .textSelection(.enabled)
     }
     .foregroundColor(foregroundColor)
     .padding(.horizontal, 8)

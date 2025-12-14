@@ -102,12 +102,6 @@ struct BookDetailView: View {
                 )
               }
 
-              if let comment = book.media.comment, !comment.isEmpty {
-                Text(comment)
-                  .font(.caption)
-                  .foregroundStyle(.red)
-              }
-
               if let readProgress = book.readProgress {
                 if isCompleted {
                   InfoChip(
@@ -142,10 +136,19 @@ struct BookDetailView: View {
 
               if let releaseDate = book.metadata.releaseDate {
                 InfoChip(
-                  label: releaseDate,
+                  labelKey: "Release Date: \(releaseDate)",
                   systemImage: "calendar",
                   backgroundColor: Color.orange.opacity(0.2),
                   foregroundColor: .orange
+                )
+              }
+
+              if let isbn = book.metadata.isbn, !isbn.isEmpty {
+                InfoChip(
+                  label: isbn,
+                  systemImage: "barcode",
+                  backgroundColor: Color.cyan.opacity(0.2),
+                  foregroundColor: .cyan
                 )
               }
             }
@@ -247,35 +250,58 @@ struct BookDetailView: View {
             .padding(.vertical, 8)
           }
 
-          VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-              InfoChip(
-                label: book.media.mediaType.uppercased(),
-                systemImage: "doc.text",
-                backgroundColor: Color.blue.opacity(0.2),
-                foregroundColor: .blue
-              )
-              InfoChip(
-                label: book.size,
-                systemImage: "internaldrive",
-                backgroundColor: Color.teal.opacity(0.2),
-                foregroundColor: .teal
-              )
+          // book media info
+          VStack(alignment: .leading, spacing: 8) {
+            Text("Media Information")
+              .font(.headline)
+              .foregroundColor(.primary)
+
+            VStack(alignment: .leading, spacing: 6) {
+              HStack {
+                Image(systemName: "doc.text")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+                  .frame(minWidth: 16)
+                Text(book.media.mediaType.uppercased())
+                  .font(.caption)
+                  .foregroundColor(.primary)
+                Spacer()
+              }
+
+              HStack {
+                Image(systemName: "internaldrive")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+                  .frame(minWidth: 16)
+                Text(book.size)
+                  .font(.caption)
+                  .foregroundColor(.primary)
+                Spacer()
+              }
+
+              HStack(alignment: .top) {
+                Image(systemName: "document")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+                  .frame(minWidth: 16)
+                Text(book.url)
+                  .font(.caption)
+                  .foregroundColor(.primary)
+                Spacer()
+              }
+
+              if let comment = book.media.comment, !comment.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                  Label("Comment", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                  Text(comment)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                }
+              }
             }
-            InfoChip(
-              label: book.url,
-              systemImage: "document",
-              backgroundColor: Color.gray.opacity(0.2),
-              foregroundColor: .gray
-            )
-            if let isbn = book.metadata.isbn, !isbn.isEmpty {
-              InfoChip(
-                label: isbn,
-                systemImage: "barcode",
-                backgroundColor: Color.cyan.opacity(0.2),
-                foregroundColor: .cyan
-              )
-            }
+            Divider()
           }
 
           // Links
@@ -311,11 +337,11 @@ struct BookDetailView: View {
                   }
                 }
               }
-            }.padding(.bottom, 8)
+              Divider()
+            }
           }
 
           if let summary = book.metadata.summary, !summary.isEmpty {
-            Divider()
             ExpandableSummaryView(summary: summary)
           }
         } else if isLoading {
