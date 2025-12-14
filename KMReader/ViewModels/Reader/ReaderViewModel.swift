@@ -31,13 +31,6 @@ struct PagePair: Hashable {
   }
 }
 
-struct ReaderTOCEntry: Identifiable, Hashable {
-  let id = UUID()
-  let title: String
-  let pageIndex: Int
-  var pageNumber: Int { pageIndex + 1 }
-}
-
 @MainActor
 @Observable
 class ReaderViewModel {
@@ -62,8 +55,6 @@ class ReaderViewModel {
 
   /// Track ongoing download tasks to prevent duplicate downloads for the same page (keyed by page number)
   private var downloadingTasks: [Int: Task<URL?, Never>] = [:]
-
-  private var pageResources: [Int: ReaderPageResource] = [:]
 
   var currentPage: BookPage? {
     guard currentPageIndex >= 0 else { return nil }
@@ -95,47 +86,33 @@ class ReaderViewModel {
       task.cancel()
     }
     downloadingTasks.removeAll()
-    pageResources.removeAll()
 
     do {
-      if book.media.mediaProfile == .epub {
-        let manifest = try await BookService.shared.getBookManifest(id: book.id)
-        let manifestResolution = await ReaderManifestService(
-          bookId: book.id,
-          logger: logger
-        ).resolve(manifest: manifest)
-        guard !manifestResolution.pages.isEmpty else {
-          throw AppErrorType.noRenderablePages
-        }
+      let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
 
-        pages = manifestResolution.pages
-        tableOfContents = manifestResolution.tocEntries
-        pageResources = manifestResolution.pageResources
-      } else {
-        let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
-        let normalizedPages = fetchedPages.map { page in
-          pageWithResolvedDownloadURL(page, bookId: book.id)
-        }
-        pages = normalizedPages
-        tableOfContents = []
-        pageResources = normalizedPages.reduce(into: [:]) { result, page in
-          if let url = page.downloadURL {
-            result[page.number] = .direct(url)
-          }
-        }
-
-        guard !pages.isEmpty else {
-          throw AppErrorType.noRenderablePages
-        }
+      // Set initial page index BEFORE assigning pages to ensure proper scroll synchronization
+      // This prevents race condition where pages.count changes but currentPageIndex is still 0
+      if let initialPageNumber = initialPageNumber,
+        let pageIndex = fetchedPages.firstIndex(where: { $0.number == initialPageNumber })
+      {
+        currentPageIndex = pageIndex
       }
+
+      // Now assign pages, which will trigger View's onChange(of: pages.count)
+      pages = fetchedPages
 
       // Update page pairs and dual page indices after loading pages
       regenerateDualPageState()
 
-      if let initialPageNumber = initialPageNumber,
-        let pageIndex = pages.firstIndex(where: { $0.number == initialPageNumber })
-      {
-        currentPageIndex = pageIndex
+      // For EPUB, fetch manifest and parse TOC
+      if book.media.mediaProfile == .epub {
+        let manifest = try await BookService.shared.getBookManifest(id: book.id)
+        tableOfContents = await ReaderManifestService(
+          bookId: book.id,
+          logger: logger
+        ).parseTOC(manifest: manifest)
+      } else {
+        tableOfContents = []
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -174,7 +151,7 @@ class ReaderViewModel {
       logger.info("📥 Downloading page \(page.number) for book \(self.bookId)")
 
       do {
-        guard let remoteURL = await self.resolvedDownloadURL(for: page) else {
+        guard let remoteURL = self.resolvedDownloadURL(for: page) else {
           self.logger.error(
             "❌ Unable to resolve download URL for page \(page.number) in book \(self.bookId)")
           return nil
@@ -287,92 +264,12 @@ class ReaderViewModel {
     }
   }
 
-  private func resolvedDownloadURL(for page: BookPage) async -> URL? {
+  private func resolvedDownloadURL(for page: BookPage) -> URL? {
     if let url = page.downloadURL {
       return url
     }
-    guard let resource = pageResources[page.number] else {
-      logger.error("❌ Missing resource mapping for page \(page.number) in book \(self.bookId)")
-      return nil
-    }
-
-    switch resource {
-    case .direct(let url):
-      return url
-    case .xhtml(let url):
-      return await resolveImageURLFromXHTML(pageNumber: page.number, xhtmlURL: url)
-    }
-  }
-
-  private func pageWithResolvedDownloadURL(_ page: BookPage, bookId: String) -> BookPage {
-    guard page.downloadURL == nil else { return page }
-    guard let fallbackURL = BookService.shared.getBookPageURL(bookId: bookId, page: page.number) else {
-      return page
-    }
-    return page.withDownloadURL(fallbackURL)
-  }
-
-  private func resolveImageURLFromXHTML(pageNumber: Int, xhtmlURL: URL) async -> URL? {
-    logger.info("🔍 Resolving XHTML for page \(pageNumber) in book \(self.bookId)")
-    do {
-      let (data, _) = try await BookService.shared.downloadResource(at: xhtmlURL)
-      guard let imageInfo = ReaderXHTMLParser.firstImageInfo(from: data, baseURL: xhtmlURL) else {
-        logger.error("❌ No image tag found in XHTML for page \(pageNumber)")
-        return nil
-      }
-
-      let resolvedURL = imageInfo.url
-      let mediaType = imageInfo.mediaType ?? ReaderMediaHelper.guessMediaType(for: resolvedURL)
-      let fileName =
-        resolvedURL.lastPathComponent.isEmpty ? "page-\(pageNumber)" : resolvedURL.lastPathComponent
-
-      updatePageMetadata(
-        pageNumber: pageNumber,
-        fileName: fileName,
-        mediaType: mediaType,
-        width: imageInfo.width,
-        height: imageInfo.height,
-        downloadURL: resolvedURL
-      )
-
-      pageResources[pageNumber] = .direct(resolvedURL)
-      return resolvedURL
-    } catch {
-      logger.error(
-        "❌ Failed to resolve XHTML for page \(pageNumber) in book \(self.bookId): \(error.localizedDescription)"
-      )
-      return nil
-    }
-  }
-
-  private func updatePageMetadata(
-    pageNumber: Int,
-    fileName: String?,
-    mediaType: String?,
-    width: Int?,
-    height: Int?,
-    downloadURL: URL?
-  ) {
-    guard let index = pages.firstIndex(where: { $0.number == pageNumber }) else { return }
-    let existing = pages[index]
-
-    let updatedPage = BookPage(
-      number: existing.number,
-      fileName: fileName ?? existing.fileName,
-      mediaType: mediaType ?? existing.mediaType,
-      width: width ?? existing.width,
-      height: height ?? existing.height,
-      sizeBytes: existing.sizeBytes,
-      size: existing.size,
-      downloadURL: downloadURL ?? existing.downloadURL
-    )
-
-    if existing.isPortrait != updatedPage.isPortrait {
-      pages[index] = updatedPage
-      regenerateDualPageState()
-    } else {
-      pages[index] = updatedPage
-    }
+    // Fallback: construct URL from page number
+    return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
   }
 
   func updateDualPageSettings(noCover: Bool) {

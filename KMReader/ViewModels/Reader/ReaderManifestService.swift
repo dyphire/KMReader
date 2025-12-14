@@ -9,144 +9,53 @@ import Foundation
 import OSLog
 import UniformTypeIdentifiers
 
-struct ReaderManifestService {
-  struct Result {
-    let pages: [BookPage]
-    let tocEntries: [ReaderTOCEntry]
-    let pageResources: [Int: ReaderPageResource]
-  }
+struct ReaderTOCEntry: Identifiable, Hashable {
+  let id = UUID()
+  let title: String
+  let pageIndex: Int
+  var pageNumber: Int { pageIndex + 1 }
+}
 
+struct ReaderManifestService {
   let bookId: String
   let logger: Logger
 
-  func resolve(manifest: DivinaManifest) async -> Result {
-    var resolvedPages: [BookPage] = []
-    var hrefToPageIndex: [String: Int] = [:]
-    var resources: [Int: ReaderPageResource] = [:]
+  /// Parse Table of Contents from manifest
+  func parseTOC(manifest: DivinaManifest) async -> [ReaderTOCEntry] {
+    guard let manifestTOC = manifest.toc, !manifestTOC.isEmpty else {
+      return []
+    }
 
-    for (manifestIndex, resource) in manifest.readingOrder.enumerated() {
-      guard let canonicalURL = resolvedManifestURL(from: resource.href) else {
-        logger.error("❌ Invalid manifest href at index \(manifestIndex) for book \(self.bookId)")
-        continue
-      }
-
-      let pageIndex = resolvedPages.count
-
-      if let result = resolveManifestEntry(
-        resource: resource,
-        manifestIndex: manifestIndex,
-        pageIndex: pageIndex,
-        canonicalURL: canonicalURL
-      ) {
-        resolvedPages.append(result.page)
-        resources[result.page.number] = result.resource
-        hrefToPageIndex[canonicalURL.absoluteString] = pageIndex
+    // Build href to page number mapping from reading order
+    var hrefToPageNumber: [String: Int] = [:]
+    for (index, resource) in manifest.readingOrder.enumerated() {
+      if let canonicalURL = resolvedManifestURL(from: resource.href) {
+        hrefToPageNumber[canonicalURL.absoluteString] = index + 1
       }
     }
 
-    let tocEntries = buildTOCEntries(
-      manifestTOC: manifest.toc,
-      hrefPageMap: hrefToPageIndex
-    )
-
-    return Result(pages: resolvedPages, tocEntries: tocEntries, pageResources: resources)
-  }
-
-  private func resolveManifestEntry(
-    resource: DivinaManifestResource,
-    manifestIndex: Int,
-    pageIndex: Int,
-    canonicalURL: URL
-  ) -> PageBuildResult? {
-    do {
-      return try buildBookPage(
-        resource: resource,
-        pageIndex: pageIndex,
-        resourceURL: canonicalURL
-      )
-    } catch {
-      logger.error(
-        "❌ Failed to resolve manifest entry \(manifestIndex) for book \(self.bookId): \(error.localizedDescription)"
-      )
-      return nil
-    }
-  }
-
-  private func buildBookPage(
-    resource: DivinaManifestResource,
-    pageIndex: Int,
-    resourceURL: URL
-  ) throws -> PageBuildResult {
-    var mediaType = ReaderMediaHelper.normalizedMimeType(resource.type)
-    let isXHTML = isXHTMLResource(type: mediaType, url: resourceURL)
-
-    var downloadURL: URL?
-    let pageResource: ReaderPageResource
-
-    if isXHTML {
-      pageResource = .xhtml(resourceURL)
-      if mediaType.isEmpty {
-        mediaType = "application/xhtml+xml"
-      }
-    } else {
-      if mediaType.isEmpty {
-        mediaType = ReaderMediaHelper.guessMediaType(for: resourceURL)
-      }
-
-      guard mediaType.hasPrefix("image/") else {
-        throw AppErrorType.manifestUnsupportedType(mediaType)
-      }
-
-      downloadURL = resourceURL
-      pageResource = .direct(resourceURL)
-    }
-
-    let resolvedURL = downloadURL ?? resourceURL
-    let resolvedFileName =
-      resolvedURL.lastPathComponent.isEmpty
-      ? "page-\(pageIndex + 1)" : resolvedURL.lastPathComponent
-
-    let page = BookPage(
-      number: pageIndex + 1,
-      fileName: resolvedFileName,
-      mediaType: mediaType,
-      width: resource.width,
-      height: resource.height,
-      sizeBytes: nil,
-      size: "",
-      downloadURL: downloadURL
-    )
-
-    return PageBuildResult(page: page, resource: pageResource)
-  }
-
-  private func isXHTMLResource(type: String, url: URL) -> Bool {
-    if type == "application/xhtml+xml" || type == "text/html" || type == "application/xml" {
-      return true
-    }
-    let ext = url.pathExtension.lowercased()
-    return ["xhtml", "html", "htm", "xml", "svg"].contains(ext)
+    return buildTOCEntries(manifestTOC: manifestTOC, hrefPageMap: hrefToPageNumber)
   }
 
   private func buildTOCEntries(
-    manifestTOC: [DivinaManifestLink]?,
+    manifestTOC: [DivinaManifestLink],
     hrefPageMap: [String: Int]
   ) -> [ReaderTOCEntry] {
-    guard let manifestTOC, !manifestTOC.isEmpty else { return [] }
     var entries: [ReaderTOCEntry] = []
 
     for item in manifestTOC {
       guard
         let resolvedURL = resolvedManifestURL(from: item.href),
-        let pageIndex = hrefPageMap[resolvedURL.absoluteString]
+        let pageNumber = hrefPageMap[resolvedURL.absoluteString]
       else {
         continue
       }
 
+      let pageIndex = pageNumber - 1
       let trimmedTitle = item.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
       let title =
         trimmedTitle.isEmpty
-        ? localizedPageLabel(pageIndex + 1)
+        ? localizedPageLabel(pageNumber)
         : trimmedTitle
 
       entries.append(ReaderTOCEntry(title: title, pageIndex: pageIndex))
@@ -173,14 +82,4 @@ struct ReaderManifestService {
     let format = String(localized: "Page %d", bundle: .main, comment: "Fallback TOC title")
     return String.localizedStringWithFormat(format, pageNumber)
   }
-}
-
-struct PageBuildResult {
-  let page: BookPage
-  let resource: ReaderPageResource
-}
-
-enum ReaderPageResource {
-  case direct(URL)
-  case xhtml(URL)
 }
