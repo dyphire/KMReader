@@ -86,37 +86,46 @@ struct SeriesEditSheet: View {
         Section("Basic Information") {
           TextField("Title", text: $title)
             .lockToggle(isLocked: $titleLock)
+            .onChange(of: title) { titleLock = true }
           TextField("Title Sort", text: $titleSort)
             .lockToggle(isLocked: $titleSortLock)
+            .onChange(of: titleSort) { titleSortLock = true }
           TextField("Total Book Count", text: $totalBookCount)
             #if os(iOS) || os(tvOS)
               .keyboardType(.numberPad)
             #endif
             .lockToggle(isLocked: $totalBookCountLock)
+            .onChange(of: totalBookCount) { totalBookCountLock = true }
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
             .lockToggle(isLocked: $summaryLock)
+            .onChange(of: summary) { summaryLock = true }
           Picker("Status", selection: $status) {
             ForEach(SeriesStatus.allCases, id: \.self) { status in
               Text(status.displayName).tag(status)
             }
           }
           .lockToggle(isLocked: $statusLock)
+          .onChange(of: status) { statusLock = true }
           LanguagePicker(selectedLanguage: $language)
             .lockToggle(isLocked: $languageLock)
+            .onChange(of: language) { languageLock = true }
           Picker("Reading Direction", selection: $readingDirection) {
             ForEach(ReadingDirection.allCases, id: \.self) { direction in
               Text(direction.displayName).tag(direction)
             }
           }
           .lockToggle(isLocked: $readingDirectionLock)
+          .onChange(of: readingDirection) { readingDirectionLock = true }
           TextField("Publisher", text: $publisher)
             .lockToggle(isLocked: $publisherLock)
+            .onChange(of: publisher) { publisherLock = true }
           TextField("Age Rating", text: $ageRating)
             #if os(iOS) || os(tvOS)
               .keyboardType(.numberPad)
             #endif
             .lockToggle(isLocked: $ageRatingLock)
+            .onChange(of: ageRating) { ageRatingLock = true }
         }
 
         Section {
@@ -128,8 +137,9 @@ struct SeriesEditSheet: View {
                 Spacer()
                 Button(role: .destructive) {
                   let indexToRemove = index
-                  _ = withAnimation {
+                  withAnimation {
                     alternateTitles.remove(at: indexToRemove)
+                    alternateTitlesLock = true
                   }
                 } label: {
                   Image(systemName: "trash")
@@ -150,6 +160,7 @@ struct SeriesEditSheet: View {
                     AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
                   newAlternateTitleLabel = ""
                   newAlternateTitle = ""
+                  alternateTitlesLock = true
                 }
               }
             } label: {
@@ -176,8 +187,9 @@ struct SeriesEditSheet: View {
               Spacer()
               Button(role: .destructive) {
                 let indexToRemove = index
-                _ = withAnimation {
+                withAnimation {
                   genres.remove(at: indexToRemove)
+                  genresLock = true
                 }
               } label: {
                 Image(systemName: "trash")
@@ -191,6 +203,7 @@ struct SeriesEditSheet: View {
                 withAnimation {
                   genres.append(newGenre)
                   newGenre = ""
+                  genresLock = true
                 }
               }
             } label: {
@@ -210,8 +223,9 @@ struct SeriesEditSheet: View {
               Spacer()
               Button(role: .destructive) {
                 let indexToRemove = index
-                _ = withAnimation {
+                withAnimation {
                   tags.remove(at: indexToRemove)
+                  tagsLock = true
                 }
               } label: {
                 Image(systemName: "trash")
@@ -225,6 +239,7 @@ struct SeriesEditSheet: View {
                 withAnimation {
                   tags.append(newTag)
                   newTag = ""
+                  tagsLock = true
                 }
               }
             } label: {
@@ -246,8 +261,9 @@ struct SeriesEditSheet: View {
                 Spacer()
                 Button(role: .destructive) {
                   let indexToRemove = index
-                  _ = withAnimation {
+                  withAnimation {
                     links.remove(at: indexToRemove)
+                    linksLock = true
                   }
                 } label: {
                   Image(systemName: "trash")
@@ -271,6 +287,7 @@ struct SeriesEditSheet: View {
                   links.append(WebLink(label: newLinkLabel, url: newLinkURL))
                   newLinkLabel = ""
                   newLinkURL = ""
+                  linksLock = true
                 }
               }
             } label: {

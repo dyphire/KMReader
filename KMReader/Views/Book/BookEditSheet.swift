@@ -80,13 +80,16 @@ struct BookEditSheet: View {
         Section("Basic Information") {
           TextField("Title", text: $title)
             .lockToggle(isLocked: $titleLock)
+            .onChange(of: title) { titleLock = true }
           TextField("Number", text: $number)
             .lockToggle(isLocked: $numberLock)
+            .onChange(of: number) { numberLock = true }
           TextField("Number Sort", text: $numberSort)
             #if os(iOS) || os(tvOS)
               .keyboardType(.decimalPad)
             #endif
             .lockToggle(isLocked: $numberSortLock)
+            .onChange(of: numberSort) { numberSortLock = true }
 
           #if os(tvOS)
             HStack {
@@ -95,6 +98,7 @@ struct BookEditSheet: View {
                   let formatter = ISO8601DateFormatter()
                   formatter.formatOptions = [.withFullDate]
                   releaseDate = formatter.date(from: newValue)
+                  releaseDateLock = true
                 }
 
               if !releaseDateString.isEmpty {
@@ -102,6 +106,7 @@ struct BookEditSheet: View {
                   withAnimation {
                     releaseDateString = ""
                     releaseDate = nil
+                    releaseDateLock = true
                   }
                 }) {
                   Image(systemName: "xmark.circle.fill")
@@ -119,6 +124,7 @@ struct BookEditSheet: View {
                   get: { releaseDate ?? Date(timeIntervalSince1970: 0) },
                   set: {
                     releaseDate = $0
+                    releaseDateLock = true
                   }
                 ),
                 displayedComponents: .date
@@ -129,6 +135,7 @@ struct BookEditSheet: View {
                 Button(action: {
                   withAnimation {
                     releaseDate = nil
+                    releaseDateLock = true
                   }
                 }) {
                   Image(systemName: "xmark.circle.fill")
@@ -145,9 +152,11 @@ struct BookEditSheet: View {
               .keyboardType(.default)
             #endif
             .lockToggle(isLocked: $isbnLock)
+            .onChange(of: isbn) { isbnLock = true }
           TextField("Summary", text: $summary, axis: .vertical)
             .lineLimit(3...10)
             .lockToggle(isLocked: $summaryLock)
+            .onChange(of: summary) { summaryLock = true }
         }
 
         Section {
@@ -163,8 +172,9 @@ struct BookEditSheet: View {
               Spacer()
               Button(role: .destructive) {
                 let indexToRemove = index
-                _ = withAnimation {
+                withAnimation {
                   authors.remove(at: indexToRemove)
+                  authorsLock = true
                 }
               } label: {
                 Image(systemName: "trash")
@@ -202,6 +212,7 @@ struct BookEditSheet: View {
                   newAuthorName = ""
                   newAuthorRole = .writer
                   customRoleName = ""
+                  authorsLock = true
                 }
               }
             } label: {
@@ -221,8 +232,9 @@ struct BookEditSheet: View {
               Spacer()
               Button(role: .destructive) {
                 let indexToRemove = index
-                _ = withAnimation {
+                withAnimation {
                   tags.remove(at: indexToRemove)
+                  tagsLock = true
                 }
               } label: {
                 Image(systemName: "trash")
@@ -236,6 +248,7 @@ struct BookEditSheet: View {
                 withAnimation {
                   tags.append(newTag)
                   newTag = ""
+                  tagsLock = true
                 }
               }
             } label: {
@@ -257,8 +270,9 @@ struct BookEditSheet: View {
                 Spacer()
                 Button(role: .destructive) {
                   let indexToRemove = index
-                  _ = withAnimation {
+                  withAnimation {
                     links.remove(at: indexToRemove)
+                    linksLock = true
                   }
                 } label: {
                   Image(systemName: "trash")
@@ -282,6 +296,7 @@ struct BookEditSheet: View {
                   links.append(WebLink(label: newLinkLabel, url: newLinkURL))
                   newLinkLabel = ""
                   newLinkURL = ""
+                  linksLock = true
                 }
               }
             } label: {
