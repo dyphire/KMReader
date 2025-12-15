@@ -172,6 +172,7 @@ struct PageView: View {
       // End page at beginning for RTL
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
+        .readerPageScrollTransition(style: pageTransitionStyle)
 
       // Pages in reverse order
       ForEach((0..<viewModel.pages.count).reversed(), id: \.self) { pageIndex in
@@ -191,8 +192,8 @@ struct PageView: View {
       ForEach(0..<viewModel.pages.count, id: \.self) { pageIndex in
         singlePageView(pageIndex: pageIndex)
           .frame(width: screenSize.width, height: screenSize.height)
-          .contentShape(Rectangle())
           #if os(iOS) || os(macOS)
+            .contentShape(Rectangle())
             .simultaneousGesture(
               horizontalTapGesture(width: screenSize.width, proxy: proxy)
             )
@@ -204,6 +205,7 @@ struct PageView: View {
       // End page at end for LTR
       endPageView(proxy: proxy)
         .id(viewModel.pages.count)
+        .readerPageScrollTransition(style: pageTransitionStyle)
     }
   }
 
@@ -457,7 +459,7 @@ struct PageView: View {
     if mode.isDualPage {
       guard target >= 0 else { return }
       guard let targetPair = viewModel.dualPageIndices[target] else { return }
-      guard targetPair.first < viewModel.pages.count else { return }
+      guard targetPair.first <= viewModel.pages.count else { return }
       newPageIndex = targetPair.first
     } else {
       guard target >= 0, target <= viewModel.pages.count else { return }

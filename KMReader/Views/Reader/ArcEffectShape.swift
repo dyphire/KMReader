@@ -19,7 +19,7 @@ struct ArcEffectShape: Shape {
   func path(in rect: CGRect) -> Path {
     var path = Path()
 
-    let maxWidth: CGFloat = 60
+    let maxWidth: CGFloat = 80
     let width = maxWidth * progress
 
     if isLeading {
@@ -48,19 +48,35 @@ struct ArcEffectView: View {
   let themeColor: Color
 
   var body: some View {
-    ArcEffectShape(progress: progress, isLeading: isLeading)
-      .fill(
-        LinearGradient(
-          gradient: Gradient(colors: [
-            themeColor.opacity(0.6),
-            themeColor.opacity(0.3),
-            themeColor.opacity(0.0),
-          ]),
-          startPoint: isLeading ? .leading : .trailing,
-          endPoint: isLeading ? .trailing : .leading
-        )
-      )
-      .shadow(color: themeColor.opacity(0.4), radius: 20, x: 0, y: 0)
-      .allowsHitTesting(false)
+    GeometryReader { geometry in
+      ZStack {
+        ArcEffectShape(progress: progress, isLeading: isLeading)
+          .fill(
+            LinearGradient(
+              gradient: Gradient(colors: [
+                themeColor.opacity(0.6),
+                themeColor.opacity(0.3),
+                themeColor.opacity(0.0),
+              ]),
+              startPoint: isLeading ? .leading : .trailing,
+              endPoint: isLeading ? .trailing : .leading
+            )
+          )
+          .shadow(color: themeColor.opacity(0.4), radius: 20, x: 0, y: 0)
+
+        if progress > 0.1 {
+          let maxWidth: CGFloat = 80
+          let currentWidth = maxWidth * progress
+          let arrowX = isLeading ? (currentWidth / 4) : (geometry.size.width - currentWidth / 4)
+
+          Image(systemName: isLeading ? "arrow.left" : "arrow.right")
+            .font(.system(size: 24, weight: .bold))
+            .foregroundColor(.white)
+            .opacity(Double(progress))
+            .position(x: arrowX, y: geometry.size.height / 2)
+        }
+      }
+    }
+    .allowsHitTesting(false)
   }
 }

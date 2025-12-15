@@ -57,30 +57,25 @@ struct EndPageView: View {
 
       content
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .contentShape(Rectangle())
     #if os(iOS)
-      .gesture(
-        DragGesture(minimumDistance: 10)
-          .onChanged { value in
+      .overlay(
+        SwipeDetector(
+          isRTL: isRTL,
+          onUpdate: { translation in
             guard nextBook != nil else { return }
+            isDragging = true
+            dragOffset = translation
 
-            let translation = value.translation.width
-            let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
-
-            // Only update state for forward swipes
-            if shouldAcceptDrag {
-              isDragging = true
-              dragOffset = translation
-
-              // Trigger haptic feedback when threshold is reached
-              if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
-                hasTriggeredHaptic = true
-              }
+            // Trigger haptic feedback when threshold is reached
+            if abs(dragOffset) >= swipeThreshold && !hasTriggeredHaptic {
+              let impact = UIImpactFeedbackGenerator(style: .medium)
+              impact.impactOccurred()
+              hasTriggeredHaptic = true
             }
-          }
-          .onEnded { value in
-            let translation = value.translation.width
+          },
+          onEnd: { translation in
             let shouldAcceptDrag = isRTL ? translation > 0 : translation < 0
 
             if shouldAcceptDrag && abs(dragOffset) >= swipeThreshold, let nextBook = nextBook {
@@ -95,8 +90,10 @@ struct EndPageView: View {
               hasTriggeredHaptic = false
             }
           }
+        )
       )
     #endif
+
     #if os(tvOS)
       .id("endpage-\(viewModel.currentPageIndex >= viewModel.pages.count ? "active" : "inactive")")
       .onAppear {
@@ -254,4 +251,64 @@ struct EndPageView: View {
       NextBookInfoView(nextBook: nextBook, readList: readList)
     }
   }
+
 }
+
+#if os(iOS)
+  struct SwipeDetector: UIViewRepresentable {
+    var isRTL: Bool
+    var onUpdate: (CGFloat) -> Void
+    var onEnd: (CGFloat) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+      let view = UIView()
+      view.backgroundColor = .clear
+      let gesture = UIPanGestureRecognizer(
+        target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+      gesture.delegate = context.coordinator
+      view.addGestureRecognizer(gesture)
+      return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+      context.coordinator.parent = self
+    }
+
+    func makeCoordinator() -> Coordinator {
+      Coordinator(parent: self)
+    }
+
+    class Coordinator: NSObject, UIGestureRecognizerDelegate {
+      var parent: SwipeDetector
+
+      init(parent: SwipeDetector) {
+        self.parent = parent
+      }
+
+      @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+        let translation = gesture.translation(in: gesture.view).x
+        if gesture.state == .changed {
+          parent.onUpdate(translation)
+        } else if gesture.state == .ended || gesture.state == .cancelled {
+          parent.onEnd(translation)
+        }
+      }
+
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+        let velocity = pan.velocity(in: pan.view)
+
+        // Ignore vertical swipes
+        if abs(velocity.y) > abs(velocity.x) { return false }
+
+        // LTR: Forward is Left (< 0), Backward is Right (> 0)
+        // RTL: Forward is Right (> 0), Backward is Left (< 0)
+        if parent.isRTL {
+          return velocity.x > 0  // Accept only Next Book (Right)
+        } else {
+          return velocity.x < 0  // Accept only Next Book (Left)
+        }
+      }
+    }
+  }
+#endif

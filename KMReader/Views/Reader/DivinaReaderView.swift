@@ -183,7 +183,7 @@ struct DivinaReaderView: View {
               .readerIgnoresSafeArea()
             }
           }
-          .id("\(currentBookId)-\(screenKey)")
+          .id("\(currentBookId)-\(screenKey)-\(readingDirection)")
           .onChange(of: viewModel.currentPageIndex) {
             // Update progress and preload pages in background without blocking UI
             Task(priority: .userInitiated) {
