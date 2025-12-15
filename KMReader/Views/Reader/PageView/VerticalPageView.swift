@@ -24,6 +24,7 @@ struct VerticalPageView: View {
   @State private var isZoomed = false
   @Environment(\.readerBackgroundPreference) private var readerBackground
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
   var body: some View {
     ScrollViewReader { proxy in
@@ -121,6 +122,12 @@ struct VerticalPageView: View {
       SpatialTapGesture()
         .onEnded { value in
           guard !isZoomed else { return }
+
+          if disableTapToTurnPage {
+            toggleControls()
+            return
+          }
+
           guard height > 0 else { return }
           let normalizedY = max(0, min(1, value.location.y / height))
           if normalizedY < 0.3 {

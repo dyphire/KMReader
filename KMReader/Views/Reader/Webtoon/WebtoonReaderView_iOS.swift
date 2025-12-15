@@ -19,11 +19,13 @@
     let onScrollToBottom: ((Bool) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
+    let disableTapToTurnPage: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
+      disableTapToTurnPage: Bool = false,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil
@@ -32,6 +34,7 @@
       self.viewModel = viewModel
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
+      self.disableTapToTurnPage = disableTapToTurnPage
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -78,7 +81,8 @@
         onScrollToBottom: onScrollToBottom,
         pageWidth: pageWidth,
         collectionView: collectionView,
-        readerBackground: readerBackground
+        readerBackground: readerBackground,
+        disableTapToTurnPage: disableTapToTurnPage
       )
     }
 
@@ -108,6 +112,7 @@
       var lastVisibleCellsUpdateTime: Date?
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
+      var disableTapToTurnPage: Bool = false
 
       var pageHeights: [Int: CGFloat] = [:]
       var loadingPages: Set<Int> = []
@@ -211,7 +216,8 @@
         onScrollToBottom: ((Bool) -> Void)?,
         pageWidth: CGFloat,
         collectionView: UICollectionView,
-        readerBackground: ReaderBackground
+        readerBackground: ReaderBackground,
+        disableTapToTurnPage: Bool
       ) {
         self.pages = pages
         self.viewModel = viewModel
@@ -220,6 +226,7 @@
         self.onScrollToBottom = onScrollToBottom
         self.pageWidth = pageWidth
         self.readerBackground = readerBackground
+        self.disableTapToTurnPage = disableTapToTurnPage
         applyMetadataHeights()
 
         let currentPage = viewModel.currentPageIndex
@@ -719,6 +726,11 @@
         guard let collectionView = collectionView,
           let view = collectionView.superview
         else { return }
+
+        if disableTapToTurnPage {
+          onCenterTap?()
+          return
+        }
 
         let location = gesture.location(in: view)
         let screenHeight = view.bounds.height

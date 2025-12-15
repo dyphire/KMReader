@@ -9,7 +9,8 @@ import SwiftUI
 
 // Overlay for Comic page view (LTR horizontal)
 struct ComicTapZoneOverlay: View {
-  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @Binding var isVisible: Bool
 
   var body: some View {
@@ -27,10 +28,10 @@ struct ComicTapZoneOverlay: View {
           .fill(Color.green.opacity(0.3))
           .frame(width: geometry.size.width * 0.3)
       }
-      .opacity(isVisible && showReaderHelperOverlay ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
-        guard showReaderHelperOverlay else { return }
+        guard showTapZoneHints && !disableTapToTurnPage else { return }
         // Show overlay immediately
         isVisible = true
       }
@@ -40,7 +41,8 @@ struct ComicTapZoneOverlay: View {
 
 // Overlay for Manga page view (RTL horizontal)
 struct MangaTapZoneOverlay: View {
-  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @Binding var isVisible: Bool
 
   var body: some View {
@@ -58,10 +60,10 @@ struct MangaTapZoneOverlay: View {
           .fill(Color.red.opacity(0.3))
           .frame(width: geometry.size.width * 0.3)
       }
-      .opacity(isVisible && showReaderHelperOverlay ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
-        guard showReaderHelperOverlay else { return }
+        guard showTapZoneHints && !disableTapToTurnPage else { return }
         // Show overlay immediately
         isVisible = true
       }
@@ -71,7 +73,8 @@ struct MangaTapZoneOverlay: View {
 
 // Overlay for Vertical page view
 struct VerticalTapZoneOverlay: View {
-  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
   @Binding var isVisible: Bool
 
   var body: some View {
@@ -89,10 +92,10 @@ struct VerticalTapZoneOverlay: View {
           .fill(Color.green.opacity(0.3))
           .frame(height: geometry.size.height * 0.3)
       }
-      .opacity(isVisible && showReaderHelperOverlay ? 1.0 : 0.0)
+      .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
       .allowsHitTesting(false)
       .onAppear {
-        guard showReaderHelperOverlay else { return }
+        guard showTapZoneHints && !disableTapToTurnPage else { return }
         // Show overlay immediately
         isVisible = true
       }
@@ -103,7 +106,8 @@ struct VerticalTapZoneOverlay: View {
 // Overlay for webtoon view - L-shaped tap zones
 #if os(iOS) || os(macOS)
   struct WebtoonTapZoneOverlay: View {
-    @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+    @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+    @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
     @Binding var isVisible: Bool
 
     // Match the thresholds from WebtoonReaderView.swift Constants
@@ -175,10 +179,10 @@ struct VerticalTapZoneOverlay: View {
               y: geometry.size.height * (centerAreaMin + centerAreaMax) / 2
             )
         }
-        .opacity(isVisible && showReaderHelperOverlay ? 1.0 : 0.0)
+        .opacity(isVisible && showTapZoneHints && !disableTapToTurnPage ? 1.0 : 0.0)
         .allowsHitTesting(false)
         .onAppear {
-          guard showReaderHelperOverlay else { return }
+          guard showTapZoneHints && !disableTapToTurnPage else { return }
           // Show overlay immediately
           isVisible = true
         }

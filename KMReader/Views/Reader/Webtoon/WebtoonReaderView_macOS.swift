@@ -19,11 +19,13 @@
     let onScrollToBottom: ((Bool) -> Void)?
     let pageWidth: CGFloat
     let readerBackground: ReaderBackground
+    let disableTapToTurnPage: Bool
 
     init(
       pages: [BookPage], viewModel: ReaderViewModel,
       pageWidth: CGFloat,
       readerBackground: ReaderBackground,
+      disableTapToTurnPage: Bool = false,
       onPageChange: ((Int) -> Void)? = nil,
       onCenterTap: (() -> Void)? = nil,
       onScrollToBottom: ((Bool) -> Void)? = nil
@@ -32,6 +34,7 @@
       self.viewModel = viewModel
       self.pageWidth = pageWidth
       self.readerBackground = readerBackground
+      self.disableTapToTurnPage = disableTapToTurnPage
       self.onPageChange = onPageChange
       self.onCenterTap = onCenterTap
       self.onScrollToBottom = onScrollToBottom
@@ -127,6 +130,7 @@
       var isAtBottom: Bool = false
       var lastTargetPageIndex: Int?
       var readerBackground: ReaderBackground = .system
+      var disableTapToTurnPage: Bool = false
       var pageHeights: [Int: CGFloat] = [:]
       var keyMonitor: Any?
 
@@ -142,6 +146,7 @@
         self.pageWidth = parent.pageWidth
         self.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.readerBackground
+        self.disableTapToTurnPage = parent.disableTapToTurnPage
       }
 
       deinit {
@@ -478,6 +483,11 @@
 
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
         guard let sv = scrollView, let window = sv.window else { return }
+
+        if disableTapToTurnPage {
+          onCenterTap?()
+          return
+        }
 
         let locInWindow = gesture.location(in: nil)
         let windowHeight = window.contentView?.bounds.height ?? window.frame.height

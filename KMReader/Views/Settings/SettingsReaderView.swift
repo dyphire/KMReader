@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct SettingsReaderView: View {
-  @AppStorage("showReaderHelperOverlay") private var showReaderHelperOverlay: Bool = true
+  @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
+  @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
   @AppStorage("dualPageNoCover") private var dualPageNoCover: Bool = false
@@ -46,20 +48,31 @@ struct SettingsReaderView: View {
           }
         #endif
 
-        #if os(macOS)
-          Toggle(isOn: $showReaderHelperOverlay) {
+        Toggle(isOn: $disableTapToTurnPage) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Disable Tap to Turn Page")
+            Text("Tap will only show/hide controls, not turn pages")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        if !disableTapToTurnPage {
+          Toggle(isOn: $showTapZoneHints) {
             VStack(alignment: .leading, spacing: 4) {
-              Text("Show Keyboard Help Overlay")
-              Text("Briefly show keyboard shortcuts when opening the reader")
+              Text("Show Tap Zone Hints")
+              Text("Display tap zone hints when opening the reader")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
           }
-        #else
-          Toggle(isOn: $showReaderHelperOverlay) {
+        }
+
+        #if os(macOS)
+          Toggle(isOn: $showKeyboardHelpOverlay) {
             VStack(alignment: .leading, spacing: 4) {
-              Text("Show Tap Zone Hints")
-              Text("Display tap zone hints when entering reader")
+              Text("Show Keyboard Help Overlay")
+              Text("Briefly show keyboard shortcuts when opening the reader")
                 .font(.caption)
                 .foregroundColor(.secondary)
             }

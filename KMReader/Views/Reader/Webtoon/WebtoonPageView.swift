@@ -19,6 +19,7 @@
     let screenSize: CGSize
     let pageWidthPercentage: Double
     let readerBackground: ReaderBackground
+    @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
     var body: some View {
       let pageWidth = screenSize.width * (pageWidthPercentage / 100.0)
@@ -29,6 +30,7 @@
           viewModel: viewModel,
           pageWidth: pageWidth,
           readerBackground: readerBackground,
+          disableTapToTurnPage: disableTapToTurnPage,
           onPageChange: { pageIndex in
             viewModel.currentPageIndex = pageIndex
           },

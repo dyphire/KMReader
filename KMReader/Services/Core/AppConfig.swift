@@ -328,15 +328,39 @@ enum AppConfig {
   }
 
   // MARK: - Reader
-  static var showReaderHelperOverlay: Bool {
+  static var showTapZoneHints: Bool {
     get {
-      if UserDefaults.standard.object(forKey: "showReaderHelperOverlay") != nil {
-        return UserDefaults.standard.bool(forKey: "showReaderHelperOverlay")
+      if UserDefaults.standard.object(forKey: "showTapZoneHints") != nil {
+        return UserDefaults.standard.bool(forKey: "showTapZoneHints")
       }
       return true
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "showReaderHelperOverlay")
+      UserDefaults.standard.set(newValue, forKey: "showTapZoneHints")
+    }
+  }
+
+  static var disableTapToTurnPage: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "disableTapToTurnPage") != nil {
+        return UserDefaults.standard.bool(forKey: "disableTapToTurnPage")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "disableTapToTurnPage")
+    }
+  }
+
+  static var showKeyboardHelpOverlay: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "showKeyboardHelpOverlay")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "showKeyboardHelpOverlay")
     }
   }
 

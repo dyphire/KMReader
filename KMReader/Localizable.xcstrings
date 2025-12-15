@@ -6515,6 +6515,46 @@
         }
       }
     },
+    "Disable Tap to Turn Page" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disable Tap to Turn Page"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactiver le tap pour tourner les pages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップでページめくりを無効化"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭하여 페이지 넘기기 비활성화"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "禁用点击翻页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "禁用點擊翻頁"
+          }
+        }
+      }
+    },
     "Display" : {
       "localizations" : {
         "en" : {
@@ -6595,18 +6635,18 @@
         }
       }
     },
-    "Display tap zone hints when entering reader" : {
+    "Display tap zone hints when opening the reader" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display tap zone hints when entering reader"
+            "value" : "Display tap zone hints when opening the reader"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher les zones de tap lors de l'entrée dans le lecteur"
+            "value" : "Afficher les zones de tap lors de l'ouverture du lecteur"
           }
         },
         "ja" : {
@@ -6618,19 +6658,19 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "리더 진입 시 탭 영역 힌트 표시"
+            "value" : "리더 열 때 탭 영역 힌트 표시"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "进入阅读器时显示点击区域提示"
+            "value" : "打开阅读器时显示点击区域提示"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "進入閱讀器時顯示點擊區域提示"
+            "value" : "打開閱讀器時顯示點擊區域提示"
           }
         }
       }
@@ -21457,6 +21497,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "標籤"
+          }
+        }
+      }
+    },
+    "Tap will only show/hide controls, not turn pages" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap will only show/hide controls, not turn pages"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le tap affichera/masquera uniquement les contrôles, sans tourner les pages"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップでコントロールの表示/非表示のみ、ページめくりはしません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭하면 컨트롤만 표시/숨김, 페이지 넘기기 안 함"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击仅显示/隐藏控制栏，不翻页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊僅顯示/隱藏控制欄，不翻頁"
           }
         }
       }

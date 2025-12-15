@@ -21,6 +21,7 @@ struct ComicDualPageView: View {
 
   @Environment(\.readerBackgroundPreference) private var readerBackground
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
+  @AppStorage("disableTapToTurnPage") private var disableTapToTurnPage: Bool = false
 
   @State private var hasSyncedInitialScroll = false
   @State private var scrollPosition: Int?
@@ -129,6 +130,12 @@ struct ComicDualPageView: View {
       SpatialTapGesture()
         .onEnded { value in
           guard !isZoomed else { return }
+
+          if disableTapToTurnPage {
+            toggleControls()
+            return
+          }
+
           guard width > 0 else { return }
           let normalizedX = max(0, min(1, value.location.x / width))
           if normalizedX < 0.3 {
