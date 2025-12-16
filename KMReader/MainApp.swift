@@ -50,15 +50,16 @@ struct MainApp: App {
           .overlay {
             ReaderOverlay()
           }
+          .setupNotificationWindow()
         #elseif os(macOS)
           .background(
             MacReaderWindowConfigurator(openWindow: {
               openWindow(id: "reader")
             }))
+          .overlay(alignment: .bottom) {
+            NotificationOverlay()
+          }
         #endif
-        .overlay(alignment: .bottom) {
-          NotificationOverlay()
-        }
         #if os(iOS)
           .tint(themeColor.color)
         #endif
