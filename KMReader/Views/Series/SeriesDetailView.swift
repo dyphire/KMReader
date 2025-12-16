@@ -279,6 +279,7 @@ struct SeriesDetailView: View {
 
           if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
+              Divider()
               Text("Alternate Titles")
                 .font(.headline)
               VStack(alignment: .leading, spacing: 4) {
@@ -299,33 +300,27 @@ struct SeriesDetailView: View {
 
           if let links = series.metadata.links, !links.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
+              Divider()
               Text("Links")
                 .font(.headline)
-              VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(links.enumerated()), id: \.offset) { index, link in
+              HFlow {
+                ForEach(Array(links.enumerated()), id: \.offset) { _, link in
                   if let url = URL(string: link.url) {
                     Link(destination: url) {
-                      HStack(spacing: 4) {
-                        Image(systemName: "link")
-                          .font(.caption)
-                        Text(link.label)
-                          .font(.caption)
-                          .foregroundColor(.blue)
-                        Spacer()
-                      }
+                      InfoChip(
+                        label: link.label,
+                        systemImage: "link",
+                        backgroundColor: Color.blue.opacity(0.2),
+                        foregroundColor: .blue
+                      )
                     }
                   } else {
-                    HStack(spacing: 4) {
-                      Image(systemName: "link")
-                        .font(.caption)
-                      Text(link.label)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                      Text("(\(link.url))")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                      Spacer()
-                    }
+                    InfoChip(
+                      label: link.label,
+                      systemImage: "link",
+                      backgroundColor: Color.gray.opacity(0.2),
+                      foregroundColor: .gray
+                    )
                   }
                 }
               }
@@ -333,18 +328,18 @@ struct SeriesDetailView: View {
           }
 
           if let summary = series.metadata.summary, !summary.isEmpty {
+            Divider()
             ExpandableSummaryView(
               summary: summary,
-              title: "Summary",
               titleIcon: nil,
               subtitle: nil,
               titleStyle: .headline
             )
           } else if let summary = series.booksMetadata.summary, !summary.isEmpty {
             let subtitle = series.booksMetadata.summaryNumber.map { "(from Book #\($0))" }
+            Divider()
             ExpandableSummaryView(
               summary: summary,
-              title: "Summary",
               titleIcon: nil,
               subtitle: subtitle,
               titleStyle: .headline
@@ -356,6 +351,7 @@ struct SeriesDetailView: View {
               .padding(.vertical, 8)
           #endif
 
+          Divider()
           if containerWidth > 0 {
             BooksListViewForSeries(
               seriesId: seriesId,

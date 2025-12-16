@@ -151,6 +151,20 @@ struct BookDetailView: View {
                   foregroundColor: .cyan
                 )
               }
+
+              // Authors as chips
+              if let authors = book.metadata.authors, !authors.isEmpty {
+                HFlow {
+                  ForEach(authors.sortedByRole(), id: \.self) { author in
+                    InfoChip(
+                      label: author.name,
+                      systemImage: author.role.icon,
+                      backgroundColor: Color.indigo.opacity(0.2),
+                      foregroundColor: .indigo
+                    )
+                  }
+                }
+              }
             }
           }
 
@@ -164,20 +178,6 @@ struct BookDetailView: View {
                   backgroundColor: Color.secondary.opacity(0.1),
                   foregroundColor: .secondary,
                   cornerRadius: 8
-                )
-              }
-            }
-          }
-
-          // Authors as chips
-          if let authors = book.metadata.authors, !authors.isEmpty {
-            HFlow {
-              ForEach(authors.sortedByRole(), id: \.self) { author in
-                InfoChip(
-                  label: author.name,
-                  systemImage: author.role.icon,
-                  backgroundColor: Color.indigo.opacity(0.2),
-                  foregroundColor: .indigo
                 )
               }
             }
@@ -303,31 +303,24 @@ struct BookDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
               Text("Links")
                 .font(.headline)
-              VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(links.enumerated()), id: \.offset) { index, link in
+              HFlow {
+                ForEach(Array(links.enumerated()), id: \.offset) { _, link in
                   if let url = URL(string: link.url) {
                     Link(destination: url) {
-                      HStack(spacing: 4) {
-                        Image(systemName: "link")
-                          .font(.caption)
-                        Text(link.label)
-                          .font(.caption)
-                          .foregroundColor(.blue)
-                        Spacer()
-                      }
+                      InfoChip(
+                        label: link.label,
+                        systemImage: "link",
+                        backgroundColor: Color.blue.opacity(0.2),
+                        foregroundColor: .blue
+                      )
                     }
                   } else {
-                    HStack(spacing: 4) {
-                      Image(systemName: "link")
-                        .font(.caption)
-                      Text(link.label)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                      Text("(\(link.url))")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                      Spacer()
-                    }
+                    InfoChip(
+                      label: link.label,
+                      systemImage: "link",
+                      backgroundColor: Color.gray.opacity(0.2),
+                      foregroundColor: .gray
+                    )
                   }
                 }
               }
