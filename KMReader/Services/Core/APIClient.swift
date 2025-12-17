@@ -14,8 +14,6 @@ class APIClient {
   private let logger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "KMReader", category: "API")
 
-  private let userAgent: String
-
   // URLSession with cache configuration for all requests
   private lazy var cachedSession: URLSession = {
     let configuration = URLSessionConfiguration.default
@@ -28,26 +26,6 @@ class APIClient {
     configuration.requestCachePolicy = .useProtocolCachePolicy
     return URLSession(configuration: configuration)
   }()
-
-  private init() {
-    let appName = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "KMReader"
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
-
-    let device = PlatformHelper.deviceModel
-    let osVersion = PlatformHelper.osVersion
-    #if os(iOS)
-      let platform = "iOS"
-    #elseif os(macOS)
-      let platform = "macOS"
-    #elseif os(tvOS)
-      let platform = "tvOS"
-    #else
-      let platform = "Unknown"
-    #endif
-    self.userAgent =
-      "\(appName)/\(appVersion) (\(device); \(platform) \(osVersion); Build \(buildNumber))"
-  }
 
   func setServer(url: String) {
     AppConfig.serverURL = url
@@ -232,8 +210,6 @@ class APIClient {
     authToken: String? = nil,
     headers: [String: String]?
   ) {
-    request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-
     // Use provided authToken or fall back to global AppConfig.authToken
     let token = authToken ?? AppConfig.authToken
     if !token.isEmpty {

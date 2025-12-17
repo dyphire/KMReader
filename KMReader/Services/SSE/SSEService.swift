@@ -411,7 +411,8 @@ final class SSEService {
           // Notify if tasks completed (went from > 0 to 0) and notifications enabled
           if previousStatus.count > 0 && dto.count == 0 && AppConfig.enableSSENotify {
             await MainActor.run {
-              ErrorManager.shared.notify(message: String(localized: "notification.sse.tasksFinished"))
+              ErrorManager.shared.notify(
+                message: String(localized: "notification.sse.tasksFinished"))
             }
           }
         }

@@ -379,7 +379,7 @@ This section orients new contributors (human or AI) to the KMReader codebase so 
 - **Library/session helpers**: `LibraryManager` keeps a minimal list of libraries per instance in SwiftData, while `ReaderPresentationManager` stores the currently presented book/read list, handles macOS window lifecycle, and exposes `closeReader()` for the UI.
 
 #### Networking & API layer
-- `Services/Core/APIClient.swift` builds authenticated requests (including a custom user-agent), decodes JSON, logs failures via `OSLog`, and exposes helpers (`request`, `requestTemporary`, `requestData`, `requestOptional`). Errors are normalized through `Services/Core/Errors`.
+- `Services/Core/APIClient.swift` builds authenticated requests, decodes JSON, logs failures via `OSLog`, and exposes helpers (`request`, `requestTemporary`, `requestData`, `requestOptional`). Errors are normalized through `Services/Core/Errors`.
 - Feature services (e.g., `Services/Auth/AuthService.swift`, `Services/Book/BookService.swift`, `Services/Series/SeriesService.swift`, `Services/Collection/CollectionService.swift`, `Services/ReadList/ReadListService.swift`, `Services/Library/LibraryService.swift`, `Services/Core/ManagementService.swift`) encapsulate Komga endpoints, sorting/filtering, and pagination. `openapi.json` mirrors Komga’s contract if you need payload reference.
 - Authentication flows (`AuthViewModel.swift`, `LoginView.swift`, `SettingsServersView.swift`) rely on `AuthService` plus `KomgaInstanceStore` to persist credentials and `AppConfig` to flip `isLoggedIn`, `currentInstanceId`, and SSE toggles.
 
