@@ -17,6 +17,7 @@ struct SeriesBrowseView: View {
     SeriesBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   @State private var viewModel = SeriesViewModel()
 
@@ -116,8 +117,10 @@ struct SeriesBrowseView: View {
   }
 
   private func loadSeries(refresh: Bool) async {
+    let effectiveBrowseOpts =
+      (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
     await viewModel.loadSeries(
-      browseOpts: browseOpts,
+      browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: dashboard.libraryIds,
       refresh: refresh

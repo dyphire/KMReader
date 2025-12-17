@@ -16,6 +16,7 @@ struct BooksBrowseView: View {
   @AppStorage("bookBrowseOptions") private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
+  @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
   @State private var viewModel = BookViewModel()
   @Environment(ReaderPresentationManager.self) private var readerPresentation
   @State private var hasInitialized = false
@@ -128,8 +129,10 @@ struct BooksBrowseView: View {
   }
 
   private func loadBooks(refresh: Bool) async {
+    let effectiveBrowseOpts =
+      (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
     await viewModel.loadBrowseBooks(
-      browseOpts: browseOpts,
+      browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: dashboard.libraryIds,
       refresh: refresh

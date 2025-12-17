@@ -14,6 +14,7 @@ struct SettingsAppearanceView: View {
   @AppStorage("showSeriesCardTitle") private var showSeriesCardTitle: Bool = true
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
+  @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   private var portraitColumnsBinding: Binding<Int> {
     Binding(
@@ -96,7 +97,7 @@ struct SettingsAppearanceView: View {
         #endif
       }
 
-      Section(header: Text(String(localized: "settings.appearance.gridColumns"))) {
+      Section(header: Text(String(localized: "settings.appearance.browse"))) {
         #if os(iOS)
           VStack(alignment: .leading, spacing: 8) {
             Stepper(
@@ -178,6 +179,15 @@ struct SettingsAppearanceView: View {
             }
           }
         #endif
+
+        Toggle(isOn: $searchIgnoreFilters) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.searchIgnoreFilters.title"))
+            Text(String(localized: "settings.appearance.searchIgnoreFilters.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
       }
 
       Section(header: Text(String(localized: "settings.appearance.cards"))) {

@@ -59,29 +59,6 @@
       },
       "shouldTranslate" : false
     },
-    "(%@)" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(%@)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(%@)"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(%@)"
-          }
-        }
-      },
-      "shouldTranslate" : false
-    },
     "#%@ - %@" : {
       "localizations" : {
         "en" : {
@@ -19307,6 +19284,46 @@
         }
       }
     },
+    "settings.appearance.browse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Navigation"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラウズ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탐색"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "浏览"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "瀏覽"
+          }
+        }
+      }
+    },
     "settings.appearance.cards" : {
       "localizations" : {
         "en" : {
@@ -19383,46 +19400,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顏色"
-          }
-        }
-      }
-    },
-    "settings.appearance.gridColumns" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grid Columns"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Colonnes de la grille"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "グリッド列数"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "그리드 열"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "网格列数"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "網格欄數"
           }
         }
       }
@@ -19743,6 +19720,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保持縮圖比例"
+          }
+        }
+      }
+    },
+    "settings.appearance.searchIgnoreFilters.caption" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When enabled, search ignores filter conditions and only uses library selection"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsqu'activé, la recherche ignore les filtres et n'utilise que la sélection de bibliothèque"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効にすると、検索時にフィルター条件を無視し、ライブラリ選択のみを使用します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "활성화하면 검색 시 필터 조건을 무시하고 라이브러리 선택만 사용합니다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用后，搜索时忽略过滤条件，仅按库筛选"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟用後，搜尋時忽略過濾條件，僅按庫篩選"
+          }
+        }
+      }
+    },
+    "settings.appearance.searchIgnoreFilters.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore Filters When Searching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorer les filtres lors de la recherche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索時にフィルターを無視"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 시 필터 무시"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索时忽略过滤条件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋時忽略過濾條件"
           }
         }
       }

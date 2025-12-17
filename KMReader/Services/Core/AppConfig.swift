@@ -327,6 +327,18 @@ enum AppConfig {
     }
   }
 
+  static var searchIgnoreFilters: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "searchIgnoreFilters") != nil {
+        return UserDefaults.standard.bool(forKey: "searchIgnoreFilters")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "searchIgnoreFilters")
+    }
+  }
+
   // MARK: - Reader
   static var showTapZoneHints: Bool {
     get {
