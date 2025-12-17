@@ -459,6 +459,18 @@ enum AppConfig {
     }
   }
 
+  static var doubleTapZoomScale: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "doubleTapZoomScale") != nil {
+        return UserDefaults.standard.double(forKey: "doubleTapZoomScale")
+      }
+      return 2.0
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "doubleTapZoomScale")
+    }
+  }
+
   // MARK: - Dashboard
   static var dashboard: DashboardConfiguration {
     get {

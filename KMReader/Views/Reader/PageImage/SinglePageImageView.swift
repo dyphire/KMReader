@@ -13,6 +13,7 @@ struct SinglePageImageView: View {
   let pageIndex: Int
   let screenSize: CGSize
   @Binding var isZoomed: Bool
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
   init(
     viewModel: ReaderViewModel,
@@ -30,6 +31,7 @@ struct SinglePageImageView: View {
     ZoomableImageContainer(
       screenSize: screenSize,
       resetID: pageIndex,
+      doubleTapScale: doubleTapZoomScale,
       isZoomed: $isZoomed
     ) {
       PageImageView(viewModel: viewModel, pageIndex: pageIndex)

@@ -15,6 +15,7 @@ struct DualPageImageView: View {
   let screenSize: CGSize
   let isRTL: Bool
   @Binding var isZoomed: Bool
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
   init(
     viewModel: ReaderViewModel,
@@ -48,6 +49,7 @@ struct DualPageImageView: View {
     ZoomableImageContainer(
       screenSize: screenSize,
       resetID: resetID,
+      doubleTapScale: doubleTapZoomScale,
       isZoomed: $isZoomed
     ) {
       HStack(spacing: 0) {

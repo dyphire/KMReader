@@ -18,6 +18,7 @@ struct SettingsReaderView: View {
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .simple
+  @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
 
   var body: some View {
     Form {
@@ -47,7 +48,9 @@ struct SettingsReaderView: View {
               .foregroundColor(.secondary)
           }
         #endif
+      }
 
+      Section(header: Text("Controls")) {
         Toggle(isOn: $disableTapToTurnPage) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Disable Tap to Turn Page")
@@ -76,6 +79,25 @@ struct SettingsReaderView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
+          }
+        #endif
+
+        #if os(iOS)
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text("Double Tap Zoom Scale")
+              Spacer()
+              Text(String(format: "%.1fx", doubleTapZoomScale))
+                .foregroundColor(.secondary)
+            }
+            Slider(
+              value: $doubleTapZoomScale,
+              in: 1.0...8.0,
+              step: 0.5
+            )
+            Text("Zoom level when double-tapping on a page")
+              .font(.caption)
+              .foregroundColor(.secondary)
           }
         #endif
       }

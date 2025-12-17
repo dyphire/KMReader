@@ -22,7 +22,7 @@ struct ZoomableImageContainer<Content: View>: View {
     screenSize: CGSize,
     resetID: AnyHashable,
     minScale: CGFloat = 1.0,
-    maxScale: CGFloat = 4.0,
+    maxScale: CGFloat = 8.0,
     doubleTapScale: CGFloat = 2.0,
     isZoomed: Binding<Bool> = .constant(false),
     @ViewBuilder content: @escaping () -> Content
