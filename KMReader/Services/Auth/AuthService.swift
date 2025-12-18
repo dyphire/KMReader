@@ -53,7 +53,8 @@ class AuthService {
     // Explicitly set the server URL in AppConfig so apiClient.request uses the correct base
     AppConfig.serverURL = serverURL
 
-    return try await apiClient.request(
+    return try await apiClient.performLogin(
+      serverURL: serverURL,
       path: "/api/v2/users/me",
       method: "GET",
       authToken: authToken,
@@ -84,11 +85,10 @@ class AuthService {
     logger.info("📡 Testing connection to \(serverURL)")
 
     // Use ephemeral session to avoid any side effects
-    let _: [String: ClientSetting] = try await apiClient.requestTemporary(
+    let _: [String: ClientSetting] = try await apiClient.performLoginTemporary(
       serverURL: serverURL,
       path: "/api/v1/client-settings/global/list",
-      method: "GET",
-      authToken: nil
+      method: "GET"
     )
     logger.info("✅ Server connection successful")
   }
@@ -96,7 +96,7 @@ class AuthService {
   func testCredentials(serverURL: String, authToken: String) async throws -> User {
     // Stateless check using Basic Auth
     logger.info("📡 Testing credentials for \(serverURL)")
-    let user: User = try await apiClient.requestTemporary(
+    let user: User = try await apiClient.performLoginTemporary(
       serverURL: serverURL,
       path: "/api/v2/users/me",
       method: "GET",

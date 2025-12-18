@@ -18,43 +18,34 @@ struct ContentView: View {
   var body: some View {
     Group {
       if isLoggedIn {
-        if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-          MainTabView()
-        } else {
-          OldTabView()
+        Group {
+          if authViewModel.user == nil {
+            SplashView()
+          } else {
+            if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
+              MainTabView()
+            } else {
+              OldTabView()
+            }
+          }
         }
-      } else {
-        LandingView()
-      }
-    }
-    .task {
-      if isLoggedIn {
-        await authViewModel.loadCurrentUser()
-        await LibraryManager.shared.loadLibraries()
-        // Connect to SSE on app startup if already logged in and enabled
-        if enableSSE {
-          SSEService.shared.connect()
-        }
-      }
-    }
-    .onChange(of: isLoggedIn) { _, isLoggedIn in
-      if isLoggedIn {
-        Task {
+        .task {
           await authViewModel.loadCurrentUser()
           await LibraryManager.shared.loadLibraries()
-          // Connect to SSE when login state changes to logged in and enabled
           if enableSSE {
             SSEService.shared.connect()
           }
         }
+        .onChange(of: scenePhase) { _, phase in
+          if phase == .active {
+            KomgaInstanceStore.shared.updateLastUsed(for: AppConfig.currentInstanceId)
+          }
+        }
       } else {
-        // Disconnect SSE when logged out
-        SSEService.shared.disconnect()
-      }
-    }
-    .onChange(of: scenePhase) { _, phase in
-      if phase == .active && isLoggedIn {
-        KomgaInstanceStore.shared.updateLastUsed(for: AppConfig.currentInstanceId)
+        LandingView()
+          .onAppear {
+            SSEService.shared.disconnect()
+          }
       }
     }
   }

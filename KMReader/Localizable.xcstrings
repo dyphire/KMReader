@@ -10560,36 +10560,6 @@
             "state" : "translated",
             "value" : "KMReader"
           }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KMReader"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KMReader"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KMReader"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KMReader 应用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KMReader 應用"
-          }
         }
       },
       "shouldTranslate" : false
@@ -24047,6 +24017,9 @@
           }
         }
       }
+    },
+    "Your personal manga reader" : {
+
     },
     "Zoom level when double-tapping on a page" : {
       "localizations" : {

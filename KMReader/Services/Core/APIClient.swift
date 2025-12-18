@@ -48,40 +48,63 @@ class APIClient {
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
   ) async throws -> T {
-    // Build URL
-    let baseURL = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-    var urlString = baseURL
-    if !urlString.hasSuffix("/") {
-      urlString += "/"
-    }
-    let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-    urlString += trimmedPath
+    try await performLoginTemporary(
+      serverURL: serverURL,
+      path: path,
+      method: method,
+      authToken: authToken,
+      body: body,
+      queryItems: queryItems,
+      headers: headers
+    )
+  }
 
-    guard var urlComponents = URLComponents(string: urlString) else {
-      throw APIError.invalidURL
-    }
+  /// Execute a login request specifically to establish session cookies
+  func performLogin(
+    serverURL: String,
+    path: String,
+    method: String = "GET",
+    authToken: String,
+    queryItems: [URLQueryItem]? = nil,
+    headers: [String: String]? = nil
+  ) async throws -> User {
+    let request = try buildLoginRequest(
+      serverURL: serverURL,
+      path: path,
+      method: method,
+      queryItems: queryItems,
+      headers: headers,
+      authToken: authToken
+    )
+    let (data, httpResponse) = try await executeRequest(request, isTemporary: false)
+    return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
+  }
 
-    if let queryItems = queryItems {
-      urlComponents.queryItems = queryItems
-    }
+  /// Execute a stateless login request for validation
+  func performLoginTemporary<T: Decodable>(
+    serverURL: String,
+    path: String,
+    method: String = "GET",
+    authToken: String? = nil,
+    body: Data? = nil,
+    queryItems: [URLQueryItem]? = nil,
+    headers: [String: String]? = nil
+  ) async throws -> T {
+    let request = try buildLoginRequest(
+      serverURL: serverURL,
+      path: path,
+      method: method,
+      body: body,
+      queryItems: queryItems,
+      headers: headers,
+      authToken: authToken
+    )
 
-    guard let url = urlComponents.url else {
-      throw APIError.invalidURL
-    }
-
-    // Build request with standard headers
-    var request = URLRequest(url: url)
-    request.httpMethod = method
-    request.httpBody = body
-    configureDefaultHeaders(&request, body: body, authToken: authToken, headers: headers)
-
-    // Execute request with temporary session (doesn't use cached session or shared cookies)
-    // Use ephemeral configuration to avoid using system cookie storage
+    // Execute request with temporary session (ephemeral, no persistent cookies)
     let tempSession = URLSession(
       configuration: {
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        // Explicitly disable cookie storage to prevent using existing cookies
         config.httpCookieStorage = nil
         config.httpShouldSetCookies = false
         return config
@@ -169,8 +192,7 @@ class APIClient {
     method: String,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil,
-    authToken: String? = nil
+    headers: [String: String]? = nil
   ) throws -> URLRequest {
     guard var urlComponents = URLComponents(string: AppConfig.serverURL + path) else {
       throw APIError.invalidURL
@@ -188,7 +210,51 @@ class APIClient {
     request.httpMethod = method
     request.httpBody = body
 
-    configureDefaultHeaders(&request, body: body, authToken: authToken, headers: headers)
+    configureDefaultHeaders(&request, body: body, headers: headers)
+    return request
+  }
+
+  private func buildLoginRequest(
+    serverURL: String? = nil,
+    path: String,
+    method: String,
+    body: Data? = nil,
+    queryItems: [URLQueryItem]? = nil,
+    headers: [String: String]? = nil,
+    authToken: String? = nil
+  ) throws -> URLRequest {
+    let baseURL = (serverURL ?? AppConfig.serverURL).trimmingCharacters(
+      in: .whitespacesAndNewlines)
+    var urlString = baseURL
+    if !urlString.hasSuffix("/") {
+      urlString += "/"
+    }
+    let trimmedPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    urlString += trimmedPath
+
+    guard var urlComponents = URLComponents(string: urlString) else {
+      throw APIError.invalidURL
+    }
+
+    if let queryItems = queryItems {
+      urlComponents.queryItems = queryItems
+    }
+
+    guard let url = urlComponents.url else {
+      throw APIError.invalidURL
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+    request.httpBody = body
+
+    configureDefaultHeaders(&request, body: body, headers: headers)
+
+    // Strictly isolation: Only add Authorization header in this login helper
+    if let token = authToken, !token.isEmpty {
+      request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
+    }
+
     return request
   }
 
@@ -201,20 +267,15 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
-    configureDefaultHeaders(&request, body: body, authToken: nil, headers: headers)
+    configureDefaultHeaders(&request, body: body, headers: headers)
     return request
   }
 
   private func configureDefaultHeaders(
     _ request: inout URLRequest,
     body: Data?,
-    authToken: String? = nil,
     headers: [String: String]?
   ) {
-    // Only add Authorization header if authToken is explicitly provided (e.g., in validate/login)
-    if let token = authToken, !token.isEmpty {
-      request.addValue("Basic \(token)", forHTTPHeaderField: "Authorization")
-    }
 
     if body != nil && request.value(forHTTPHeaderField: "Content-Type") == nil {
       request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -296,8 +357,8 @@ class APIClient {
             logger.info("🔒 Unauthorized, attempting re-login to refresh session...")
 
             do {
-              // Create a dedicated login request to establish new session cookies
-              let loginRequest = try buildRequest(
+              // Create a dedicated login request with Authorization header
+              let loginRequest = try buildLoginRequest(
                 path: "/api/v2/users/me",
                 method: "GET",
                 queryItems: [URLQueryItem(name: "remember-me", value: "true")],
@@ -382,7 +443,6 @@ class APIClient {
   func request<T: Decodable>(
     path: String,
     method: String = "GET",
-    authToken: String? = nil,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
@@ -392,8 +452,7 @@ class APIClient {
       method: method,
       body: body,
       queryItems: queryItems,
-      headers: headers,
-      authToken: authToken
+      headers: headers
     )
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
@@ -403,7 +462,6 @@ class APIClient {
   func requestOptional<T: Decodable>(
     path: String,
     method: String = "GET",
-    authToken: String? = nil,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
@@ -413,8 +471,7 @@ class APIClient {
       method: method,
       body: body,
       queryItems: queryItems,
-      headers: headers,
-      authToken: authToken
+      headers: headers
     )
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
@@ -436,11 +493,10 @@ class APIClient {
   func requestData(
     path: String,
     method: String = "GET",
-    authToken: String? = nil,
     headers: [String: String]? = nil
   ) async throws -> (data: Data, contentType: String?, suggestedFilename: String?) {
     let urlRequest = try buildRequest(
-      path: path, method: method, headers: headers, authToken: authToken)
+      path: path, method: method, headers: headers)
     let (data, httpResponse) = try await executeRequest(urlRequest)
 
     return logAndExtractDataResponse(data: data, response: httpResponse, request: urlRequest)

@@ -12,7 +12,7 @@ import SwiftUI
 @MainActor
 @Observable
 class AuthViewModel {
-  var isLoading = false
+  var isLoading = true
   var isSwitching = false
   var switchingInstanceId: String?
   var user: User?
@@ -74,15 +74,17 @@ class AuthViewModel {
   }
 
   func loadCurrentUser() async {
+    isLoading = true
+    defer { isLoading = false }
     do {
       user = try await authService.getCurrentUser()
       if let user = user {
         AppConfig.isAdmin = user.roles.contains("ADMIN")
       }
     } catch {
-      // Don't show alert for unauthorized errors during background refresh
       if let apiError = error as? APIError, case .unauthorized = apiError {
-        // Silently handle unauthorized during background refresh
+        // Silently logout and return to landing if unauthorized during initial refresh
+        logout()
         return
       }
       ErrorManager.shared.alert(error: error)
