@@ -21,6 +21,7 @@
     @AppStorage("epubReaderPreferences") private var readerPrefs: EpubReaderPreferences = .init()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @State private var viewModel: EpubReaderViewModel
     @State private var showingControls = true
@@ -68,6 +69,10 @@
         .onDisappear {
           controlsTimer?.invalidate()
           overlayTimer?.invalidate()
+          readerPresentation.hideStatusBar = false
+        }
+        .onChange(of: shouldShowControls) { _, newValue in
+          readerPresentation.hideStatusBar = !newValue
         }
         .onChange(of: showTapZoneOverlay) { _, newValue in
           if newValue {
@@ -111,7 +116,6 @@
         }
       }
       .ignoresSafeArea()
-      .statusBar(hidden: !shouldShowControls)
     }
 
     @ViewBuilder

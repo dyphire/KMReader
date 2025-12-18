@@ -13,6 +13,8 @@ final class ReaderPresentationManager {
   private(set) var readerState: BookReaderState?
   private var onDismiss: (() -> Void)?
 
+  var hideStatusBar: Bool = false
+
   #if os(macOS)
     private var openWindowHandler: (() -> Void)?
     private var isWindowDrivenClose = false

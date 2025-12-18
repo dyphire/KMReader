@@ -55,12 +55,14 @@ struct MainApp: App {
           .background(
             MacReaderWindowConfigurator(openWindow: {
               openWindow(id: "reader")
-            }))
+            })
+          )
           .overlay(alignment: .bottom) {
             NotificationOverlay()
           }
         #endif
         #if os(iOS)
+          .statusBarHidden(readerPresentation.hideStatusBar)
           .tint(themeColor.color)
         #endif
         .environment(authViewModel)

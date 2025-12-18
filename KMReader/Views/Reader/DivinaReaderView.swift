@@ -19,6 +19,7 @@ struct DivinaReaderView: View {
   @State private var webtoonPageWidthPercentage: Double
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(ReaderPresentationManager.self) private var readerPresentation
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -354,9 +355,6 @@ struct DivinaReaderView: View {
       )
     #endif
     .readerIgnoresSafeArea()
-    #if os(iOS)
-      .statusBar(hidden: !shouldShowControls)
-    #endif
     .onAppear {
       viewModel.updateDualPageSettings(noCover: dualPageNoCover)
       #if os(tvOS)
@@ -387,6 +385,10 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
+      readerPresentation.hideStatusBar = false
+    }
+    .onChange(of: shouldShowControls) { _, newValue in
+      readerPresentation.hideStatusBar = !newValue
     }
     #if os(iOS) || os(macOS)
       .onChange(of: readingDirection) { _, _ in

@@ -14,11 +14,11 @@ import SwiftUI
     static let shared = NotificationWindowManager()
 
     private var notificationWindow: UIWindow?
-    private var hostingController: UIHostingController<NotificationContentView>?
+    private var hostingController: StatusBarObservingHostingController<NotificationContentView>?
 
     private init() {}
 
-    func setup() {
+    func setup(readerPresentation: ReaderPresentationManager) {
       guard notificationWindow == nil else { return }
 
       // Find the active window scene
@@ -35,7 +35,10 @@ import SwiftUI
       window.windowLevel = .alert + 1
       window.backgroundColor = .clear
 
-      let hostingController = UIHostingController(rootView: NotificationContentView())
+      let hostingController = StatusBarObservingHostingController(
+        rootView: NotificationContentView(),
+        readerPresentation: readerPresentation
+      )
       hostingController.view.backgroundColor = .clear
       window.rootViewController = hostingController
 
@@ -54,6 +57,68 @@ import SwiftUI
       // Pass through if hitting the root view or hosting controller's empty area
       return hitView == rootViewController?.view ? nil : hitView
     }
+  }
+
+  // A hosting controller that observes ReaderPresentationManager for UI preferences.
+  // This is needed because this window has a higher windowLevel and iOS uses the
+  // topmost window's rootViewController to determine:
+  // - Status bar visibility (prefersStatusBarHidden)
+  // - Home indicator auto-hide (prefersHomeIndicatorAutoHidden)
+  // - Screen edge gesture deferral (preferredScreenEdgesDeferringSystemGestures)
+  private class StatusBarObservingHostingController<Content: View>: UIHostingController<Content> {
+    private let readerPresentation: ReaderPresentationManager
+
+    init(rootView: Content, readerPresentation: ReaderPresentationManager) {
+      self.readerPresentation = readerPresentation
+      super.init(rootView: rootView)
+
+      // Observe hideStatusBar changes using withObservationTracking
+      Task { @MainActor [weak self] in
+        self?.startObserving()
+      }
+    }
+
+    @MainActor required dynamic init?(coder aDecoder: NSCoder) {
+      fatalError("init(coder:) has not been implemented")
+    }
+
+    private func startObserving() {
+      withObservationTracking {
+        _ = readerPresentation.hideStatusBar
+      } onChange: { [weak self] in
+        guard let self = self else { return }
+        Task { @MainActor [weak self] in
+          #if os(iOS)
+            self?.setNeedsStatusBarAppearanceUpdate()
+            self?.setNeedsUpdateOfHomeIndicatorAutoHidden()
+          #endif
+          self?.startObserving()
+        }
+      }
+    }
+
+    #if os(iOS)
+      override var prefersStatusBarHidden: Bool {
+        return readerPresentation.hideStatusBar
+      }
+
+      override var prefersHomeIndicatorAutoHidden: Bool {
+        return readerPresentation.hideStatusBar
+      }
+
+      // NOTE: If users report accidental system gesture triggers while reading,
+      // consider implementing preferredScreenEdgesDeferringSystemGestures.
+      // This would require the first swipe from an edge to trigger app gestures,
+      // and the second swipe to trigger system gestures.
+      //
+      // Example implementation:
+      // override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+      //   return readerPresentation.hideStatusBar ? [.bottom, .top] : []
+      // }
+      //
+      // Also add in startObserving():
+      // self?.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+    #endif
   }
 
   // The actual notification content view
@@ -100,10 +165,12 @@ import SwiftUI
 
   // Modifier to setup the notification window
   struct NotificationWindowSetup: ViewModifier {
+    @Environment(ReaderPresentationManager.self) private var readerPresentation
+
     func body(content: Content) -> some View {
       content
         .onAppear {
-          NotificationWindowManager.shared.setup()
+          NotificationWindowManager.shared.setup(readerPresentation: readerPresentation)
         }
     }
   }
