@@ -33,6 +33,7 @@ final class KomgaInstanceStore {
     username: String,
     authToken: String,
     isAdmin: Bool,
+    authMethod: AuthenticationMethod = .basicAuth,
     displayName: String? = nil
   ) throws -> KomgaInstance {
     let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -45,6 +46,7 @@ final class KomgaInstanceStore {
     if let existing = try context.fetch(descriptor).first {
       existing.authToken = authToken
       existing.isAdmin = isAdmin
+      existing.authMethod = authMethod
       existing.lastUsedAt = Date()
       if let trimmedDisplayName, !trimmedDisplayName.isEmpty {
         existing.name = trimmedDisplayName
@@ -61,7 +63,8 @@ final class KomgaInstanceStore {
         serverURL: serverURL,
         username: username,
         authToken: authToken,
-        isAdmin: isAdmin
+        isAdmin: isAdmin,
+        authMethod: authMethod
       )
       context.insert(instance)
       try context.save()

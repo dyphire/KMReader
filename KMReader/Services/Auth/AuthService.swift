@@ -36,13 +36,32 @@ class AuthService {
     // 2. Perform stateful login to establish session cookies
     logger.info("🔐 Establishing session for \(username) at \(serverURL)")
     let user = try await establishSession(
-      serverURL: serverURL, authToken: base64Credentials, rememberMe: rememberMe)
+      serverURL: serverURL, authToken: base64Credentials, authMethod: .basicAuth,
+      rememberMe: rememberMe)
 
     logger.info("✅ Session established for \(username)")
     return (user: user, authToken: base64Credentials)
   }
 
-  func establishSession(serverURL: String, authToken: String, rememberMe: Bool = true) async throws
+  func loginWithAPIKey(apiKey: String, serverURL: String, rememberMe: Bool = true)
+    async throws -> (user: User, apiKey: String)
+  {
+    // 1. Validate server connection (unauthenticated)
+    _ = try await validate(serverURL: serverURL)
+
+    // 2. Perform stateful login to establish session cookies
+    logger.info("🔐 Establishing session with API Key at \(serverURL)")
+    let user = try await establishSession(
+      serverURL: serverURL, authToken: apiKey, authMethod: .apiKey, rememberMe: rememberMe)
+
+    logger.info("✅ Session established with API Key")
+    return (user: user, apiKey: apiKey)
+  }
+
+  func establishSession(
+    serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth,
+    rememberMe: Bool = true
+  ) async throws
     -> User
   {
     let queryItems = [URLQueryItem(name: "remember-me", value: rememberMe ? "true" : "false")]
@@ -58,6 +77,7 @@ class AuthService {
       path: "/api/v2/users/me",
       method: "GET",
       authToken: authToken,
+      authMethod: authMethod,
       queryItems: queryItems,
       headers: headers
     )
@@ -93,14 +113,17 @@ class AuthService {
     logger.info("✅ Server connection successful")
   }
 
-  func testCredentials(serverURL: String, authToken: String) async throws -> User {
-    // Stateless check using Basic Auth
+  func testCredentials(
+    serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
+  ) async throws -> User {
+    // Stateless check
     logger.info("📡 Testing credentials for \(serverURL)")
     let user: User = try await apiClient.performLoginTemporary(
       serverURL: serverURL,
       path: "/api/v2/users/me",
       method: "GET",
-      authToken: authToken
+      authToken: authToken,
+      authMethod: authMethod
     )
     logger.info("✅ Credentials validation successful")
     return user

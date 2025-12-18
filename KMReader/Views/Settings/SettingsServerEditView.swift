@@ -19,6 +19,8 @@ struct SettingsServerEditView: View {
   @State private var serverURL: String
   @State private var username: String
   @State private var password: String = ""
+  @State private var apiKey: String = ""
+  @State private var authMethod: AuthenticationMethod
   @State private var isValidating = false
   @State private var validationMessage: String?
   @State private var isValidated = false
@@ -45,6 +47,10 @@ struct SettingsServerEditView: View {
     _name = State(initialValue: instance.name)
     _serverURL = State(initialValue: instance.serverURL)
     _username = State(initialValue: instance.username)
+    _authMethod = State(initialValue: instance.resolvedAuthMethod)
+    if instance.resolvedAuthMethod == .apiKey {
+      _apiKey = State(initialValue: instance.authToken)
+    }
   }
 
   var body: some View {
@@ -62,7 +68,7 @@ struct SettingsServerEditView: View {
               .keyboardType(.URL)
             #endif
             .autocorrectionDisabled()
-            .onChange(of: serverURL) {
+            .onChange(of: serverURL) { _, _ in
               resetValidation()
             }
         }
@@ -90,27 +96,50 @@ struct SettingsServerEditView: View {
                   .font(.caption)
               }
             case .none:
-              Text("Leave the password empty to keep the existing credentials.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+              if authMethod == .basicAuth {
+                Text(String(localized: "Leave the password empty to keep the existing credentials."))
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
           }
         ) {
-          TextField("Username", text: $username)
-            .textContentType(.username)
-            #if os(iOS) || os(tvOS)
-              .autocapitalization(.none)
-            #endif
-            .autocorrectionDisabled()
-            .onChange(of: username) {
-              resetValidation()
-            }
+          Picker(String(localized: "Authentication Method"), selection: $authMethod) {
+            Text(String(localized: "Username & Password")).tag(AuthenticationMethod.basicAuth)
+            Text(String(localized: "API Key")).tag(AuthenticationMethod.apiKey)
+          }
+          .pickerStyle(.segmented)
+          .onChange(of: authMethod) { _, _ in
+            resetValidation()
+          }
 
-          SecureField("Password", text: $password)
-            .textContentType(.password)
-            .onChange(of: password) {
-              resetValidation()
-            }
+          if authMethod == .basicAuth {
+            TextField(String(localized: "Username"), text: $username)
+              .textContentType(.username)
+              #if os(iOS) || os(tvOS)
+                .autocapitalization(.none)
+              #endif
+              .autocorrectionDisabled()
+              .onChange(of: username) { _, _ in
+                resetValidation()
+              }
+
+            SecureField(String(localized: "Password"), text: $password)
+              .textContentType(.password)
+              .onChange(of: password) { _, _ in
+                resetValidation()
+              }
+          } else {
+            SecureField(String(localized: "API Key"), text: $apiKey)
+              .textContentType(.password)
+              #if os(iOS) || os(tvOS)
+                .autocapitalization(.none)
+              #endif
+              .autocorrectionDisabled()
+              .onChange(of: apiKey) { _, _ in
+                resetValidation()
+              }
+          }
 
           Button {
             validateConnection()
@@ -122,7 +151,7 @@ struct SettingsServerEditView: View {
               } else {
                 Image(systemName: "checkmark.circle")
               }
-              Text("Validate Connection")
+              Text(String(localized: "Validate Connection"))
             }
             .frame(maxWidth: .infinity)
           }
@@ -137,10 +166,11 @@ struct SettingsServerEditView: View {
       Button {
         saveChanges()
       } label: {
-        Label("Save", systemImage: "checkmark")
+        Label(String(localized: "Save"), systemImage: "checkmark")
       }
       .disabled(!canSave)
     }
+    .animation(.default, value: authMethod)
   }
 
   private var trimmedName: String {
@@ -156,39 +186,65 @@ struct SettingsServerEditView: View {
   }
 
   private var hasChanges: Bool {
-    trimmedName != instance.name || trimmedServerURL != instance.serverURL
-      || trimmedUsername != instance.username || !password.isEmpty
+    if trimmedName != instance.name || trimmedServerURL != instance.serverURL
+      || authMethod != instance.resolvedAuthMethod
+    {
+      return true
+    }
+    if authMethod == .basicAuth {
+      return trimmedUsername != instance.username || !password.isEmpty
+    } else {
+      return apiKey != instance.authToken
+    }
   }
 
   private var canSave: Bool {
-    guard !trimmedServerURL.isEmpty && !trimmedUsername.isEmpty else {
-      return false
+    guard !trimmedServerURL.isEmpty else { return false }
+
+    if authMethod == .basicAuth {
+      guard !trimmedUsername.isEmpty else { return false }
+    } else {
+      guard !apiKey.isEmpty else { return false }
     }
+
     // If no changes, disable save
     guard hasChanges else {
       return false
     }
-    // If any changes were made (serverURL, username, or password), validation must succeed
-    if trimmedServerURL != instance.serverURL || trimmedUsername != instance.username
-      || !password.isEmpty
-    {
+
+    // If only name changed, allow save without validation
+    let isCredsChanged: Bool
+    if authMethod == .basicAuth {
+      isCredsChanged =
+        trimmedServerURL != instance.serverURL || trimmedUsername != instance.username
+        || !password.isEmpty || authMethod != instance.resolvedAuthMethod
+    } else {
+      isCredsChanged =
+        trimmedServerURL != instance.serverURL || apiKey != instance.authToken
+        || authMethod != instance.resolvedAuthMethod
+    }
+
+    if isCredsChanged {
       return isValidated
     }
-    // If only name changed, allow save without validation
+
     return true
   }
 
   private var canValidate: Bool {
-    guard !trimmedServerURL.isEmpty && !trimmedUsername.isEmpty else {
-      return false
+    guard !trimmedServerURL.isEmpty else { return false }
+
+    if authMethod == .basicAuth {
+      guard !trimmedUsername.isEmpty else { return false }
+      // Can validate if password is provided
+      if !password.isEmpty { return true }
+      // If password is empty, can only validate if only serverURL changed (username unchanged)
+      // If username changed, password must be provided
+      return trimmedServerURL != instance.serverURL && trimmedUsername == instance.username
+        && instance.resolvedAuthMethod == .basicAuth
+    } else {
+      return !apiKey.isEmpty
     }
-    // Can validate if password is provided
-    if !password.isEmpty {
-      return true
-    }
-    // If password is empty, can only validate if only serverURL changed (username unchanged)
-    // If username changed, password must be provided
-    return trimmedServerURL != instance.serverURL && trimmedUsername == instance.username
   }
 
   private func saveChanges() {
@@ -201,15 +257,24 @@ struct SettingsServerEditView: View {
       ? KomgaInstanceStore.defaultName(serverURL: trimmedServerURL, username: trimmedUsername)
       : trimmedName
     instance.serverURL = trimmedServerURL
-    instance.username = trimmedUsername
-    if !password.isEmpty {
-      guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.settings.encodeCredentialsFailed"))
-        return
+    instance.authMethod = authMethod
+
+    if authMethod == .basicAuth {
+      instance.username = trimmedUsername
+      if !password.isEmpty {
+        guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.settings.encodeCredentialsFailed"))
+          return
+        }
+        instance.authToken = token
       }
-      instance.authToken = token
+    } else {
+      // For API Key, we use the key as the token directly
+      instance.authToken = apiKey
+      // API Key auth returns a User object, so we can use that email/username
     }
+
     instance.lastUsedAt = Date()
 
     do {
@@ -240,26 +305,22 @@ struct SettingsServerEditView: View {
       return
     }
 
-    // Determine which authToken to use for validation
-    let authToken: String
-    if !password.isEmpty {
-      // If password is provided, always use it to generate new token
-      guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
-        validationMessage = "Unable to encode credentials"
-        isValidated = false
-        return
+    // Determine which authToken/credentials to use for validation
+    let tokenToTest: String
+    if authMethod == .basicAuth {
+      if !password.isEmpty {
+        guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
+          validationMessage = String(localized: "Unable to encode credentials")
+          isValidated = false
+          return
+        }
+        tokenToTest = token
+      } else {
+        // Reuse existing token
+        tokenToTest = instance.authToken
       }
-      authToken = token
     } else {
-      // If password is empty, check if we can use existing token
-      // Only valid if username hasn't changed (username change requires new password)
-      if trimmedUsername != instance.username {
-        validationMessage = "Username changed, please provide password to validate"
-        isValidated = false
-        return
-      }
-      // Use existing authToken when password is empty and only serverURL changed
-      authToken = instance.authToken
+      tokenToTest = apiKey
     }
 
     isValidating = true
@@ -268,28 +329,37 @@ struct SettingsServerEditView: View {
 
     Task {
       do {
-        let _ = try await authViewModel.testCredentials(
+        // We validate and get the user.
+        // If API Key, this will return the user associated with the key.
+        let user = try await authViewModel.testCredentials(
           serverURL: trimmedServerURL,
-          authToken: authToken
+          authToken: tokenToTest,
+          authMethod: authMethod
         )
+
         await MainActor.run {
-          validationMessage = "Connection validated successfully"
+          validationMessage = String(localized: "Connection validated successfully")
           isValidated = true
           isValidating = false
+
+          // Update username if using API Key so it's correct when saving
+          if authMethod == .apiKey {
+            self.username = user.email
+          }
         }
       } catch {
         await MainActor.run {
           if let apiError = error as? APIError {
             switch apiError {
             case .unauthorized:
-              validationMessage = "Invalid credentials"
+              validationMessage = String(localized: "Invalid credentials")
             case .networkError:
-              validationMessage = "Network error - check server URL"
+              validationMessage = String(localized: "Network error - check server URL")
             default:
-              validationMessage = "Validation failed: \(apiError.localizedDescription)"
+              validationMessage = String(localized: "Validation failed: \(apiError.localizedDescription)")
             }
           } else {
-            validationMessage = "Validation failed: \(error.localizedDescription)"
+            validationMessage = String(localized: "Validation failed: \(error.localizedDescription)")
           }
           isValidated = false
           isValidating = false

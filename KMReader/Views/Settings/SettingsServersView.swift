@@ -241,6 +241,12 @@ struct SettingsServersView: View {
             textColor: instance.isAdmin ? .green : .secondary
           )
           infoDetailRow(
+            icon: "key.fill",
+            text: instance.resolvedAuthMethod == .apiKey
+              ? String(localized: "API Key") : String(localized: "Username & Password"),
+            textColor: .secondary
+          )
+          infoDetailRow(
             icon: "clock.arrow.circlepath", text: lastUsedDescription(for: instance),
             textColor: .secondary)
         }

@@ -26,6 +26,18 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "authToken") }
   }
 
+  static var authMethod: AuthenticationMethod {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "authMethod"),
+        let method = AuthenticationMethod(rawValue: stored)
+      {
+        return method
+      }
+      return .basicAuth
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "authMethod") }
+  }
+
   static var username: String {
     get { UserDefaults.standard.string(forKey: "username") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "username") }
@@ -509,6 +521,7 @@ enum AppConfig {
   // MARK: - Clear all auth data
   static func clearAuthData() {
     authToken = ""
+    authMethod = .basicAuth
     username = ""
     serverDisplayName = ""
     isAdmin = false

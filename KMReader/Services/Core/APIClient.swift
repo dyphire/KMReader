@@ -87,6 +87,7 @@ class APIClient {
     path: String,
     method: String = "GET",
     authToken: String,
+    authMethod: AuthenticationMethod = .basicAuth,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
   ) async throws -> User {
@@ -96,7 +97,8 @@ class APIClient {
       method: method,
       queryItems: queryItems,
       headers: headers,
-      authToken: authToken
+      authToken: authToken,
+      authMethod: authMethod
     )
     let (data, httpResponse) = try await executeRequest(request, isTemporary: false)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
@@ -108,6 +110,7 @@ class APIClient {
     path: String,
     method: String = "GET",
     authToken: String? = nil,
+    authMethod: AuthenticationMethod = .basicAuth,
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil
@@ -119,7 +122,8 @@ class APIClient {
       body: body,
       queryItems: queryItems,
       headers: headers,
-      authToken: authToken
+      authToken: authToken,
+      authMethod: authMethod
     )
 
     // Execute request with temporary session (ephemeral, no persistent cookies)
@@ -233,6 +237,15 @@ class APIClient {
     request.httpBody = body
 
     configureDefaultHeaders(&request, body: body, headers: headers)
+
+    // Add API Key header on every request when using API Key authentication
+    if AppConfig.authMethod == .apiKey {
+      let token = AppConfig.authToken
+      if !token.isEmpty {
+        request.setValue(token, forHTTPHeaderField: "X-API-Key")
+      }
+    }
+
     return request
   }
 
@@ -243,7 +256,8 @@ class APIClient {
     body: Data? = nil,
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
-    authToken: String? = nil
+    authToken: String? = nil,
+    authMethod: AuthenticationMethod? = nil
   ) throws -> URLRequest {
     let baseURL = (serverURL ?? AppConfig.serverURL).trimmingCharacters(
       in: .whitespacesAndNewlines)
@@ -272,9 +286,15 @@ class APIClient {
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
-    // Strictly isolation: Only add Authorization header in this login helper
+    // Add auth header based on the authentication method
     if let token = authToken, !token.isEmpty {
-      request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
+      let method = authMethod ?? AppConfig.authMethod
+      switch method {
+      case .basicAuth:
+        request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
+      case .apiKey:
+        request.setValue(token, forHTTPHeaderField: "X-API-Key")
+      }
     }
 
     return request
@@ -371,7 +391,10 @@ class APIClient {
 
       guard (200...299).contains(httpResponse.statusCode) else {
         // Handle 401 Unauthorized with re-login
-        if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary {
+        // Skip re-login for API Key mode as it's stateless and included in every request
+        if httpResponse.statusCode == 401 && retryCount == 0 && !isTemporary
+          && AppConfig.authMethod != .apiKey
+        {
           let token = AppConfig.authToken
           if !token.isEmpty {
             logger.info("🔒 Unauthorized, attempting re-login to refresh session...")

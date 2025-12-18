@@ -12,7 +12,7 @@ import SwiftUI
 @MainActor
 @Observable
 class AuthViewModel {
-  var isLoading = true
+  var isLoading = false
   var isSwitching = false
   var switchingInstanceId: String?
   var user: User?
@@ -43,6 +43,32 @@ class AuthViewModel {
       serverURL: serverURL,
       username: username,
       authToken: result.authToken,
+      authMethod: .basicAuth,
+      user: result.user,
+      displayName: displayName,
+      shouldPersistInstance: true,
+      successMessage: "Logged in successfully"
+    )
+  }
+
+  func loginWithAPIKey(
+    apiKey: String,
+    serverURL: String,
+    displayName: String? = nil
+  ) async throws {
+    isLoading = true
+    defer { isLoading = false }
+
+    // Validate authentication using API Key
+    let result = try await authService.loginWithAPIKey(
+      apiKey: apiKey, serverURL: serverURL)
+
+    // Apply login configuration
+    try await applyLoginConfiguration(
+      serverURL: serverURL,
+      username: result.user.email,
+      authToken: result.apiKey,
+      authMethod: .apiKey,
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
@@ -69,8 +95,11 @@ class AuthViewModel {
     try await authService.validate(serverURL: serverURL)
   }
 
-  func testCredentials(serverURL: String, authToken: String) async throws -> User {
-    return try await authService.testCredentials(serverURL: serverURL, authToken: authToken)
+  func testCredentials(
+    serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
+  ) async throws -> User {
+    return try await authService.testCredentials(
+      serverURL: serverURL, authToken: authToken, authMethod: authMethod)
   }
 
   func loadCurrentUser() async {
@@ -103,7 +132,8 @@ class AuthViewModel {
     do {
       let validatedUser = try await authService.establishSession(
         serverURL: instance.serverURL,
-        authToken: instance.authToken
+        authToken: instance.authToken,
+        authMethod: instance.resolvedAuthMethod
       )
 
       // Check if switching to a different instance
@@ -115,6 +145,7 @@ class AuthViewModel {
         serverURL: instance.serverURL,
         username: instance.username,
         authToken: instance.authToken,
+        authMethod: instance.resolvedAuthMethod,
         user: validatedUser,
         displayName: instance.displayName,
         shouldPersistInstance: false,
@@ -134,6 +165,7 @@ class AuthViewModel {
     serverURL: String,
     username: String,
     authToken: String,
+    authMethod: AuthenticationMethod,
     user: User,
     displayName: String?,
     shouldPersistInstance: Bool,
@@ -144,6 +176,7 @@ class AuthViewModel {
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
     APIClient.shared.setAuthToken(authToken)
+    AppConfig.authMethod = authMethod
     AppConfig.username = username
     AppConfig.isAdmin = user.roles.contains("ADMIN")
     AppConfig.isLoggedIn = true
@@ -162,6 +195,7 @@ class AuthViewModel {
         username: username,
         authToken: authToken,
         isAdmin: user.roles.contains("ADMIN"),
+        authMethod: authMethod,
         displayName: displayName
       )
       AppConfig.currentInstanceId = instance.id.uuidString

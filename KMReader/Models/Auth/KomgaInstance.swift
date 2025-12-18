@@ -16,6 +16,7 @@ final class KomgaInstance {
   var username: String
   var authToken: String
   var isAdmin: Bool
+  var authMethod: AuthenticationMethod? = AuthenticationMethod.basicAuth
   var createdAt: Date
   var lastUsedAt: Date
 
@@ -26,6 +27,7 @@ final class KomgaInstance {
     username: String,
     authToken: String,
     isAdmin: Bool,
+    authMethod: AuthenticationMethod = .basicAuth,
     createdAt: Date = Date(),
     lastUsedAt: Date = Date()
   ) {
@@ -35,11 +37,16 @@ final class KomgaInstance {
     self.username = username
     self.authToken = authToken
     self.isAdmin = isAdmin
+    self.authMethod = authMethod
     self.createdAt = createdAt
     self.lastUsedAt = lastUsedAt
   }
 
   var displayName: String {
     name.isEmpty ? serverURL : name
+  }
+
+  var resolvedAuthMethod: AuthenticationMethod {
+    authMethod ?? .basicAuth
   }
 }

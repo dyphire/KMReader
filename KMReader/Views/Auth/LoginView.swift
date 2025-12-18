@@ -17,8 +17,10 @@ struct LoginView: View {
   @State private var serverURLText: String = ""
   @State private var usernameText: String = ""
   @State private var password = ""
+  @State private var apiKey = ""
   @State private var instanceName = ""
   @State private var loginErrorMessage: String?
+  @State private var authMethod: AuthenticationMethod = .basicAuth
 
   var body: some View {
     ScrollView {
@@ -42,7 +44,13 @@ struct LoginView: View {
   }
 
   private var isFormValid: Bool {
-    !serverURLText.isEmpty && !usernameText.isEmpty && !password.isEmpty
+    guard !serverURLText.isEmpty else { return false }
+    switch authMethod {
+    case .basicAuth:
+      return !usernameText.isEmpty && !password.isEmpty
+    case .apiKey:
+      return !apiKey.isEmpty
+    }
   }
 
   private func login() {
@@ -52,12 +60,21 @@ struct LoginView: View {
       let displayName = trimmedName.isEmpty ? nil : trimmedName
 
       do {
-        try await authViewModel.login(
-          username: usernameText,
-          password: password,
-          serverURL: serverURLText,
-          displayName: displayName
-        )
+        switch authMethod {
+        case .basicAuth:
+          try await authViewModel.login(
+            username: usernameText,
+            password: password,
+            serverURL: serverURLText,
+            displayName: displayName
+          )
+        case .apiKey:
+          try await authViewModel.loginWithAPIKey(
+            apiKey: apiKey,
+            serverURL: serverURLText,
+            displayName: displayName
+          )
+        }
         dismiss()
       } catch {
         loginErrorMessage = formattedErrorMessage(from: error)
@@ -114,32 +131,63 @@ struct LoginView: View {
           .autocorrectionDisabled()
       }
 
-      FieldContainer(
-        title: "Username",
-        systemImage: "person",
-        containerBackground: fieldBackgroundColor
-      ) {
-        TextField(String(localized: "Enter your username"), text: $usernameText)
-          .textContentType(.username)
-          #if os(iOS) || os(tvOS)
-            .autocapitalization(.none)
-          #endif
-          .autocorrectionDisabled()
-          .onChange(of: usernameText) { _, _ in
-            loginErrorMessage = nil
-          }
+      // Auth method picker
+      Picker(String(localized: "Authentication Method"), selection: $authMethod) {
+        Text(String(localized: "Username & Password")).tag(AuthenticationMethod.basicAuth)
+        Text(String(localized: "API Key")).tag(AuthenticationMethod.apiKey)
+      }
+      .pickerStyle(.segmented)
+      .onChange(of: authMethod) { _, _ in
+        loginErrorMessage = nil
       }
 
-      FieldContainer(
-        title: "Password",
-        systemImage: "lock",
-        containerBackground: fieldBackgroundColor
-      ) {
-        SecureField(String(localized: "Enter your password"), text: $password)
-          .textContentType(.password)
-          .onChange(of: password) { _, _ in
-            loginErrorMessage = nil
-          }
+      // Conditional fields based on auth method
+      switch authMethod {
+      case .basicAuth:
+        FieldContainer(
+          title: "Username",
+          systemImage: "person",
+          containerBackground: fieldBackgroundColor
+        ) {
+          TextField(String(localized: "Enter your username"), text: $usernameText)
+            .textContentType(.username)
+            #if os(iOS) || os(tvOS)
+              .autocapitalization(.none)
+            #endif
+            .autocorrectionDisabled()
+            .onChange(of: usernameText) { _, _ in
+              loginErrorMessage = nil
+            }
+        }
+
+        FieldContainer(
+          title: "Password",
+          systemImage: "lock",
+          containerBackground: fieldBackgroundColor
+        ) {
+          SecureField(String(localized: "Enter your password"), text: $password)
+            .textContentType(.password)
+            .onChange(of: password) { _, _ in
+              loginErrorMessage = nil
+            }
+        }
+
+      case .apiKey:
+        FieldContainer(
+          title: "API Key",
+          systemImage: "key",
+          containerBackground: fieldBackgroundColor
+        ) {
+          SecureField(String(localized: "Enter your API Key"), text: $apiKey)
+            .textContentType(.password)
+            #if os(iOS) || os(tvOS)
+              .autocapitalization(.none)
+            #endif
+            .autocorrectionDisabled()
+            .onChange(of: apiKey) { _, _ in
+              loginErrorMessage = nil
+            }
+        }
       }
 
       Button(action: login) {
@@ -172,6 +220,7 @@ struct LoginView: View {
         .padding(.top, 4)
       }
     }
+    .animation(.default, value: authMethod)
   }
 
   private var fieldBackgroundColor: Color {
