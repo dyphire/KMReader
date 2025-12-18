@@ -63,6 +63,7 @@ struct MainApp: App {
         #endif
         #if os(iOS)
           .statusBarHidden(readerPresentation.hideStatusBar)
+          .animation(.default, value: readerPresentation.hideStatusBar)
           .tint(themeColor.color)
         #endif
         .environment(authViewModel)

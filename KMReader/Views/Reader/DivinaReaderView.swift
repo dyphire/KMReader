@@ -385,10 +385,14 @@ struct DivinaReaderView: View {
       controlsTimer?.invalidate()
       tapZoneOverlayTimer?.invalidate()
       keyboardHelpTimer?.invalidate()
-      readerPresentation.hideStatusBar = false
+      withAnimation {
+        readerPresentation.hideStatusBar = false
+      }
     }
     .onChange(of: shouldShowControls) { _, newValue in
-      readerPresentation.hideStatusBar = !newValue
+      withAnimation {
+        readerPresentation.hideStatusBar = !newValue
+      }
     }
     #if os(iOS) || os(macOS)
       .onChange(of: readingDirection) { _, _ in

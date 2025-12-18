@@ -69,10 +69,14 @@
         .onDisappear {
           controlsTimer?.invalidate()
           overlayTimer?.invalidate()
-          readerPresentation.hideStatusBar = false
+          withAnimation {
+            readerPresentation.hideStatusBar = false
+          }
         }
         .onChange(of: shouldShowControls) { _, newValue in
-          readerPresentation.hideStatusBar = !newValue
+          withAnimation {
+            readerPresentation.hideStatusBar = !newValue
+          }
         }
         .onChange(of: showTapZoneOverlay) { _, newValue in
           if newValue {
