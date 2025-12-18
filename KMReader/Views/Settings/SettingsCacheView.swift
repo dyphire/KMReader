@@ -143,44 +143,6 @@ struct SettingsCacheView: View {
         }
       }
 
-      Section(header: Text("Book File")) {
-        HStack {
-          Text("Cached Size")
-          Spacer()
-          if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
-          } else {
-            Text(formatCacheSize(bookFileCacheSize))
-              .foregroundColor(.secondary)
-          }
-        }
-        .tvFocusableHighlight()
-
-        HStack {
-          Text("Cached Files")
-          Spacer()
-          if isLoadingCacheSize {
-            ProgressView()
-              .scaleEffect(0.8)
-          } else {
-            Text(formatCacheCount(bookFileCacheCount))
-              .foregroundColor(.secondary)
-          }
-        }
-        .tvFocusableHighlight()
-
-        Button(role: .destructive) {
-          showClearBookFileCacheConfirmation = true
-        } label: {
-          HStack {
-            Spacer()
-            Text("Clear")
-            Spacer()
-          }
-        }
-      }
-
       Section(header: Text("Thumbnail")) {
         VStack(alignment: .leading, spacing: 8) {
           #if os(iOS) || os(macOS)
@@ -247,6 +209,44 @@ struct SettingsCacheView: View {
 
         Button(role: .destructive) {
           showClearThumbnailCacheConfirmation = true
+        } label: {
+          HStack {
+            Spacer()
+            Text("Clear")
+            Spacer()
+          }
+        }
+      }
+
+      Section(header: Text("Book File")) {
+        HStack {
+          Text("Cached Size")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheSize(bookFileCacheSize))
+              .foregroundColor(.secondary)
+          }
+        }
+        .tvFocusableHighlight()
+
+        HStack {
+          Text("Cached Files")
+          Spacer()
+          if isLoadingCacheSize {
+            ProgressView()
+              .scaleEffect(0.8)
+          } else {
+            Text(formatCacheCount(bookFileCacheCount))
+              .foregroundColor(.secondary)
+          }
+        }
+        .tvFocusableHighlight()
+
+        Button(role: .destructive) {
+          showClearBookFileCacheConfirmation = true
         } label: {
           HStack {
             Spacer()
