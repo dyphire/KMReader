@@ -92,39 +92,42 @@ struct AuthenticationActivityView: View {
           .foregroundColor(.secondary)
       }
 
-      if let error = activity.error {
-        Text(error)
-          .font(.caption)
-          .foregroundColor(.red)
+      if let userAgent = activity.userAgent {
+        HStack {
+          Image(systemName: "desktopcomputer")
+          Text(userAgent).lineLimit(1)
+        }
+        .font(.caption)
+        .foregroundColor(.secondary)
       }
 
       if let ip = activity.ip {
         HStack {
-          Label("IP", systemImage: "network")
-            .font(.caption)
-            .foregroundColor(.secondary)
+          Image(systemName: "network")
           Text(ip)
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
-      }
-
-      if let userAgent = activity.userAgent {
-        Text(userAgent)
-          .font(.caption)
-          .foregroundColor(.secondary)
-          .lineLimit(2)
+        .font(.caption)
+        .foregroundColor(.secondary)
       }
 
       if let apiKeyComment = activity.apiKeyComment {
         HStack {
-          Label("API Key", systemImage: "key")
-            .font(.caption)
-            .foregroundColor(.secondary)
+          Image(systemName: "key")
+          Text("API Key")
           Text(apiKeyComment)
-            .font(.caption)
-            .foregroundColor(.secondary)
         }
+        .font(.caption)
+        .foregroundColor(.secondary)
+      }
+
+      if let error = activity.error {
+        HStack {
+          Image(systemName: "exclamationmark.triangle.fill")
+
+          Text(error)
+        }
+        .font(.caption)
+        .foregroundColor(.red)
       }
     }
     .tvFocusableHighlight()
