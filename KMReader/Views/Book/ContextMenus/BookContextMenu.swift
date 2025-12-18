@@ -147,7 +147,8 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.analyzeBook(bookId: book.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.analysisStarted"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.analysisStarted"))
           onActionCompleted?()
         }
       } catch {
@@ -163,7 +164,8 @@ struct BookContextMenu: View {
       do {
         try await BookService.shared.refreshMetadata(bookId: book.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.metadataRefreshed"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.metadataRefreshed"))
           onActionCompleted?()
         }
       } catch {
@@ -182,7 +184,8 @@ struct BookContextMenu: View {
           bookIds: [book.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.book.booksAddedToReadList"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.book.booksAddedToReadList"))
           onActionCompleted?()
         }
       } catch {

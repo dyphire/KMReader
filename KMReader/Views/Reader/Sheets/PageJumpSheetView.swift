@@ -165,7 +165,8 @@ private struct PagePreviewItem: View {
     }
     .shadow(
       color: Color.black.opacity(isCenter ? 0.4 : 0.2),
-      radius: isCenter ? 8 : 4, x: 0, y: 2)
+      radius: isCenter ? 8 : 4, x: 0, y: 2
+    )
     .scaleEffect(transform.scale)
     .opacity(transform.opacity)
     .rotation3DEffect(
@@ -241,7 +242,6 @@ struct PageJumpSheetView: View {
     let endPage = min(maxPage, pageValue + offset)
     return Array(startPage...endPage)
   }
-
 
   private var sliderScaleX: CGFloat {
     readingDirection == .rtl ? -1 : 1

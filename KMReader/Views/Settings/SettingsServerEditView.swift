@@ -97,9 +97,11 @@ struct SettingsServerEditView: View {
               }
             case .none:
               if authMethod == .basicAuth {
-                Text(String(localized: "Leave the password empty to keep the existing credentials."))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+                Text(
+                  String(localized: "Leave the password empty to keep the existing credentials.")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
             }
           }
@@ -357,10 +359,12 @@ struct SettingsServerEditView: View {
             case .networkError:
               validationMessage = String(localized: "Network error - check server URL")
             default:
-              validationMessage = String(localized: "Validation failed: \(apiError.localizedDescription)")
+              validationMessage = String(
+                localized: "Validation failed: \(apiError.localizedDescription)")
             }
           } else {
-            validationMessage = String(localized: "Validation failed: \(error.localizedDescription)")
+            validationMessage = String(
+              localized: "Validation failed: \(error.localizedDescription)")
           }
           isValidated = false
           isValidating = false

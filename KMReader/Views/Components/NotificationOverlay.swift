@@ -106,18 +106,18 @@ import SwiftUI
         return readerPresentation.hideStatusBar
       }
 
-      // NOTE: If users report accidental system gesture triggers while reading,
-      // consider implementing preferredScreenEdgesDeferringSystemGestures.
-      // This would require the first swipe from an edge to trigger app gestures,
-      // and the second swipe to trigger system gestures.
-      //
-      // Example implementation:
-      // override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
-      //   return readerPresentation.hideStatusBar ? [.bottom, .top] : []
-      // }
-      //
-      // Also add in startObserving():
-      // self?.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+    // NOTE: If users report accidental system gesture triggers while reading,
+    // consider implementing preferredScreenEdgesDeferringSystemGestures.
+    // This would require the first swipe from an edge to trigger app gestures,
+    // and the second swipe to trigger system gestures.
+    //
+    // Example implementation:
+    // override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+    //   return readerPresentation.hideStatusBar ? [.bottom, .top] : []
+    // }
+    //
+    // Also add in startObserving():
+    // self?.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
     #endif
   }
 

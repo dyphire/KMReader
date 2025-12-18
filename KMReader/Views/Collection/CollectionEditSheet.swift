@@ -65,7 +65,8 @@ struct CollectionEditSheet: View {
             ordered: orderedToUpdate
           )
           await MainActor.run {
-            ErrorManager.shared.notify(message: String(localized: "notification.collection.updated"))
+            ErrorManager.shared.notify(
+              message: String(localized: "notification.collection.updated"))
             dismiss()
           }
         } else {

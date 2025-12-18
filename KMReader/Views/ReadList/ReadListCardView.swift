@@ -20,7 +20,6 @@ struct ReadListCardView: View {
     return count == 1 ? "1 book" : "\(count) books"
   }
 
-
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: readList.id)) {
       VStack(alignment: .leading, spacing: 8) {

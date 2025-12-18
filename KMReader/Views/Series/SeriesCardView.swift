@@ -18,7 +18,6 @@ struct SeriesCardView: View {
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
-
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       ThumbnailImage(id: series.id, type: .series, width: cardWidth) {

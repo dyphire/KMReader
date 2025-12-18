@@ -23,7 +23,6 @@ struct BookDetailView: View {
   @State private var isLoadingRelations = false
   @State private var showDownloadSheet = false
 
-
   private var progress: Double {
     guard let book = book, let readProgress = book.readProgress else { return 0 }
     guard book.media.pagesCount > 0 else { return 0 }

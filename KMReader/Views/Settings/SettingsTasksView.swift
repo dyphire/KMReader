@@ -193,7 +193,8 @@ struct SettingsTasksView: View {
       }
     } message: {
       Text(
-        String(localized: "Are you sure you want to cancel all tasks? This action cannot be undone.")
+        String(
+          localized: "Are you sure you want to cancel all tasks? This action cannot be undone.")
       )
     }
     .task {

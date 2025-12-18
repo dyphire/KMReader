@@ -96,7 +96,8 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.analyzeSeries(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.analysisStarted"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.analysisStarted"))
           onActionCompleted?()
         }
       } catch {
@@ -112,7 +113,8 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.shared.refreshMetadata(seriesId: series.id)
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.metadataRefreshed"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.metadataRefreshed"))
           onActionCompleted?()
         }
       } catch {
@@ -163,7 +165,8 @@ struct SeriesContextMenu: View {
           seriesIds: [series.id]
         )
         await MainActor.run {
-          ErrorManager.shared.notify(message: String(localized: "notification.series.addedToCollection"))
+          ErrorManager.shared.notify(
+            message: String(localized: "notification.series.addedToCollection"))
           onActionCompleted?()
         }
       } catch {

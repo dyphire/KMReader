@@ -15,7 +15,6 @@ struct CollectionCardView: View {
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
-
   var body: some View {
     NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.id)) {
       VStack(alignment: .leading, spacing: 8) {
