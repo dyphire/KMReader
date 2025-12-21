@@ -93,6 +93,11 @@ final class SSEService {
       return
     }
 
+    guard !AppConfig.isOffline else {
+      logger.info("SSE connection skipped: app is offline")
+      return
+    }
+
     guard AppConfig.enableSSE else {
       logger.info("SSE is disabled by user preference")
       return
@@ -227,10 +232,10 @@ final class SSEService {
       }
 
       // Attempt to reconnect if still logged in
-      if AppConfig.isLoggedIn && AppConfig.enableSSE && !Task.isCancelled {
+      if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline && !Task.isCancelled {
         Task {
           try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
-          if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
+          if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
             logger.info("Reconnecting SSE after stream ended")
             await MainActor.run {
               self.connect()
@@ -246,10 +251,10 @@ final class SSEService {
         }
 
         // Attempt to reconnect after a delay
-        if AppConfig.isLoggedIn && AppConfig.enableSSE {
+        if AppConfig.isLoggedIn && AppConfig.enableSSE && !AppConfig.isOffline {
           Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)  // 5 seconds
-            if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE {
+            if AppConfig.isLoggedIn && !isConnected && AppConfig.enableSSE && !AppConfig.isOffline {
               logger.info("Reconnecting SSE after error")
               await MainActor.run {
                 self.connect()
