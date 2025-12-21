@@ -79,36 +79,6 @@ class SeriesViewModel {
     }
   }
 
-  func loadNewSeries(libraryIds: [String]? = nil) async {
-    isLoading = true
-
-    do {
-      _ = try await SyncService.shared.syncNewSeries(
-        libraryIds: libraryIds, page: currentPage, size: 20)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  func loadUpdatedSeries(libraryIds: [String]? = nil) async {
-    isLoading = true
-
-    do {
-      _ = try await SyncService.shared.syncUpdatedSeries(
-        libraryIds: libraryIds, page: currentPage, size: 20)
-    } catch {
-      ErrorManager.shared.alert(error: error)
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
   func markAsRead(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
     do {
       try await seriesService.markAsRead(seriesId: seriesId)
@@ -116,20 +86,23 @@ class SeriesViewModel {
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       }
-      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(
+        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
   }
 
-  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async {
+  func markAsUnread(seriesId: String, context: ModelContext, browseOpts: SeriesBrowseOptions) async
+  {
     do {
       try await seriesService.markAsUnread(seriesId: seriesId)
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
       await MainActor.run {
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       }
-      await loadSeries(context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
+      await loadSeries(
+        context: context, browseOpts: browseOpts, searchText: currentSearchText, refresh: true)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -151,19 +124,31 @@ class SeriesViewModel {
 
     isLoading = true
 
-    do {
-      let page = try await SyncService.shared.syncCollectionSeries(
+    if AppConfig.isOffline {
+      let series = KomgaSeriesStore.fetchCollectionSeries(
+        context: context,
         collectionId: collectionId,
         page: currentPage,
         size: 20,
-        browseOpts: browseOpts,
-        libraryIds: libraryIds
+        browseOpts: browseOpts
       )
+      let ids = series.map { $0.id }
+      updateState(context: context, ids: ids, moreAvailable: ids.count == 20)
+    } else {
+      do {
+        let page = try await SyncService.shared.syncCollectionSeries(
+          collectionId: collectionId,
+          page: currentPage,
+          size: 20,
+          browseOpts: browseOpts,
+          libraryIds: libraryIds
+        )
 
-      let ids = page.content.map { $0.id }
-      updateState(context: context, ids: ids, moreAvailable: !page.last)
-    } catch {
-      ErrorManager.shared.alert(error: error)
+        let ids = page.content.map { $0.id }
+        updateState(context: context, ids: ids, moreAvailable: !page.last)
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
 
     withAnimation {
