@@ -16,6 +16,7 @@ struct ReaderSettingsSheet: View {
   // Persisted settings (via @AppStorage)
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
+  @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle:
@@ -102,8 +103,10 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          Toggle(isOn: $showPageNumber) {
-            Text("Always Show Page Number")
+          if readingDirection != .webtoon {
+            Toggle(isOn: $showPageNumber) {
+              Text("Always Show Page Number")
+            }
           }
 
           #if os(iOS) || os(macOS)
@@ -128,16 +131,18 @@ struct ReaderSettingsSheet: View {
         // MARK: - Page Turn Section
 
         Section(header: Text("Page Turn")) {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
-              ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
-                Text(style.displayName).tag(style)
+          if readingDirection != .webtoon {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Scroll Page Transition", selection: $scrollPageTransitionStyle) {
+                ForEach(ScrollPageTransitionStyle.allCases, id: \.self) { style in
+                  Text(style.displayName).tag(style)
+                }
               }
+              .pickerStyle(.menu)
+              Text(scrollPageTransitionStyle.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
-            .pickerStyle(.menu)
-            Text(scrollPageTransitionStyle.description)
-              .font(.caption)
-              .foregroundColor(.secondary)
           }
 
           #if os(macOS)
@@ -156,22 +161,41 @@ struct ReaderSettingsSheet: View {
                 Text("Show Tap Zone Hints")
               }
 
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Tap Page Scroll Duration")
-                  Spacer()
-                  Text(
-                    tapPageTransitionDuration == 0
-                      ? String(localized: "None")
-                      : String(format: "%.1fs", tapPageTransitionDuration)
+              if readingDirection == .webtoon {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Webtoon Tap Scroll Height")
+                    Spacer()
+                    Text("\(Int(webtoonTapScrollPercentage))%")
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $webtoonTapScrollPercentage,
+                    in: 25...100,
+                    step: 5
                   )
-                  .foregroundColor(.secondary)
+                  Text("Scroll distance when tapping to navigate in webtoon mode")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
-                Slider(
-                  value: $tapPageTransitionDuration,
-                  in: 0...1,
-                  step: 0.1
-                )
+              } else {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Tap Page Scroll Duration")
+                    Spacer()
+                    Text(
+                      tapPageTransitionDuration == 0
+                        ? String(localized: "None")
+                        : String(format: "%.1fs", tapPageTransitionDuration)
+                    )
+                    .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $tapPageTransitionDuration,
+                    in: 0...1,
+                    step: 0.1
+                  )
+                }
               }
             }
           #endif
