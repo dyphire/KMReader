@@ -43,14 +43,12 @@ struct BookRowView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView(padding: 8, cornerRadius: 10) {
+      CardView {
         HStack(spacing: 12) {
-          ThumbnailImage(
-            id: komgaBook.bookId, type: .book, showPlaceholder: false, width: 60, cornerRadius: 4
-          )
-          .ifLet(zoomNamespace) { view, namespace in
-            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-          }
+          ThumbnailImage(id: komgaBook.bookId, type: .book, width: 60)
+            .ifLet(zoomNamespace) { view, namespace in
+              view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+            }
 
           VStack(alignment: .leading, spacing: 4) {
             if shouldShowSeriesTitle {
@@ -107,7 +105,7 @@ struct BookRowView: View {
                     Image(systemName: komgaBook.downloadStatus.displayIcon)
                       .foregroundColor(komgaBook.downloadStatus.displayColor)
                       .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.leading, 8)
+                      .padding(.horizontal, 4)
                   }
                 }.foregroundColor(.secondary)
               }

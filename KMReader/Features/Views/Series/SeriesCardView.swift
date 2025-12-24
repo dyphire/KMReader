@@ -20,9 +20,9 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    CardView(padding: 6, cornerRadius: 10) {
+    CardView {
       VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 12) {
+        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 8) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {
               VStack(alignment: .trailing) {
@@ -56,7 +56,7 @@ struct SeriesCardView: View {
                   Image(systemName: komgaSeries.downloadStatus.icon)
                     .foregroundColor(komgaSeries.downloadStatus.color)
                     .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                    .padding(.leading, 8)
+                    .padding(.horizontal, 4)
                 }
               }
               .foregroundColor(.secondary)

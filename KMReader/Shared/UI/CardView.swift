@@ -14,8 +14,8 @@ struct CardView<Content: View>: View {
   let content: () -> Content
 
   init(
-    padding: CGFloat = 6,
-    cornerRadius: CGFloat = 10,
+    padding: CGFloat = 4,
+    cornerRadius: CGFloat = 8,
     background: Color? = nil,
     shadow: Color? = nil,
     @ViewBuilder content: @escaping () -> Content
@@ -30,7 +30,8 @@ struct CardView<Content: View>: View {
   var body: some View {
     VStack {
       content().padding(padding)
-    }.background {
+    }
+    .background {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(background ?? .cardBackground)
         .shadow(color: shadow ?? Color.black.opacity(0.2), radius: 2)

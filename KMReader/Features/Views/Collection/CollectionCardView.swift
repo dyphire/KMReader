@@ -16,10 +16,9 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView(padding: 6, cornerRadius: 10) {
+    CardView {
       VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(
-          id: komgaCollection.collectionId, type: .collection, width: width - 12, cornerRadius: 10)
+        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width - 8)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(komgaCollection.name)

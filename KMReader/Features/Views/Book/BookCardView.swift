@@ -46,9 +46,9 @@ struct BookCardView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView(padding: 6, cornerRadius: 10) {
+      CardView {
         VStack(alignment: .leading, spacing: 6) {
-          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 12) {
+          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 8) {
             ZStack {
               if let progressCompleted = komgaBook.progressCompleted {
                 if !progressCompleted {
@@ -86,7 +86,6 @@ struct BookCardView: View {
                 HStack(spacing: 4) {
                   Text("\(komgaBook.mediaPagesCount) pages")
                     + Text(" • \(komgaBook.size)")
-                    .font(.footnote)
                   if komgaBook.oneshot {
                     Text("•")
                     Text("Oneshot")
@@ -96,13 +95,13 @@ struct BookCardView: View {
                     Image(systemName: komgaBook.downloadStatus.displayIcon)
                       .foregroundColor(komgaBook.downloadStatus.displayColor)
                       .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.leading, 8)
+                      .padding(.horizontal, 4)
                   }
                 }
                 .foregroundColor(.secondary)
                 .lineLimit(1)
               }
-            }.font(.caption2)
+            }.font(.caption)
           }
         }
       }
