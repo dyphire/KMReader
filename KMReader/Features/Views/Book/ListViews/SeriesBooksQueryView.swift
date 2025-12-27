@@ -26,7 +26,8 @@ struct SeriesBooksQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
+              index, bookId in
               BookQueryItemView(
                 bookId: bookId,
                 viewModel: bookViewModel,
@@ -43,10 +44,11 @@ struct SeriesBooksQueryView: View {
               }
             }
           }
-          .padding(layoutHelper.spacing)
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) { index, bookId in
+          LazyVStack {
+            ForEach(Array(bookViewModel.browseBookIds.enumerated()), id: \.element) {
+              index, bookId in
               BookQueryItemView(
                 bookId: bookId,
                 viewModel: bookViewModel,
@@ -61,8 +63,12 @@ struct SeriesBooksQueryView: View {
                   Task { await loadMore(false) }
                 }
               }
+              if index < bookViewModel.browseBookIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }

@@ -43,13 +43,13 @@ struct BookRowView: View {
     Button {
       onReadBook?(false)
     } label: {
-      CardView {
-        HStack(spacing: 12) {
-          ThumbnailImage(id: komgaBook.bookId, type: .book, width: 60)
-            .ifLet(zoomNamespace) { view, namespace in
-              view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-            }
+      HStack(spacing: 12) {
+        ThumbnailImage(id: komgaBook.bookId, type: .book, width: 60)
+          .ifLet(zoomNamespace) { view, namespace in
+            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+          }
 
+        VStack(alignment: .leading, spacing: 4) {
           VStack(alignment: .leading, spacing: 4) {
             if shouldShowSeriesTitle {
               Text(komgaBook.seriesTitle)
@@ -57,89 +57,91 @@ struct BookRowView: View {
                 .foregroundColor(.secondary)
                 .lineLimit(1)
             }
-
             Text("#\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
               .font(.body)
               .foregroundColor(completed ? .secondary : .primary)
               .lineLimit(bookTitleLineLimit)
+          }
 
-            HStack(spacing: 4) {
-              if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
-                Label(releaseDate, systemImage: "calendar")
-              } else {
-                Label(
-                  komgaBook.created.formatted(date: .abbreviated, time: .omitted),
-                  systemImage: "clock")
-              }
-              if let progressPage = komgaBook.progressPage,
-                let progressCompleted = komgaBook.progressCompleted
-              {
-                Text("•")
-                if progressCompleted {
-                  Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              HStack(spacing: 4) {
+                if let releaseDate = komgaBook.metaReleaseDate, !releaseDate.isEmpty {
+                  Label(releaseDate, systemImage: "calendar")
                 } else {
-                  Text("Page \(progressPage + 1)")
-                    .foregroundColor(.blue)
+                  Label(
+                    komgaBook.created.formatted(date: .abbreviated, time: .omitted),
+                    systemImage: "clock")
+                }
+                if let progressPage = komgaBook.progressPage,
+                  let progressCompleted = komgaBook.progressCompleted
+                {
+                  Text("•")
+                  if progressCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                      .foregroundColor(.green)
+                  } else {
+                    Text("Page \(progressPage + 1)")
+                      .foregroundColor(.blue)
+                  }
                 }
               }
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
+              .font(.caption)
+              .foregroundColor(.secondary)
 
-            Group {
-              if komgaBook.deleted {
-                Text("Unavailable")
-                  .foregroundColor(.red)
-              } else {
-                HStack(spacing: 4) {
+              HStack(spacing: 4) {
+                if komgaBook.deleted {
+                  Text("Unavailable")
+                    .foregroundColor(.red)
+                } else {
                   Label("\(komgaBook.mediaPagesCount) pages", systemImage: "book.pages")
-                  Text("•")
+                    .foregroundColor(.secondary)
+                  Text("•").foregroundColor(.secondary)
                   Label(komgaBook.size, systemImage: "doc")
+                    .foregroundColor(.secondary)
                   if komgaBook.oneshot {
                     Text("•")
                     Text("Oneshot")
                       .foregroundColor(.blue)
                   }
-                  if komgaBook.downloadStatus != .notDownloaded {
-                    Text("•")
-                    Image(systemName: komgaBook.downloadStatus.displayIcon)
-                      .foregroundColor(komgaBook.downloadStatus.displayColor)
-                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                  }
-                }.foregroundColor(.secondary)
-              }
-            }.font(.footnote)
-          }
+                }
+              }.font(.footnote)
+            }
 
-          Spacer()
+            Spacer()
 
-          Image(systemName: "chevron.right")
-            .foregroundColor(.secondary)
-            .padding(.trailing)
+            if komgaBook.downloadStatus != .notDownloaded {
+              Image(systemName: komgaBook.downloadStatus.displayIcon)
+                .foregroundColor(komgaBook.downloadStatus.displayColor)
+                .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+            }
+            Menu {
+              BookContextMenu(
+                komgaBook: komgaBook,
+                viewModel: viewModel,
+                onReadBook: onReadBook,
+                onActionCompleted: onBookUpdated,
+                onShowReadListPicker: {
+                  showReadListPicker = true
+                },
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                },
+                showSeriesNavigation: showSeriesNavigation
+              )
+            } label: {
+              Image(systemName: "ellipsis")
+                .foregroundColor(.secondary)
+            }
+          }.padding(.trailing)
         }
       }
     }
     .contentShape(Rectangle())
     .adaptiveButtonStyle(.plain)
-    .contextMenu {
-      BookContextMenu(
-        komgaBook: komgaBook,
-        viewModel: viewModel,
-        onReadBook: onReadBook,
-        onActionCompleted: onBookUpdated,
-        onShowReadListPicker: {
-          showReadListPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        },
-        showSeriesNavigation: showSeriesNavigation
-      )
-    }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

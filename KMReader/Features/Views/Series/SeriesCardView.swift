@@ -20,9 +20,11 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    CardView {
-      VStack(alignment: .leading, spacing: 6) {
-        ThumbnailImage(id: komgaSeries.seriesId, type: .series, width: cardWidth - 8) {
+    VStack(alignment: .leading) {
+      NavigationLink(value: NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)) {
+        ThumbnailImage(
+          id: komgaSeries.seriesId, type: .series, width: cardWidth, alignment: .bottom
+        ) {
           ZStack {
             if komgaSeries.booksUnreadCount > 0 {
               VStack(alignment: .trailing) {
@@ -32,58 +34,57 @@ struct SeriesCardView: View {
             }
           }
         }
+      }
+      .focusPadding()
+      .adaptiveButtonStyle(.plain)
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 2) {
-            Text(komgaSeries.metaTitle)
-              .font(.caption)
-              .foregroundColor(.primary)
-              .lineLimit(1)
-            Group {
-              if komgaSeries.deleted {
-                Text("Unavailable")
-                  .foregroundColor(.red)
-              } else {
-                HStack(spacing: 4) {
-                  Text("\(komgaSeries.booksCount) books")
-                  if komgaSeries.oneshot {
-                    Text("•")
-                    Text("Oneshot")
-                      .foregroundColor(.blue)
-                  }
-                  if komgaSeries.downloadStatus != .notDownloaded {
-                    Image(systemName: komgaSeries.downloadStatus.icon)
-                      .foregroundColor(komgaSeries.downloadStatus.color)
-                      .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                      .padding(.horizontal, 4)
-                  }
-                }
-                .foregroundColor(.secondary)
+      if !coverOnlyCards {
+        VStack(alignment: .leading) {
+          Text(komgaSeries.metaTitle)
+            .lineLimit(1)
+
+          HStack(spacing: 4) {
+            if komgaSeries.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              Text("\(komgaSeries.booksCount) books")
+              if komgaSeries.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
               }
-            }.font(.caption2)
-          }
-        }
+              if komgaSeries.downloadStatus != .notDownloaded {
+                Image(systemName: komgaSeries.downloadStatus.icon)
+                  .foregroundColor(komgaSeries.downloadStatus.color)
+                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                  .padding(.horizontal, 4)
+              }
+              Spacer()
+              Menu {
+                SeriesContextMenu(
+                  komgaSeries: komgaSeries,
+                  onActionCompleted: onActionCompleted,
+                  onShowCollectionPicker: {
+                    showCollectionPicker = true
+                  },
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  }
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+              }
+            }
+          }.foregroundColor(.secondary)
+        }.font(.footnote)
       }
     }
     .frame(width: cardWidth, alignment: .leading)
-    .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .contextMenu {
-      SeriesContextMenu(
-        komgaSeries: komgaSeries,
-        onActionCompleted: onActionCompleted,
-        onShowCollectionPicker: {
-          showCollectionPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Series", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

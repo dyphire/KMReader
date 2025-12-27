@@ -15,60 +15,61 @@ struct ReadListRowView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView {
-      HStack(spacing: 12) {
+    HStack(spacing: 12) {
+      NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
         ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
+      }
 
-        VStack(alignment: .leading, spacing: 6) {
+      VStack(alignment: .leading, spacing: 6) {
+        NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
           Text(komgaReadList.name)
             .font(.callout)
-
-          Label {
-            Text("\(komgaReadList.bookIds.count) book")
-          } icon: {
-            Image(systemName: "book")
-          }
-          .font(.footnote)
-          .foregroundColor(.secondary)
-
-          Label {
-            Text(komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-          } icon: {
-            Image(systemName: "clock")
-          }
-          .font(.caption)
-          .foregroundColor(.secondary)
-
-          if !komgaReadList.summary.isEmpty {
-            Text(komgaReadList.summary)
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .lineLimit(2)
-          }
-
+            .lineLimit(2)
         }
 
-        Spacer()
+        HStack {
+          VStack(alignment: .leading, spacing: 4) {
+            Label("\(komgaReadList.bookIds.count) books", systemImage: "book")
+              .font(.footnote)
+              .foregroundColor(.secondary)
 
-        Image(systemName: "chevron.right")
-          .foregroundColor(.secondary)
-          .padding(.trailing)
+            Label(
+              komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              systemImage: "clock"
+            )
+            .font(.caption)
+            .foregroundColor(.secondary)
+
+            if !komgaReadList.summary.isEmpty {
+              Text(komgaReadList.summary)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+            }
+          }
+
+          Spacer()
+
+          Menu {
+            ReadListContextMenu(
+              readList: komgaReadList.toReadList(),
+              onActionCompleted: onActionCompleted,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              onEditRequested: {
+                showEditSheet = true
+              }
+            )
+          } label: {
+            Image(systemName: "ellipsis")
+              .foregroundColor(.secondary)
+          }
+        }.padding(.trailing)
       }
     }
     .adaptiveButtonStyle(.plain)
     .contentShape(Rectangle())
-    .contextMenu {
-      ReadListContextMenu(
-        readList: komgaReadList.toReadList(),
-        onActionCompleted: onActionCompleted,
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Read List", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

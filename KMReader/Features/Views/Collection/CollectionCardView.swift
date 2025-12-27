@@ -17,42 +17,44 @@ struct CollectionCardView: View {
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    CardView {
-      VStack(alignment: .leading, spacing: 8) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: width - 8)
+    VStack(alignment: .leading) {
+      NavigationLink(
+        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      ) {
+        ThumbnailImage(
+          id: komgaCollection.collectionId, type: .collection, width: width, alignment: .bottom)
+      }
+      .focusPadding()
+      .adaptiveButtonStyle(.plain)
 
-        if !coverOnlyCards {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(komgaCollection.name)
-              .lineLimit(1)
+      if !coverOnlyCards {
+        VStack(alignment: .leading) {
+          Text(komgaCollection.name)
+            .lineLimit(1)
 
+          HStack(spacing: 4) {
             Text("\(komgaCollection.seriesIds.count) series")
-              .font(.caption)
-              .foregroundColor(.secondary)
-
-            Text(komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted))
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
+            Spacer()
+            Menu {
+              CollectionContextMenu(
+                collection: komgaCollection.toCollection(),
+                onActionCompleted: onActionCompleted,
+                onDeleteRequested: {
+                  showDeleteConfirmation = true
+                },
+                onEditRequested: {
+                  showEditSheet = true
+                }
+              )
+            } label: {
+              Image(systemName: "ellipsis")
+            }
+          }.foregroundColor(.secondary)
+        }.font(.footnote)
       }
     }
     .frame(width: width, alignment: .leading)
-    .adaptiveButtonStyle(.plain)
     .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .contextMenu {
-      CollectionContextMenu(
-        collection: komgaCollection.toCollection(),
-        onActionCompleted: onActionCompleted,
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        }
-      )
-    }
     .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {

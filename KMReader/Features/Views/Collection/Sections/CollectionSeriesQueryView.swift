@@ -31,7 +31,8 @@ struct CollectionSeriesQueryView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: layoutHelper.columns, spacing: layoutHelper.spacing) {
-            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) {
+              index, seriesId in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
@@ -57,10 +58,11 @@ struct CollectionSeriesQueryView: View {
               }
             }
           }
-          .padding(layoutHelper.spacing)
+          .padding(.horizontal, layoutHelper.spacing)
         case .list:
-          LazyVStack(spacing: layoutHelper.spacing) {
-            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) { index, seriesId in
+          LazyVStack {
+            ForEach(Array(seriesViewModel.browseSeriesIds.enumerated()), id: \.element) {
+              index, seriesId in
               Group {
                 if isSelectionMode && isAdmin {
                   SeriesSelectionItemView(
@@ -84,8 +86,12 @@ struct CollectionSeriesQueryView: View {
                   Task { await loadMore(refresh: false) }
                 }
               }
+              if index < seriesViewModel.browseSeriesIds.count - 1 {
+                Divider()
+              }
             }
           }
+          .padding(.horizontal)
         }
       }
     }

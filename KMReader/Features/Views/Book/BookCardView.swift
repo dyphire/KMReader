@@ -36,101 +36,108 @@ struct BookCardView: View {
   }
 
   var shouldShowSeriesTitle: Bool {
-    showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    if komgaBook.oneshot {
+      return false
+    }
+    return showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+  }
+
+  var bookTitleLine: String {
+    if komgaBook.oneshot {
+      return komgaBook.metaTitle
+    }
+    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
   }
 
   var bookTitleLineLimit: Int {
     shouldShowSeriesTitle ? 1 : 2
   }
 
+  var pagesText: String {
+    String(localized: "\(komgaBook.mediaPagesCount) pages")
+  }
+
   var body: some View {
-    Button {
-      onReadBook?(false)
-    } label: {
-      CardView {
-        VStack(alignment: .leading, spacing: 6) {
-          ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth - 8) {
-            ZStack {
-              if let progressCompleted = komgaBook.progressCompleted {
-                if !progressCompleted {
-                  ThumbnailOverlayGradient(position: .bottom)
-                  ReadingProgressBar(progress: progress)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                }
-              } else {
-                UnreadIndicator()
-                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+    VStack(alignment: .leading) {
+      Button {
+        onReadBook?(false)
+      } label: {
+        ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth, alignment: .bottom) {
+          ZStack {
+            if let progressCompleted = komgaBook.progressCompleted {
+              if !progressCompleted {
+                ThumbnailOverlayGradient(position: .bottom)
+                ReadingProgressBar(progress: progress)
+                  .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
               }
-            }
-          }
-          .ifLet(zoomNamespace) { view, namespace in
-            view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
-          }
-
-          if !coverOnlyCards {
-            VStack(alignment: .leading, spacing: 2) {
-              if shouldShowSeriesTitle {
-                Text(komgaBook.seriesTitle)
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-                  .lineLimit(1)
-              }
-              Text("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
-                .font(.caption)
-                .foregroundColor(.primary)
-                .lineLimit(bookTitleLineLimit)
-
-              Group {
-                if komgaBook.deleted {
-                  Text("Unavailable")
-                    .foregroundColor(.red)
-                } else {
-                  HStack(spacing: 4) {
-                    Text("\(komgaBook.mediaPagesCount) pages")
-                      + Text(" • \(komgaBook.size)")
-                    if komgaBook.oneshot {
-                      Text("•")
-                      Text("Oneshot")
-                        .foregroundColor(.blue)
-                    }
-                    if komgaBook.downloadStatus != .notDownloaded {
-                      Image(systemName: komgaBook.downloadStatus.displayIcon)
-                        .foregroundColor(komgaBook.downloadStatus.displayColor)
-                        .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
-                        .padding(.horizontal, 4)
-                    }
-                  }
-                  .foregroundColor(.secondary)
-                  .lineLimit(1)
-                }
-              }.font(.caption)
+            } else {
+              UnreadIndicator()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
         }
+        .adaptiveButtonStyle(.plain)
+        .ifLet(zoomNamespace) { view, namespace in
+          view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
+        }
       }
-      .frame(width: cardWidth, alignment: .leading)
+
+      if !coverOnlyCards {
+        VStack(alignment: .leading) {
+          if shouldShowSeriesTitle {
+            Text(komgaBook.seriesTitle)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
+          }
+          Text(bookTitleLine)
+            .lineLimit(bookTitleLineLimit)
+
+          HStack(spacing: 4) {
+            if komgaBook.deleted {
+              Text("Unavailable")
+                .foregroundColor(.red)
+            } else {
+              Text("\(pagesText) • \(komgaBook.size)")
+                .lineLimit(1)
+              if komgaBook.oneshot {
+                Text("•")
+                Text("Oneshot")
+                  .foregroundColor(.blue)
+              }
+              Spacer()
+              if komgaBook.downloadStatus != .notDownloaded {
+                Image(systemName: komgaBook.downloadStatus.displayIcon)
+                  .foregroundColor(komgaBook.downloadStatus.displayColor)
+                  .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+                  .padding(.horizontal, 4)
+              }
+              Menu {
+                BookContextMenu(
+                  komgaBook: komgaBook,
+                  viewModel: viewModel,
+                  onReadBook: onReadBook,
+                  onActionCompleted: onBookUpdated,
+                  onShowReadListPicker: {
+                    showReadListPicker = true
+                  },
+                  onDeleteRequested: {
+                    showDeleteConfirmation = true
+                  },
+                  onEditRequested: {
+                    showEditSheet = true
+                  },
+                  showSeriesNavigation: showSeriesNavigation
+                )
+              } label: {
+                Image(systemName: "ellipsis")
+              }
+            }
+          }.foregroundColor(.secondary)
+        }.font(.footnote)
+      }
     }
-    .adaptiveButtonStyle(.plain)
+    .frame(width: cardWidth)
     .frame(maxHeight: .infinity, alignment: .top)
-    .contentShape(Rectangle())
-    .contextMenu {
-      BookContextMenu(
-        komgaBook: komgaBook,
-        viewModel: viewModel,
-        onReadBook: onReadBook,
-        onActionCompleted: onBookUpdated,
-        onShowReadListPicker: {
-          showReadListPicker = true
-        },
-        onDeleteRequested: {
-          showDeleteConfirmation = true
-        },
-        onEditRequested: {
-          showEditSheet = true
-        },
-        showSeriesNavigation: showSeriesNavigation
-      )
-    }
     .alert("Delete Book", isPresented: $showDeleteConfirmation) {
       Button("Cancel", role: .cancel) {}
       Button("Delete", role: .destructive) {
