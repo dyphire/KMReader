@@ -88,7 +88,8 @@ class APIClient {
     authToken: String,
     authMethod: AuthenticationMethod = .basicAuth,
     queryItems: [URLQueryItem]? = nil,
-    headers: [String: String]? = nil
+    headers: [String: String]? = nil,
+    timeout: TimeInterval? = nil
   ) async throws -> User {
     let request = try buildLoginRequest(
       serverURL: serverURL,
@@ -97,9 +98,24 @@ class APIClient {
       queryItems: queryItems,
       headers: headers,
       authToken: authToken,
-      authMethod: authMethod
+      authMethod: authMethod,
+      timeout: timeout
     )
-    let (data, httpResponse) = try await executeRequest(request, isTemporary: false)
+
+    // Use a session with timeout for login requests
+    let session: URLSession
+    if let timeout = timeout {
+      let config = URLSessionConfiguration.default
+      config.timeoutIntervalForRequest = timeout
+      config.timeoutIntervalForResource = timeout
+      session = URLSession(configuration: config)
+    } else {
+      session = cachedSession
+    }
+
+    // Skip offline switch for login requests - caller handles offline mode manually
+    let (data, httpResponse) = try await executeRequest(
+      request, session: session, isTemporary: false, skipOfflineSwitch: true)
     return try decodeResponse(data: data, httpResponse: httpResponse, request: request)
   }
 
@@ -257,7 +273,8 @@ class APIClient {
     queryItems: [URLQueryItem]? = nil,
     headers: [String: String]? = nil,
     authToken: String? = nil,
-    authMethod: AuthenticationMethod? = nil
+    authMethod: AuthenticationMethod? = nil,
+    timeout: TimeInterval? = nil
   ) throws -> URLRequest {
     let baseURL = (serverURL ?? AppConfig.serverURL).trimmingCharacters(
       in: .whitespacesAndNewlines)
@@ -283,6 +300,10 @@ class APIClient {
     var request = URLRequest(url: url)
     request.httpMethod = method
     request.httpBody = body
+
+    if let timeout = timeout {
+      request.timeoutInterval = timeout
+    }
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
@@ -358,7 +379,8 @@ class APIClient {
     _ request: URLRequest,
     session: URLSession? = nil,
     isTemporary: Bool = false,
-    retryCount: Int = 0
+    retryCount: Int = 0,
+    skipOfflineSwitch: Bool = false
   ) async throws -> (data: Data, response: HTTPURLResponse) {
     let method = request.httpMethod ?? "GET"
     let urlString = request.url?.absoluteString ?? ""
@@ -462,7 +484,8 @@ class APIClient {
             )
             try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
             return try await executeRequest(
-              request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+              request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
+              skipOfflineSwitch: skipOfflineSwitch)
           }
 
           logger.error("❌ Server Error \(httpResponse.statusCode): \(errorMessage)")
@@ -482,12 +505,16 @@ class APIClient {
       throw error
     } catch let appError as AppErrorType {
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      handleNetworkError(appError)
+      if !skipOfflineSwitch && !isTemporary {
+        handleNetworkError(appError)
+      }
       throw APIError.networkError(appError, url: urlString)
     } catch let nsError as NSError where nsError.domain == NSURLErrorDomain {
       let appError = AppErrorType.from(nsError)
       logger.error("❌ Network error for \(urlString): \(appError.description)")
-      handleNetworkError(nsError)
+      if !skipOfflineSwitch && !isTemporary {
+        handleNetworkError(nsError)
+      }
       throw APIError.networkError(appError, url: urlString)
     } catch {
       // Retry on network errors if we haven't exceeded the max retry count
@@ -498,11 +525,14 @@ class APIClient {
         )
         try? await Task.sleep(nanoseconds: 1_000_000_000)  // Wait 1s before retry
         return try await executeRequest(
-          request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1)
+          request, session: session, isTemporary: isTemporary, retryCount: retryCount + 1,
+          skipOfflineSwitch: skipOfflineSwitch)
       }
 
       logger.error("❌ Network error for \(urlString): \(error.localizedDescription)")
-      handleNetworkError(error)
+      if !skipOfflineSwitch && !isTemporary {
+        handleNetworkError(error)
+      }
       throw APIError.networkError(error, url: urlString)
     }
   }

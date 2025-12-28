@@ -31,7 +31,6 @@ struct SettingsServersView: View {
   @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
-  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var instancePendingDeletion: KomgaInstance?
   @State private var editingInstance: KomgaInstance?
@@ -44,18 +43,7 @@ struct SettingsServersView: View {
 
   var body: some View {
     Form {
-      if let introText {
-        Section {
-          Text(introText)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.leading)
-            .padding(.vertical, 4)
-        }
-        .listRowBackground(Color.clear)
-      }
-
-      Section(footer: footerText) {
+      Section(header: introHeader, footer: footerText) {
         if instances.isEmpty {
           VStack(spacing: 12) {
             Image(systemName: "list.bullet.rectangle")
@@ -72,7 +60,7 @@ struct SettingsServersView: View {
             }
           }
           .frame(maxWidth: .infinity)
-          .padding(.vertical, 16)
+          .padding(.vertical)
           .listRowBackground(Color.clear)
         } else {
           ForEach(instances) { instance in
@@ -81,21 +69,15 @@ struct SettingsServersView: View {
               isSwitching: isSwitching(instance),
               isActive: isActive(instance),
               onSelect: {
-                if !isOffline {
-                  withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                    switchTo(instance)
-                  }
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                  switchTo(instance)
                 }
               },
               onEdit: {
-                if !isOffline {
-                  editingInstance = instance
-                }
+                editingInstance = instance
               },
               onDelete: {
-                if !isOffline {
-                  instancePendingDeletion = instance
-                }
+                instancePendingDeletion = instance
               }
             )
           }
@@ -113,7 +95,6 @@ struct SettingsServersView: View {
             Spacer()
           }
         }
-        .disabled(isOffline)
       }
 
       if mode == .management, isLoggedIn {
@@ -135,6 +116,17 @@ struct SettingsServersView: View {
       .scrollContentBackground(.hidden)
     #endif
     .inlineNavigationBarTitle(navigationTitle)
+    .toolbar {
+      if mode == .onboarding {
+        ToolbarItem(placement: .cancellationAction) {
+          Button {
+            dismiss()
+          } label: {
+            Image(systemName: "xmark")
+          }
+        }
+      }
+    }
     .sheet(item: $editingInstance) { instance in
       SettingsServerEditView(instance: instance)
     }
@@ -191,22 +183,22 @@ struct SettingsServersView: View {
     }
   }
 
-  private var introText: String? {
+  @ViewBuilder
+  private var introHeader: some View {
     switch mode {
     case .management:
-      return nil
+      EmptyView()
     case .onboarding:
-      return String(localized: "Choose an existing Komga server or add a new one to begin.")
+      Text(String(localized: "Choose an existing Komga server or add a new one to begin."))
+        .font(.subheadline)
+        .textCase(nil)
+        .padding(.vertical)
     }
   }
 
   private var footerText: some View {
-    Text(
-      String(
-        localized:
-          "Credentials are stored locally so you can switch servers without re-entering them."
-      )
-    )
+    Text("Credentials are stored locally so you can switch servers without re-entering them.")
+      .foregroundStyle(.secondary)
   }
 
   private var addServerSection: some View {

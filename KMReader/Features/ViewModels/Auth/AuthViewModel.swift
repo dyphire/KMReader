@@ -143,17 +143,18 @@ class AuthViewModel {
       switchingInstanceId = nil
     }
 
+    // Check if switching to a different instance
+    let previousInstanceId = AppConfig.currentInstanceId
+    let isDifferentInstance = previousInstanceId != instance.id.uuidString
+
     // Establish stateful session before switching
     do {
       let validatedUser = try await authService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken,
-        authMethod: instance.resolvedAuthMethod
+        authMethod: instance.resolvedAuthMethod,
+        timeout: 5
       )
-
-      // Check if switching to a different instance
-      let previousInstanceId = AppConfig.currentInstanceId
-      let isDifferentInstance = previousInstanceId != instance.id.uuidString
 
       // Apply switch configuration
       try await applyLoginConfiguration(
@@ -170,6 +171,41 @@ class AuthViewModel {
       )
 
       return true
+    } catch let apiError as APIError {
+      // Check if this is a network error - switch to offline mode
+      if case .networkError = apiError {
+        // Set up the instance config without full login
+        APIClient.shared.setServer(url: instance.serverURL)
+        APIClient.shared.setAuthToken(instance.authToken)
+        AppConfig.authMethod = instance.resolvedAuthMethod
+        AppConfig.username = instance.username
+        AppConfig.isAdmin = false  // Cannot verify admin status offline
+        AppConfig.isLoggedIn = true
+        AppConfig.currentInstanceId = instance.id.uuidString
+        AppConfig.serverDisplayName = instance.displayName
+
+        if isDifferentInstance {
+          AppConfig.clearSelectedLibraryIds()
+          AppConfig.serverLastUpdate = nil
+        }
+
+        // Switch to offline mode
+        AppConfig.isOffline = true
+        SSEService.shared.disconnect()
+
+        // We cannot load the user object offline, but isLoggedIn=true allows entry
+        self.user = nil
+        credentialsVersion = UUID()
+
+        ErrorManager.shared.notify(
+          message: String(localized: "Server unreachable, switched to offline mode")
+        )
+        return true
+      }
+
+      // Non-network errors: show alert and fail
+      ErrorManager.shared.alert(error: apiError)
+      return false
     } catch {
       ErrorManager.shared.alert(error: error)
       return false
@@ -196,9 +232,13 @@ class AuthViewModel {
     AppConfig.isAdmin = user.roles.contains("ADMIN")
     AppConfig.isLoggedIn = true
 
+    // Reset offline mode on successful login/switch
+    if AppConfig.isOffline {
+      AppConfig.isOffline = false
+    }
+
     // Clear libraries if switching to a different instance
     if clearLibrariesIfDifferent {
-      LibraryManager.shared.clearAllLibraries()
       AppConfig.clearSelectedLibraryIds()
       AppConfig.serverLastUpdate = nil
     }
