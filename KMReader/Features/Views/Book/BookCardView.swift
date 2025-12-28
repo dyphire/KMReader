@@ -19,6 +19,7 @@ struct BookCardView: View {
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @Environment(\.readerZoomNamespace) private var zoomNamespace
+  @Environment(\.colorScheme) private var colorScheme
   @State private var showReadListPicker = false
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
@@ -49,16 +50,14 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
   }
 
-  var pagesText: String {
-    String(localized: "\(komgaBook.mediaPagesCount) pages")
-  }
-
   var body: some View {
-    VStack(alignment: .leading) {
+    VStack(alignment: .leading, spacing: 12) {
       Button {
         onReadBook?(false)
       } label: {
-        ThumbnailImage(id: komgaBook.bookId, type: .book, width: cardWidth, alignment: .bottom) {
+        ThumbnailImage(
+          id: komgaBook.bookId, type: .book, showShadow: false, width: cardWidth, alignment: .bottom
+        ) {
           ZStack {
             if let progressCompleted = komgaBook.progressCompleted {
               if !progressCompleted {
@@ -93,6 +92,7 @@ struct BookCardView: View {
         .ifLet(zoomNamespace) { view, namespace in
           view.matchedTransitionSourceIfAvailable(id: komgaBook.bookId, in: namespace)
         }
+        .platformShadow()
       }
       .focusPadding()
       .adaptiveButtonStyle(.plain)
@@ -122,7 +122,7 @@ struct BookCardView: View {
               Text(komgaBook.media.status.label)
                 .foregroundColor(komgaBook.media.status.color)
             } else {
-              Text("\(pagesText) • \(komgaBook.size)")
+              Text("\(komgaBook.mediaPagesCount) pages")
                 .lineLimit(1)
             }
             if komgaBook.downloadStatus != .notDownloaded {

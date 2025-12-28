@@ -14,6 +14,8 @@ struct ThumbnailImage<Overlay: View>: View {
   let id: String?
   let type: ThumbnailType
   let showPlaceholder: Bool
+  let showShadow: Bool
+  let showSpine: Bool
   let width: CGFloat
   let cornerRadius: CGFloat
   let refreshTrigger: Int
@@ -30,6 +32,8 @@ struct ThumbnailImage<Overlay: View>: View {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
+    showShadow: Bool = true,
+    showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 4,
     refreshTrigger: Int = 0,
@@ -39,11 +43,17 @@ struct ThumbnailImage<Overlay: View>: View {
     self.id = id
     self.type = type
     self.showPlaceholder = showPlaceholder
+    self.showShadow = showShadow
+    self.showSpine = showSpine
     self.width = width
     self.cornerRadius = cornerRadius
     self.refreshTrigger = refreshTrigger
     self.alignment = alignment
     self.overlay = overlay
+  }
+
+  private var effectiveCornerRadius: CGFloat {
+    showSpine ? 2 : cornerRadius
   }
 
   private var contentMode: ContentMode {
@@ -57,7 +67,7 @@ struct ThumbnailImage<Overlay: View>: View {
   var body: some View {
     ZStack {
       // Background container with rounded corners
-      RoundedRectangle(cornerRadius: cornerRadius)
+      RoundedRectangle(cornerRadius: effectiveCornerRadius)
         .fill(Color.clear)
         .frame(width: width, height: width * ratio)
 
@@ -81,21 +91,22 @@ struct ThumbnailImage<Overlay: View>: View {
         .indicator(.activity)
         .transition(.fade)
         .aspectRatio(contentMode: contentMode)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
         .overlay {
           if thumbnailPreserveAspectRatio, let overlay = overlay {
             overlay()
-              .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
           } else {
             EmptyView()
           }
         }
+        .bookSpine(showSpine)
         .frame(width: width, height: width * ratio, alignment: alignment)
       } else {
-        RoundedRectangle(cornerRadius: cornerRadius)
+        RoundedRectangle(cornerRadius: effectiveCornerRadius)
           .fill(Color.gray.opacity(0.3))
           .frame(width: width, height: width * ratio, alignment: alignment)
-          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+          .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
           .overlay {
             if showPlaceholder && isLoading {
               ProgressView()
@@ -104,16 +115,16 @@ struct ThumbnailImage<Overlay: View>: View {
       }
     }
     .frame(width: width, height: width * ratio)
-    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+    .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
     .overlay {
       if !thumbnailPreserveAspectRatio, let overlay = overlay {
         overlay()
-          .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+          .clipShape(RoundedRectangle(cornerRadius: effectiveCornerRadius))
       } else {
         EmptyView()
       }
     }
-    .shadow(color: Color.black.opacity(0.5), radius: 2)
+    .shadow(color: showShadow ? Color.black.opacity(0.5) : .clear, radius: showShadow ? 2 : 0)
     .task(id: "\(id ?? "")_\(refreshTrigger)") {
       guard let id = id else {
         isLoading = false
@@ -142,13 +153,16 @@ extension ThumbnailImage where Overlay == EmptyView {
     id: String?,
     type: ThumbnailType = .book,
     showPlaceholder: Bool = true,
+    showShadow: Bool = true,
+    showSpine: Bool = true,
     width: CGFloat,
     cornerRadius: CGFloat = 8,
     refreshTrigger: Int = 0,
     alignment: Alignment = .center
   ) {
     self.init(
-      id: id, type: type, showPlaceholder: showPlaceholder,
+      id: id, type: type, showPlaceholder: showPlaceholder, showShadow: showShadow,
+      showSpine: showSpine,
       width: width, cornerRadius: cornerRadius, refreshTrigger: refreshTrigger,
       alignment: alignment
     ) {}
