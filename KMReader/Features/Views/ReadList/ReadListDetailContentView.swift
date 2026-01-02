@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ReadListDetailContentView: View {
   let readList: ReadList
-  @Binding var thumbnailRefreshTrigger: Int
+  @State private var thumbnailRefreshKey = UUID()
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -19,9 +19,34 @@ struct ReadListDetailContentView: View {
       HStack(alignment: .top) {
         ThumbnailImage(
           id: readList.id, type: .readlist,
-          width: PlatformHelper.detailThumbnailWidth,
-          refreshTrigger: thumbnailRefreshTrigger
+          width: PlatformHelper.detailThumbnailWidth
         )
+        .id(thumbnailRefreshKey)
+        .contextMenu {
+          Button {
+            Task {
+              do {
+                _ = try await ThumbnailCache.shared.ensureThumbnail(
+                  id: readList.id,
+                  type: .readlist,
+                  force: true
+                )
+                await MainActor.run {
+                  thumbnailRefreshKey = UUID()
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshed"))
+                }
+              } catch {
+                await MainActor.run {
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshFailed"))
+                }
+              }
+            }
+          } label: {
+            Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
+          }
+        }
         .thumbnailFocus()
 
         VStack(alignment: .leading) {

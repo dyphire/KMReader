@@ -12,7 +12,7 @@ struct BookDetailContentView: View {
   let book: Book
   let downloadStatus: DownloadStatus?
   let bookReadLists: [ReadList]
-  @Binding var thumbnailRefreshTrigger: Int
+  @State private var thumbnailRefreshKey = UUID()
 
   private var isCompleted: Bool {
     book.readProgress?.completed ?? false
@@ -31,9 +31,34 @@ struct BookDetailContentView: View {
 
       HStack(alignment: .top) {
         ThumbnailImage(
-          id: book.id, type: .book, width: PlatformHelper.detailThumbnailWidth,
-          refreshTrigger: thumbnailRefreshTrigger
+          id: book.id, type: .book, width: PlatformHelper.detailThumbnailWidth
         )
+        .id(thumbnailRefreshKey)
+        .contextMenu {
+          Button {
+            Task {
+              do {
+                _ = try await ThumbnailCache.shared.ensureThumbnail(
+                  id: book.id,
+                  type: .book,
+                  force: true
+                )
+                await MainActor.run {
+                  thumbnailRefreshKey = UUID()
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshed"))
+                }
+              } catch {
+                await MainActor.run {
+                  ErrorManager.shared.notify(
+                    message: String(localized: "notification.cover.refreshFailed"))
+                }
+              }
+            }
+          } label: {
+            Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
+          }
+        }
         .thumbnailFocus()
 
         VStack(alignment: .leading) {
