@@ -15,6 +15,8 @@ struct SettingsAppearanceView: View {
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("thumbnailPreserveAspectRatio") private var thumbnailPreserveAspectRatio: Bool = true
   @AppStorage("thumbnailShowShadow") private var thumbnailShowShadow: Bool = true
+  @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
+  @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   private var themeColorBinding: Binding<Color> {
@@ -128,9 +130,9 @@ struct SettingsAppearanceView: View {
         Toggle(isOn: $thumbnailPreserveAspectRatio) {
           VStack(alignment: .leading, spacing: 4) {
             Text(
-              String(localized: "settings.appearance.preserveThumbnailAspectRatio.title"))
+              String(localized: "settings.appearance.preserveCoverAspectRatio.title"))
             Text(
-              String(localized: "settings.appearance.preserveThumbnailAspectRatio.caption")
+              String(localized: "settings.appearance.preserveCoverAspectRatio.caption")
             )
             .font(.caption)
             .foregroundColor(.secondary)
@@ -139,8 +141,26 @@ struct SettingsAppearanceView: View {
 
         Toggle(isOn: $thumbnailShowShadow) {
           VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "settings.appearance.thumbnailShowShadow.title"))
-            Text(String(localized: "settings.appearance.thumbnailShowShadow.caption"))
+            Text(String(localized: "settings.appearance.coverShowShadow.title"))
+            Text(String(localized: "settings.appearance.coverShowShadow.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $thumbnailShowUnreadIndicator) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.coverShowUnreadIndicator.title"))
+            Text(String(localized: "settings.appearance.coverShowUnreadIndicator.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $thumbnailShowProgressBar) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.coverShowProgressBar.title"))
+            Text(String(localized: "settings.appearance.coverShowProgressBar.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
