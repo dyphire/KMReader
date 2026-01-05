@@ -310,16 +310,26 @@ class ReaderViewModel {
 
   /// Load and decode image from file URL
   private func loadImageFromFile(fileURL: URL) async -> PlatformImage? {
-    return await Task.detached(priority: .userInitiated) {
+    return await Task.detached(priority: .userInitiated) { () -> PlatformImage? in
       guard let data = try? Data(contentsOf: fileURL) else {
         return nil
       }
-      #if os(iOS) || os(tvOS)
-        return UIImage(data: data)
-      #elseif os(macOS)
-        return NSImage(data: data)
-      #endif
+      if let image = PlatformImage(data: data) {
+        return ImageDecodeHelper.decodeForDisplay(image)
+      }
+      return nil
     }.value
+  }
+
+  /// Preload a single page image into memory for instant display.
+  func preloadImageForPage(_ page: BookPage) async -> PlatformImage? {
+    if let cached = preloadedImages[page.number] {
+      return cached
+    }
+    guard let fileURL = await getPageImageFileURL(page: page) else { return nil }
+    guard let image = await loadImageFromFile(fileURL: fileURL) else { return nil }
+    preloadedImages[page.number] = image
+    return image
   }
 
   /// Update reading progress on the server
