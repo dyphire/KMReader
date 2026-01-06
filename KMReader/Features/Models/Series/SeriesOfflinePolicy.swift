@@ -43,4 +43,27 @@ enum SeriesOfflinePolicy: String, Codable, CaseIterable, Sendable {
       return "infinity"
     }
   }
+
+  var supportsLimit: Bool {
+    switch self {
+    case .unreadOnly, .unreadOnlyAndCleanupRead:
+      return true
+    case .manual, .all:
+      return false
+    }
+  }
+
+  func title(limit: Int) -> String {
+    if supportsLimit {
+      return "\(label) (\(Self.limitTitle(limit)))"
+    }
+    return label
+  }
+
+  static func limitTitle(_ value: Int) -> String {
+    if value <= 0 {
+      return "∞"
+    }
+    return "\(value)"
+  }
 }
