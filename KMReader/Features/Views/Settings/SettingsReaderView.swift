@@ -25,6 +25,7 @@ struct SettingsReaderView: View {
   @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.2
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 2.0
+  @AppStorage("enableLiveText") private var enableLiveText: Bool = false
 
   var body: some View {
     Form {
@@ -77,6 +78,17 @@ struct SettingsReaderView: View {
               .foregroundColor(.secondary)
           }
         }
+
+        #if !os(tvOS)
+          Toggle(isOn: $enableLiveText) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Enable Live Text")
+              Text("Automatically enable Live Text for all images.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
