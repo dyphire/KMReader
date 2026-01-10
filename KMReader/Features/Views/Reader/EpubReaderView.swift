@@ -28,9 +28,11 @@
     @State private var controlsTimer: Timer?
     @State private var showTapZoneOverlay = false
     @State private var overlayTimer: Timer?
+    @State private var currentSeries: Series?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
     @State private var showingPreferencesSheet = false
+    @State private var showingSeriesDetailSheet = false
     @State private var showingBookDetailSheet = false
 
     init(
@@ -59,7 +61,7 @@
     }
 
     private var buttonStyle: AdaptiveButtonStyleType {
-      return .borderedProminent
+      return .bordered
     }
 
     var body: some View {
@@ -103,6 +105,20 @@
         currentBook = try await SyncService.shared.syncBook(bookId: bookId)
       } catch {
         // Silently fail
+      }
+
+      if let activeBook = currentBook {
+        var series = await DatabaseOperator.shared.fetchSeries(id: activeBook.seriesId)
+        if series == nil && !AppConfig.isOffline {
+          do {
+            series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
+          } catch {
+            // Silently fail
+          }
+        }
+        if let series = series {
+          currentSeries = series
+        }
       }
 
       await viewModel.load(bookId: bookId)
@@ -180,6 +196,7 @@
             Image(systemName: "xmark")
           }
           .controlSize(.large)
+          .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
 
@@ -190,10 +207,10 @@
             Button {
               showingBookDetailSheet = true
             } label: {
-              HStack {
+              HStack(spacing: 4) {
                 if incognito {
                   Image(systemName: "eye.slash.fill")
-                    .font(.title3)
+                    .font(.callout)
                 }
                 VStack(alignment: incognito ? .leading : .center, spacing: 4) {
                   if book.oneshot {
@@ -201,6 +218,7 @@
                       .lineLimit(2)
                   } else {
                     Text(book.seriesTitle)
+                      .foregroundStyle(.secondary)
                       .font(.caption)
                       .lineLimit(1)
                     Text("#\(book.metadata.number) - \(book.metadata.title)")
@@ -208,12 +226,20 @@
                   }
                 }
               }
-              .padding(.vertical, 4)
-              .padding(.horizontal, 8)
+              .padding(.vertical, 2)
+              .padding(.horizontal, 4)
             }
             .optimizedControlSize()
             .adaptiveButtonStyle(buttonStyle)
             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+            .simultaneousGesture(
+              LongPressGesture()
+                .onEnded { _ in
+                  if currentSeries != nil {
+                    showingSeriesDetailSheet = true
+                  }
+                }
+            )
           }
 
           Spacer()
@@ -224,6 +250,7 @@
             Image(systemName: "gearshape")
           }
           .controlSize(.large)
+          .buttonBorderShape(.circle)
           .adaptiveButtonStyle(buttonStyle)
           .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
         }
@@ -237,7 +264,7 @@
               // Total progress
               if let totalProgression = currentLocator.locations.totalProgression {
                 HStack(spacing: 6) {
-                  Image(systemName: "book.fill")
+                  Image(systemName: "bookmark")
                   Text("\(totalProgression * 100, specifier: "%.1f")%")
                     .monospacedDigit()
                 }
@@ -252,6 +279,7 @@
 
         Spacer()
       }
+      .tint(.primary)
       .padding()
       .iPadIgnoresSafeArea(paddingTop: 24)
       .opacity(shouldShowControls ? 1.0 : 0.0)
@@ -273,15 +301,44 @@
           viewModel.applyPreferences(newPreferences, colorScheme: colorScheme)
         }
       }
+      .sheet(isPresented: $showingSeriesDetailSheet) {
+        if let book = currentBook, let series = currentSeries {
+          SheetView(title: series.metadata.title, size: .large) {
+            ScrollView {
+              if series.oneshot {
+                OneShotDetailContentView(
+                  book: book,
+                  series: series,
+                  downloadStatus: nil,
+                  inSheet: true
+                )
+              } else {
+                SeriesDetailContentView(
+                  series: series
+                ).padding(.horizontal)
+              }
+            }
+          }
+        }
+      }
       .sheet(isPresented: $showingBookDetailSheet) {
-        if let book = currentBook {
+        if let book = currentBook, let series = currentSeries {
           SheetView(title: book.metadata.title, size: .large) {
             ScrollView {
-              BookDetailContentView(
-                book: book,
-                downloadStatus: nil,
-                inSheet: true
-              ).padding(.horizontal)
+              if book.oneshot {
+                OneShotDetailContentView(
+                  book: book,
+                  series: series,
+                  downloadStatus: nil,
+                  inSheet: true
+                )
+              } else {
+                BookDetailContentView(
+                  book: book,
+                  downloadStatus: nil,
+                  inSheet: true
+                ).padding(.horizontal)
+              }
             }
           }
         }
