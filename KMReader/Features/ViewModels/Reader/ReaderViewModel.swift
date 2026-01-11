@@ -261,8 +261,8 @@ class ReaderViewModel {
     // Cancel any previous preloading task
     preloadTask?.cancel()
 
-    let preloadBefore = max(0, currentPageIndex - 2)
-    let preloadAfter = min(currentPageIndex + 4, pages.count)
+    let preloadBefore = max(0, currentPageIndex - ReaderConstants.preloadBefore)
+    let preloadAfter = min(currentPageIndex + ReaderConstants.preloadAfter, pages.count)
     let pagesToPreload = Array(preloadBefore..<preloadAfter)
 
     preloadTask = Task { [weak self] in
@@ -316,8 +316,9 @@ class ReaderViewModel {
   /// Remove preloaded images that are too far from current page to release memory
   func cleanupDistantImagesAroundCurrentPage() {
     guard !pages.isEmpty else { return }
-    // Keep a reasonable window of -4 to +8 pages around current index
-    let keepRange = (currentPageIndex - 4)...(currentPageIndex + 8)
+    let keepRangeStart = max(0, currentPageIndex - ReaderConstants.keepRangeBefore)
+    let keepRangeEnd = min(currentPageIndex + ReaderConstants.keepRangeAfter, pages.count)
+    let keepRange = keepRangeStart...keepRangeEnd
 
     let keysToRemove = preloadedImages.keys.filter { !keepRange.contains($0) }
     if !keysToRemove.isEmpty {
