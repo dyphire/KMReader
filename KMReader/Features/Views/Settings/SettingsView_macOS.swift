@@ -21,12 +21,13 @@ import SwiftUI
         List(selection: $selectedSection) {
           Section("General") {
             SettingsSectionRow(section: .appearance)
+            SettingsSectionRow(section: .browse)
             SettingsSectionRow(section: .dashboard)
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .reader)
             SettingsSectionRow(section: .sse)
-            SettingsSectionRow(section: .logs)
             SettingsSectionRow(section: .network)
+            SettingsSectionRow(section: .logs)
           }
 
           Section("Offline") {
@@ -74,6 +75,8 @@ import SwiftUI
             switch selectedSection {
             case .appearance:
               SettingsAppearanceView()
+            case .browse:
+              SettingsBrowseView()
             case .dashboard:
               SettingsDashboardView()
             case .cache:
@@ -82,10 +85,10 @@ import SwiftUI
               SettingsReaderView()
             case .sse:
               SettingsSSEView()
-            case .logs:
-              SettingsLogsView()
             case .network:
               SettingsNetworkView()
+            case .logs:
+              SettingsLogsView()
 
             case .offlineTasks:
               SettingsOfflineTasksView()

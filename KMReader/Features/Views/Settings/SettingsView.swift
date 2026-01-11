@@ -21,6 +21,9 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsAppearance) {
           SettingsSectionRow(section: .appearance)
         }
+        NavigationLink(value: NavDestination.settingsBrowse) {
+          SettingsSectionRow(section: .browse)
+        }
         NavigationLink(value: NavDestination.settingsDashboard) {
           SettingsSectionRow(section: .dashboard)
         }
@@ -33,11 +36,11 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
-        NavigationLink(value: NavDestination.settingsLogs) {
-          SettingsSectionRow(section: .logs)
-        }
         NavigationLink(value: NavDestination.settingsNetwork) {
           SettingsSectionRow(section: .network)
+        }
+        NavigationLink(value: NavDestination.settingsLogs) {
+          SettingsSectionRow(section: .logs)
         }
       }
 

@@ -26,12 +26,13 @@ enum NavDestination: Hashable {
   case dashboardSectionDetail(section: DashboardSection)
 
   case settingsAppearance
+  case settingsBrowse
   case settingsDashboard
   case settingsCache
   case settingsReader
   case settingsSSE
-  case settingsLogs
   case settingsNetwork
+  case settingsLogs
 
   case settingsOfflineTasks
   case settingsOfflineBooks
@@ -80,6 +81,8 @@ enum NavDestination: Hashable {
 
     case .settingsAppearance:
       SettingsAppearanceView()
+    case .settingsBrowse:
+      SettingsBrowseView()
     case .settingsDashboard:
       SettingsDashboardView()
     case .settingsCache:
@@ -88,10 +91,10 @@ enum NavDestination: Hashable {
       SettingsReaderView()
     case .settingsSSE:
       SettingsSSEView()
-    case .settingsLogs:
-      SettingsLogsView()
     case .settingsNetwork:
       SettingsNetworkView()
+    case .settingsLogs:
+      SettingsLogsView()
 
     case .settingsOfflineTasks:
       SettingsOfflineTasksView()
