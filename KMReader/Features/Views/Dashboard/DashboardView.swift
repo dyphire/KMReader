@@ -28,7 +28,7 @@ struct DashboardView: View {
   @Environment(AuthViewModel.self) private var authViewModel
 
   private let sseService = SSEService.shared
-  private let debounceInterval: TimeInterval = 3.0  // 3 seconds debounce
+  private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce
   private let logger = AppLogger(.dashboard)
 
   private var isReaderActive: Bool {
@@ -168,17 +168,10 @@ struct DashboardView: View {
         }.padding()
 
         ForEach(dashboard.sections, id: \.id) { section in
-          if section.isLocalSection {
-            DashboardLocalSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
-          } else {
-            DashboardSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
-          }
+          DashboardSectionView(
+            section: section,
+            refreshTrigger: refreshTrigger
+          )
         }
       }
       .padding(.vertical)
