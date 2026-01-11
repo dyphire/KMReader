@@ -228,21 +228,21 @@ actor DatabaseOperator {
   }
 
   func fetchPages(id: String) -> [BookPage]? {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     return try? modelContext.fetch(descriptor).first?.pages
   }
 
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     return try? modelContext.fetch(descriptor).first?.tableOfContents
   }
 
   func updateBookPages(bookId: String, pages: [BookPage]) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
@@ -251,7 +251,7 @@ actor DatabaseOperator {
   }
 
   func updateBookTOC(bookId: String, toc: [ReaderTOCEntry]) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
@@ -546,6 +546,8 @@ actor DatabaseOperator {
         model: KomgaCollection.self, where: #Predicate { $0.instanceId == instanceId })
       try modelContext.delete(
         model: KomgaReadList.self, where: #Predicate { $0.instanceId == instanceId })
+      try modelContext.delete(
+        model: PendingProgress.self, where: #Predicate { $0.instanceId == instanceId })
 
       logger.info("🗑️ Cleared all SwiftData entities for instance: \(instanceId)")
     } catch {
@@ -609,7 +611,7 @@ actor DatabaseOperator {
   }
 
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
@@ -1425,7 +1427,7 @@ actor DatabaseOperator {
   // MARK: - Book Fetch Operations (for internal use, e.g., OfflineManager)
 
   func getDownloadStatus(bookId: String) -> DownloadStatus {
-    let instanceId = AppConfig.currentInstanceId
+    let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.id == compositeId }
@@ -1564,18 +1566,6 @@ actor DatabaseOperator {
 
     if let pending = try? modelContext.fetch(descriptor).first {
       modelContext.delete(pending)
-    }
-  }
-
-  func clearPendingProgress(instanceId: String) {
-    do {
-      try modelContext.delete(
-        model: PendingProgress.self,
-        where: #Predicate { $0.instanceId == instanceId }
-      )
-      logger.info("🗑️ Cleared all pending progress for instance: \(instanceId)")
-    } catch {
-      logger.error("❌ Failed to clear pending progress: \(error)")
     }
   }
 }
