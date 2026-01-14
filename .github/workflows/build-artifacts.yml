@@ -1,0 +1,196 @@
+name: Build Artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      marketing_version: ${{ steps.version.outputs.marketing }}
+      build_number: ${{ steps.version.outputs.build }}
+      has_secrets: ${{ steps.check_secrets.outputs.has_secrets }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read versions
+        id: version
+        run: |
+          set -euo pipefail
+          FILE="KMReader.xcodeproj/project.pbxproj"
+          if [ ! -f "$FILE" ]; then
+            echo "project.pbxproj not found at $FILE" >&2
+            exit 1
+          fi
+          
+          MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          BUILD=$(awk 'match($0,/CURRENT_PROJECT_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          
+          if [ -z "$MARKETING" ]; then
+            echo "MARKETING_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          if [ -z "$BUILD" ]; then
+            echo "CURRENT_PROJECT_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          
+          echo "Detected MARKETING_VERSION: $MARKETING"
+          echo "Detected CURRENT_PROJECT_VERSION: $BUILD"
+          {
+            echo "marketing=$MARKETING"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check for App Store secrets
+        id: check_secrets
+        env:
+          APP_STORE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+          CERT: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+        run: |
+          if [ -n "$APP_STORE_KEY" ] && [ -n "$CERT" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "✓ App Store Connect secrets are configured"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "⚠ App Store Connect secrets are not configured"
+            echo "  Will build artifacts without App Store upload"
+          fi
+
+  build-without-signing:
+    name: Build iOS (No Signing)
+    runs-on: macos-latest
+    needs: [detect]
+    if: needs.detect.outputs.has_secrets == 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "latest-stable"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build iOS archive without code signing
+        run: |
+          set -euo pipefail
+          
+          SCHEME="KMReader"
+          PROJECT="KMReader.xcodeproj"
+          ARCHIVES_DIR="archives"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          mkdir -p "$ARCHIVES_DIR"
+          
+          SDK="iphoneos"
+          DESTINATION="generic/platform=iOS"
+          ARCHIVE_NAME="KMReader-iOS_${TIMESTAMP}"
+          ARCHIVE_PATH="$ARCHIVES_DIR/${ARCHIVE_NAME}.xcarchive"
+          
+          echo "Building iOS archive without code signing..."
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -sdk "$SDK" \
+            -destination "$DESTINATION" \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+          
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> $GITHUB_ENV
+          echo "✓ Archive created: $ARCHIVE_PATH"
+
+      - name: Create iOS distributable package
+        run: |
+          set -euo pipefail
+          
+          ARTIFACTS_DIR="artifacts"
+          VERSION="${{ needs.detect.outputs.marketing_version }}"
+          BUILD="${{ needs.detect.outputs.build_number }}"
+          
+          mkdir -p "$ARTIFACTS_DIR"
+          
+          APP_PATH="$ARCHIVE_PATH/Products/Applications/KMReader.app"
+          if [ -d "$APP_PATH" ]; then
+            ZIP_NAME="KMReader-iOS-v${VERSION}-build${BUILD}-unsigned.zip"
+            cd "$(dirname "$APP_PATH")"
+            zip -r "$GITHUB_WORKSPACE/$ARTIFACTS_DIR/$ZIP_NAME" "KMReader.app"
+            echo "✓ Created: $ZIP_NAME"
+          else
+            echo "⚠ App not found at: $APP_PATH"
+            exit 1
+          fi
+
+      - name: Upload build artifacts to Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-unsigned
+          path: artifacts/*
+          retention-days: 90
+          if-no-files-found: error
+
+  build-with-signing:
+    name: Build & Upload iOS (Signed)
+    runs-on: macos-latest
+    needs: [detect]
+    if: |
+      needs.detect.outputs.has_secrets == 'true' &&
+      needs.detect.outputs.build_changed == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "latest-stable"
+
+      - name: Prepare App Store Connect API key
+        id: prepare
+        env:
+          APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          KEY_PATH="$RUNNER_TEMP/appstoreconnect_key.p8"
+          printf "%s" "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$KEY_PATH"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Import codesign certs
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}
+
+      - name: Import iOS provisioning profiles
+        run: misc/import_profiles.sh
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 || '' }}
+          WIDGETS_PROVISIONING_PROFILE_BASE64: ${{ secrets.WIDGETS_PROVISIONING_PROFILE_BASE64 || '' }}
+
+      - name: Build and upload iOS to App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_PATH: ${{ steps.prepare.outputs.APP_STORE_CONNECT_API_KEY_PATH }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+        run: make release-ios
+
+      - name: Create iOS artifact
+        run: make artifact-ios
+
+      - name: Upload iOS artifact to Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-signed
+          path: artifacts/*
+          retention-days: 90
+          if-no-files-found: error
