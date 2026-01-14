@@ -137,6 +137,20 @@ jobs:
           echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
           echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Check for App Store secrets
+        id: check_secrets
+        env:
+          APP_STORE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+          CERT: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
+        run: |
+          if [ -n "$APP_STORE_KEY" ] && [ -n "$CERT" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "✓ App Store Connect secrets are configured"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "⚠ App Store Connect secrets are not configured - skipping App Store upload"
+          fi
+
   release:
     runs-on: ubuntu-latest
     needs: detect
@@ -178,10 +192,6 @@ jobs:
           APP_STORE_CONNECT_API_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${APP_STORE_CONNECT_API_PRIVATE_KEY}" ]; then
-            echo "APP_STORE_CONNECT_API_PRIVATE_KEY is not set." >&2
-            exit 1
-          fi
           umask 077
           KEY_PATH="$RUNNER_TEMP/appstoreconnect_key.p8"
           printf "%s" "$APP_STORE_CONNECT_API_PRIVATE_KEY" > "$KEY_PATH"
