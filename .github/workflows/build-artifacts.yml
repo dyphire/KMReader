@@ -1,0 +1,181 @@
+name: Build Artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      marketing_version: ${{ steps.version.outputs.marketing }}
+      build_number: ${{ steps.version.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read versions
+        id: version
+        run: |
+          set -euo pipefail
+          FILE="KMReader.xcodeproj/project.pbxproj"
+          if [ ! -f "$FILE" ]; then
+            echo "project.pbxproj not found at $FILE" >&2
+            exit 1
+          fi
+          
+          MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          BUILD=$(awk 'match($0,/CURRENT_PROJECT_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
+          
+          if [ -z "$MARKETING" ]; then
+            echo "MARKETING_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          if [ -z "$BUILD" ]; then
+            echo "CURRENT_PROJECT_VERSION not found in $FILE" >&2
+            exit 1
+          fi
+          
+          echo "Detected MARKETING_VERSION: $MARKETING"
+          echo "Detected CURRENT_PROJECT_VERSION: $BUILD"
+          {
+            echo "marketing=$MARKETING"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
+
+  build-without-signing:
+    name: Build iOS (No Signing)
+    runs-on: macos-latest
+    needs: [detect]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "latest-stable"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build iOS archive without code signing
+        run: |
+          set -euo pipefail
+          
+          SCHEME="KMReader"
+          PROJECT="KMReader.xcodeproj"
+          ARCHIVES_DIR="archives"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          mkdir -p "$ARCHIVES_DIR"
+          
+          SDK="iphoneos"
+          DESTINATION="generic/platform=iOS"
+          ARCHIVE_NAME="KMReader-iOS_${TIMESTAMP}"
+          ARCHIVE_PATH="$ARCHIVES_DIR/${ARCHIVE_NAME}.xcarchive"
+          
+          echo "Building iOS archive without code signing..."
+          xcodebuild archive \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -sdk "$SDK" \
+            -destination "$DESTINATION" \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+          
+          echo "ARCHIVE_PATH=$ARCHIVE_PATH" >> $GITHUB_ENV
+          echo "✓ Archive created: $ARCHIVE_PATH"
+
+      - name: Export IPA without signing
+        run: |
+          set -euo pipefail
+          
+          ARTIFACTS_DIR="artifacts"
+          VERSION="${{ needs.detect.outputs.marketing_version }}"
+          BUILD="${{ needs.detect.outputs.build_number }}"
+          EXPORT_DIR="export"
+          
+          mkdir -p "$ARTIFACTS_DIR" "$EXPORT_DIR"
+          
+          # Create export options plist for ad-hoc distribution without signing
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "Exporting IPA..."
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet || true
+          
+          # If export fails, create IPA manually from .app
+          if [ ! -f "$EXPORT_DIR/KMReader.ipa" ]; then
+            echo "Export failed, creating IPA manually..."
+            APP_PATH="$ARCHIVE_PATH/Products/Applications/KMReader.app"
+            if [ -d "$APP_PATH" ]; then
+              PAYLOAD_DIR="$EXPORT_DIR/Payload"
+              mkdir -p "$PAYLOAD_DIR"
+              cp -r "$APP_PATH" "$PAYLOAD_DIR/"
+              
+              # Create IPA in the export directory
+              (cd "$EXPORT_DIR" && zip -qr "KMReader.ipa" Payload)
+              
+              # Wait for zip to complete and verify
+              if [ -f "$EXPORT_DIR/KMReader.ipa" ]; then
+                echo "✓ Manually created IPA"
+                rm -rf "$PAYLOAD_DIR"
+              else
+                echo "⚠ Failed to create IPA"
+                exit 1
+              fi
+            else
+              echo "⚠ App not found at: $APP_PATH"
+              exit 1
+            fi
+          fi
+          
+          # Move IPA to artifacts directory with proper naming
+          IPA_NAME="KMReader-iOS-v${VERSION}-build${BUILD}-unsigned.ipa"
+          if [ -f "$EXPORT_DIR/KMReader.ipa" ]; then
+            mv "$EXPORT_DIR/KMReader.ipa" "$ARTIFACTS_DIR/$IPA_NAME"
+            echo "✓ Created: $IPA_NAME"
+          else
+            echo "⚠ IPA file not found at: $EXPORT_DIR/KMReader.ipa"
+            exit 1
+          fi
+
+      - name: Upload build artifacts to Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: KMReader-ios
+          path: artifacts/*.ipa
+          retention-days: 90
+          if-no-files-found: error
