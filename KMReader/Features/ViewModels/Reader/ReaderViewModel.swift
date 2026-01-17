@@ -14,11 +14,26 @@ import UniformTypeIdentifiers
 struct PagePair: Hashable {
   let first: Int
   let second: Int?
+  let isSplitPage: Bool  // Indicates if this is a wide page split into two halves
   var id: Int { first }
+
+  init(first: Int, second: Int?, isSplitPage: Bool = false) {
+    self.first = first
+    self.second = second
+    self.isSplitPage = isSplitPage
+  }
 
   func display(readingDirection: ReadingDirection) -> String {
     guard let second = second else {
       return "\(first + 1)"
+    }
+    // For split pages, show as "N-L" and "N-R" or similar
+    if isSplitPage {
+      if readingDirection == .rtl {
+        return "\(first + 1)-R/L"
+      } else {
+        return "\(first + 1)-L/R"
+      }
     }
     // For RTL reading direction, first page is on the right, so display second,first
     // For LTR reading direction, first page is on the left, so display first,second
@@ -53,6 +68,7 @@ class ReaderViewModel {
   var liveTextActivePageIndex: Int? = nil
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
+  private var splitWidePages: Bool
 
   private let logger = AppLogger(.reader)
   /// Current book ID for API calls and cache access
@@ -78,14 +94,16 @@ class ReaderViewModel {
   convenience init() {
     self.init(
       isolateCoverPage: AppConfig.isolateCoverPage,
-      pageLayout: AppConfig.pageLayout
+      pageLayout: AppConfig.pageLayout,
+      splitWidePages: AppConfig.splitWidePages
     )
   }
 
-  init(isolateCoverPage: Bool, pageLayout: PageLayout) {
+  init(isolateCoverPage: Bool, pageLayout: PageLayout, splitWidePages: Bool = false) {
     self.pageImageCache = ImageCache()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
+    self.splitWidePages = splitWidePages
     regenerateDualPageState()
   }
 
@@ -469,6 +487,12 @@ class ReaderViewModel {
     regenerateDualPageState()
   }
 
+  func updateSplitWidePages(_ enabled: Bool) {
+    guard splitWidePages != enabled else { return }
+    splitWidePages = enabled
+    regenerateDualPageState()
+  }
+
   func toggleIsolatePage(_ pageIndex: Int) {
     if let index = isolatePages.firstIndex(of: pageIndex) {
       isolatePages.remove(at: index)
@@ -487,6 +511,7 @@ class ReaderViewModel {
       pages: pages,
       noCover: !isolateCoverPageEnabled,
       forceDualPairs: forceDualPagePairs,
+      splitWidePages: splitWidePages,
       isolatePages: Set(isolatePages)
     )
     dualPageIndices = generateDualPageIndices(pairs: pagePairs)
@@ -497,6 +522,7 @@ private func generatePagePairs(
   pages: [BookPage],
   noCover: Bool,
   forceDualPairs: Bool,
+  splitWidePages: Bool = false,
   isolatePages: Set<Int> = []
 ) -> [PagePair] {
   guard pages.count > 0 else { return [] }
@@ -510,11 +536,11 @@ private func generatePagePairs(
         (!noCover && index == 0) || index == pages.count - 1
         || isolatePages.contains(index) || isolatePages.contains(index + 1)
       if shouldShowSingle {
-        pairs.append(PagePair(first: index, second: nil))
+        pairs.append(PagePair(first: index, second: nil, isSplitPage: false))
         index += 1
       } else {
         let nextIndex = index + 1
-        pairs.append(PagePair(first: index, second: nextIndex))
+        pairs.append(PagePair(first: index, second: nextIndex, isSplitPage: false))
         index += 2
       }
       continue
@@ -523,35 +549,51 @@ private func generatePagePairs(
     let currentPage = pages[index]
 
     var useSinglePage = false
-    if !currentPage.isPortrait {
-      useSinglePage = true
-    }
-    if !noCover && index == 0 {
-      useSinglePage = true
-    }
+    var shouldSplitPage = false
+    
+    // Check if page is manually isolated - never split these
     if isolatePages.contains(index) {
       useSinglePage = true
+      shouldSplitPage = false
     }
-    if index == pages.count - 1 {
+    // Check if page should be split when in single page mode
+    else if splitWidePages && !currentPage.isPortrait {
+      shouldSplitPage = true
+      useSinglePage = false
+    }
+    // Non-portrait pages are shown as single page in dual page mode
+    else if !currentPage.isPortrait {
+      useSinglePage = true
+    }
+    // Cover page in dual page mode (when isolateCoverPage is enabled)
+    else if !noCover && index == 0 {
+      useSinglePage = true
+    }
+    // Last page is always single in dual page mode
+    else if index == pages.count - 1 {
       useSinglePage = true
     }
 
-    if useSinglePage {
-      pairs.append(PagePair(first: index, second: nil))
+    if shouldSplitPage {
+      // Split wide page into two virtual pages (left and right halves)
+      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
+      index += 1
+    } else if useSinglePage {
+      pairs.append(PagePair(first: index, second: nil, isSplitPage: false))
       index += 1
     } else {
       let nextPage = pages[index + 1]
       if nextPage.isPortrait && !isolatePages.contains(index + 1) {
-        pairs.append(PagePair(first: index, second: index + 1))
+        pairs.append(PagePair(first: index, second: index + 1, isSplitPage: false))
         index += 2
       } else {
-        pairs.append(PagePair(first: index, second: nil))
+        pairs.append(PagePair(first: index, second: nil, isSplitPage: false))
         index += 1
       }
     }
   }
   // insert end page pair at the end
-  pairs.append(PagePair(first: pages.count, second: nil))
+  pairs.append(PagePair(first: pages.count, second: nil, isSplitPage: false))
 
   return pairs
 }

@@ -426,11 +426,20 @@
     func update(with data: NativePageData, viewModel: ReaderViewModel, image: PlatformImage?, showPageNumber: Bool) {
       self.currentData = data
       self.viewModel = viewModel
-      imageView.image = image
+      
+      // Apply crop mode if needed
+      let displayImage: UIImage?
+      if let image = image, data.cropMode != .none {
+        displayImage = cropImage(image, mode: data.cropMode)
+      } else {
+        displayImage = image
+      }
+      
+      imageView.image = displayImage
 
       updateImageAlignment()
 
-      if image != nil, showPageNumber {
+      if displayImage != nil, showPageNumber {
         pageNumberLabel.text = "\(data.pageNumber + 1)"
         pageNumberLabel.isHidden = false
       } else {
@@ -442,7 +451,7 @@
         loadingIndicator.stopAnimating()
         errorLabel.text = error
         errorLabel.isHidden = false
-      } else if image == nil || data.isLoading {
+      } else if displayImage == nil || data.isLoading {
         errorLabel.isHidden = true
         loadingIndicator.startAnimating()
       } else {
@@ -468,6 +477,26 @@
       #endif
 
       setNeedsLayout()
+    }
+    
+    private func cropImage(_ image: UIImage, mode: PageCropMode) -> UIImage? {
+      guard let cgImage = image.cgImage else { return image }
+      
+      let width = CGFloat(cgImage.width)
+      let height = CGFloat(cgImage.height)
+      
+      let cropRect: CGRect
+      switch mode {
+      case .none:
+        return image
+      case .leftHalf:
+        cropRect = CGRect(x: 0, y: 0, width: width / 2, height: height)
+      case .rightHalf:
+        cropRect = CGRect(x: width / 2, y: 0, width: width / 2, height: height)
+      }
+      
+      guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return image }
+      return UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
     }
 
     private func updateImageAlignment() {

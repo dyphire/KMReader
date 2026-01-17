@@ -13,6 +13,7 @@ struct ReaderControlsView: View {
   @Binding var readingDirection: ReadingDirection
   @Binding var pageLayout: PageLayout
   @Binding var isolateCoverPage: Bool
+  @Binding var splitWidePages: Bool
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -275,6 +276,17 @@ struct ReaderControlsView: View {
           Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
         }
         .pickerStyle(.menu)
+
+        if pageLayout == .single {
+          Button {
+            splitWidePages.toggle()
+          } label: {
+            Label(
+              String(localized: "Split Wide Pages"),
+              systemImage: splitWidePages ? "square.split.2x1.fill" : "square.split.2x1"
+            )
+          }
+        }
 
         if enableDualPageOptions {
           pageIsolation()

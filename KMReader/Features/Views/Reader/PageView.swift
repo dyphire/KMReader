@@ -201,6 +201,7 @@ struct PageView: View {
               firstPageIndex: pagePair.first,
               secondPageIndex: second,
               screenSize: screenSize,
+              isSplitPage: pagePair.isSplitPage,
               readingDirection: readingDirection,
               onNextPage: goToNextPage,
               onPreviousPage: goToPreviousPage,

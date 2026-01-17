@@ -16,6 +16,7 @@ struct SettingsReaderView: View {
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("pageLayout") private var pageLayout: PageLayout = .auto
   @AppStorage("isolateCoverPage") private var isolateCoverPage: Bool = true
+  @AppStorage("splitWidePages") private var splitWidePages: Bool = false
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("defaultReadingDirection") private var readDirection: ReadingDirection = .ltr
@@ -294,6 +295,16 @@ struct SettingsReaderView: View {
           Text("Opt for single page, auto-detected spreads, or forced dual pages (landscape only)")
             .font(.caption)
             .foregroundColor(.secondary)
+        }
+        if pageLayout == .single {
+          Toggle(isOn: $splitWidePages) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Split Wide Pages")
+              Text("In single page mode, split wide (landscape) pages into two halves")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
         }
         if pageLayout.supportsDualPageOptions {
           Toggle(isOn: $isolateCoverPage) {

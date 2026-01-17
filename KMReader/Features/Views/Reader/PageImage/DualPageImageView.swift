@@ -13,6 +13,7 @@ struct DualPageImageView: View {
   let firstPageIndex: Int
   let secondPageIndex: Int
   let screenSize: CGSize
+  let isSplitPage: Bool  // New parameter to indicate split page mode
   @Binding var isZoomed: Bool
 
   let readingDirection: ReadingDirection
@@ -27,6 +28,7 @@ struct DualPageImageView: View {
     firstPageIndex: Int,
     secondPageIndex: Int,
     screenSize: CGSize,
+    isSplitPage: Bool = false,
     readingDirection: ReadingDirection = .ltr,
     isZoomed: Binding<Bool> = .constant(false),
     onNextPage: @escaping () -> Void = {},
@@ -37,6 +39,7 @@ struct DualPageImageView: View {
     self.firstPageIndex = firstPageIndex
     self.secondPageIndex = secondPageIndex
     self.screenSize = screenSize
+    self.isSplitPage = isSplitPage
     self.readingDirection = readingDirection
     self._isZoomed = isZoomed
     self.onNextPage = onNextPage
@@ -53,43 +56,58 @@ struct DualPageImageView: View {
   }
 
   var resetID: String {
-    "\(firstPageIndex)-\(secondPageIndex)"
+    isSplitPage ? "\(firstPageIndex)-split" : "\(firstPageIndex)-\(secondPageIndex)"
   }
 
   var body: some View {
     let page1 = firstPageIndex >= 0 && firstPageIndex < viewModel.pages.count ? viewModel.pages[firstPageIndex] : nil
     let page2 = secondPageIndex >= 0 && secondPageIndex < viewModel.pages.count ? viewModel.pages[secondPageIndex] : nil
 
-    PageImageView(
-      viewModel: viewModel,
-      screenSize: screenSize,
-      resetID: resetID,
-      minScale: 1.0,
-      maxScale: 8.0,
-      doubleTapScale: doubleTapZoomScale,
-      readingDirection: readingDirection,
-      onNextPage: onNextPage,
-      onPreviousPage: onPreviousPage,
-      onToggleControls: onToggleControls,
-      pages: [
-        NativePageData(
-          bookId: viewModel.bookId,
-          pageNumber: firstPageIndex,
-          isLoading: viewModel.isLoading && page1 != nil && viewModel.preloadedImages[firstPageIndex] == nil,
-          error: nil,
-          // Page 1 is always the first subview. In Dual Mode, the first subview always hugs the center spine (Trailing).
-          // UIKit's Trailing automatically means Right in LTR and Left in RTL. Perfect.
-          alignment: .trailing
-        ),
-        NativePageData(
-          bookId: viewModel.bookId,
-          pageNumber: secondPageIndex,
-          isLoading: viewModel.isLoading && page2 != nil && viewModel.preloadedImages[secondPageIndex] == nil,
-          error: nil,
-          // Page 2 is the second subview, it hugs the center spine (Leading).
-          alignment: .leading
-        ),
-      ]
-    )
+    if isSplitPage {
+      // Split page mode: show left and right halves of the same page
+      SplitPageImageView(
+        viewModel: viewModel,
+        pageIndex: firstPageIndex,
+        screenSize: screenSize,
+        readingDirection: readingDirection,
+        isZoomed: $isZoomed,
+        onNextPage: onNextPage,
+        onPreviousPage: onPreviousPage,
+        onToggleControls: onToggleControls
+      )
+    } else {
+      // Normal dual page mode
+      PageImageView(
+        viewModel: viewModel,
+        screenSize: screenSize,
+        resetID: resetID,
+        minScale: 1.0,
+        maxScale: 8.0,
+        doubleTapScale: doubleTapZoomScale,
+        readingDirection: readingDirection,
+        onNextPage: onNextPage,
+        onPreviousPage: onPreviousPage,
+        onToggleControls: onToggleControls,
+        pages: [
+          NativePageData(
+            bookId: viewModel.bookId,
+            pageNumber: firstPageIndex,
+            isLoading: viewModel.isLoading && page1 != nil && viewModel.preloadedImages[firstPageIndex] == nil,
+            error: nil,
+            // Page 1 is always the first subview. In Dual Mode, the first subview always hugs the center spine (Trailing).
+            // UIKit's Trailing automatically means Right in LTR and Left in RTL. Perfect.
+            alignment: .trailing
+          ),
+          NativePageData(
+            bookId: viewModel.bookId,
+            pageNumber: secondPageIndex,
+            isLoading: viewModel.isLoading && page2 != nil && viewModel.preloadedImages[secondPageIndex] == nil,
+            error: nil,
+            // Page 2 is the second subview, it hugs the center spine (Leading).
+            alignment: .leading
+          ),
+        ]
+      )
+    }
   }
 }

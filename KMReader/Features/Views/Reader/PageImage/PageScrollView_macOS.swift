@@ -618,9 +618,18 @@
     ) {
       self.currentData = data
       self.readerViewModel = viewModel
-      imageView.image = image
+      
+      // Apply crop mode if needed
+      let displayImage: NSImage?
+      if let image = image, data.cropMode != .none {
+        displayImage = cropImage(image, mode: data.cropMode)
+      } else {
+        displayImage = image
+      }
+      
+      imageView.image = displayImage
 
-      if image != nil, showPageNumber {
+      if displayImage != nil, showPageNumber {
         pageNumberLabel.stringValue = "\(data.pageNumber + 1)"
         pageNumberContainer.isHidden = false
       } else {
@@ -632,7 +641,7 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if image == nil || data.isLoading {
+      } else if displayImage == nil || data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
@@ -640,7 +649,7 @@
         progressIndicator.stopAnimation(nil)
       }
 
-      if AppConfig.enableLiveText, let img = image, !visibleRect.isEmpty {
+      if AppConfig.enableLiveText, let img = displayImage, !visibleRect.isEmpty {
         analyzeImage(img)
         overlayView.isHidden = false
       } else if !AppConfig.enableLiveText {
@@ -648,6 +657,27 @@
       }
 
       updateOverlaysPosition()
+    }
+    
+    private func cropImage(_ image: NSImage, mode: PageCropMode) -> NSImage? {
+      guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
+      
+      let width = CGFloat(cgImage.width)
+      let height = CGFloat(cgImage.height)
+      
+      let cropRect: CGRect
+      switch mode {
+      case .none:
+        return image
+      case .leftHalf:
+        cropRect = CGRect(x: 0, y: 0, width: width / 2, height: height)
+      case .rightHalf:
+        cropRect = CGRect(x: width / 2, y: 0, width: width / 2, height: height)
+      }
+      
+      guard let croppedCGImage = cgImage.cropping(to: cropRect) else { return image }
+      let croppedImage = NSImage(cgImage: croppedCGImage, size: NSSize(width: cropRect.width, height: cropRect.height))
+      return croppedImage
     }
 
     private func analyzeImage(_ image: NSImage) {

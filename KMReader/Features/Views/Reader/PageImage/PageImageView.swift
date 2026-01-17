@@ -13,6 +13,13 @@ import SwiftUI
   import AppKit
 #endif
 
+/// Crop mode for split pages
+enum PageCropMode {
+  case none
+  case leftHalf
+  case rightHalf
+}
+
 /// Data structure for a single page to be rendered natively
 struct NativePageData {
   let bookId: String
@@ -20,6 +27,23 @@ struct NativePageData {
   let isLoading: Bool
   let error: String?
   let alignment: HorizontalAlignment
+  let cropMode: PageCropMode
+  
+  init(
+    bookId: String,
+    pageNumber: Int,
+    isLoading: Bool,
+    error: String?,
+    alignment: HorizontalAlignment,
+    cropMode: PageCropMode = .none
+  ) {
+    self.bookId = bookId
+    self.pageNumber = pageNumber
+    self.isLoading = isLoading
+    self.error = error
+    self.alignment = alignment
+    self.cropMode = cropMode
+  }
 }
 
 /// A high-performance page view entry point that calls platform-specific PageScrollView.

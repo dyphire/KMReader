@@ -74,6 +74,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "isolateCoverPage") }
   }
 
+  static nonisolated var splitWidePages: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "splitWidePages") != nil {
+        return UserDefaults.standard.bool(forKey: "splitWidePages")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "splitWidePages") }
+  }
+
   static nonisolated var isOffline: Bool {
     get { UserDefaults.standard.bool(forKey: "isOffline") }
     set { UserDefaults.standard.set(newValue, forKey: "isOffline") }
