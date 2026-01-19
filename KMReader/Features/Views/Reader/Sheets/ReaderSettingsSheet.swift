@@ -17,6 +17,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("webtoonTapScrollPercentage") private var webtoonTapScrollPercentage: Double = 80.0
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .scroll
   @AppStorage("scrollPageTransitionStyle") private var scrollPageTransitionStyle: ScrollPageTransitionStyle = .default
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -43,24 +44,6 @@ struct ReaderSettingsSheet: View {
             }
           }
           .pickerStyle(.menu)
-
-          #if os(iOS)
-            if readingDirection != .webtoon {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Double Tap Zoom Scale")
-                  Spacer()
-                  Text(String(format: "%.1fx", doubleTapZoomScale))
-                    .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $doubleTapZoomScale,
-                  in: 1.0...8.0,
-                  step: 0.5
-                )
-              }
-            }
-          #endif
 
           Toggle(isOn: $showPageNumber) {
             Text("Always Show Page Number")
@@ -97,6 +80,32 @@ struct ReaderSettingsSheet: View {
           #endif
 
         }
+
+        #if os(iOS)
+          if readingDirection != .webtoon {
+            Section(header: Text("Zooming")) {
+              Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+                ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Double Tap Zoom Scale")
+                  Spacer()
+                  Text(String(format: "%.1fx", doubleTapZoomScale))
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $doubleTapZoomScale,
+                  in: 1.0...8.0,
+                  step: 0.5
+                )
+              }
+            }
+          }
+        #endif
 
         #if !os(tvOS)
           Section(header: Text("Live Text")) {
