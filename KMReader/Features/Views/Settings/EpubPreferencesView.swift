@@ -101,7 +101,7 @@
           }
 
           VStack(alignment: .leading) {
-            Slider(value: $draft.fontWeight, in: 0.0...4.0, step: 0.1)
+            Slider(value: $draft.fontWeight, in: 0.0...5.0, step: 0.1)
             Text(String(localized: "Weight: \(String(format: "%.1f", draft.fontWeight))"))
               .font(.caption)
               .foregroundStyle(.secondary)
@@ -292,15 +292,29 @@
   struct EpubPreviewView: View {
     let preferences: EpubReaderPreferences
     @Environment(\.colorScheme) var colorScheme
+    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
+
+    private var customFontPath: String? {
+      guard case .system(let fontName) = preferences.fontFamily else { return nil }
+      guard let relativePath = customFonts.first(where: { $0.name == fontName })?.path else {
+        return nil
+      }
+      return FontFileManager.resolvePath(relativePath)
+    }
 
     var body: some View {
-      WebViewRepresentable(preferences: preferences, colorScheme: colorScheme)
+      WebViewRepresentable(
+        preferences: preferences,
+        colorScheme: colorScheme,
+        customFontPath: customFontPath
+      )
     }
   }
 
   private struct WebViewRepresentable: UIViewRepresentable {
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let customFontPath: String?
 
     func makeUIView(context: Context) -> WKWebView {
       let webView = WKWebView()
@@ -311,12 +325,28 @@
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-      let html = generatePreviewHTML(preferences: preferences, colorScheme: colorScheme)
-      webView.loadHTMLString(html, baseURL: nil)
+      let html = generatePreviewHTML(
+        preferences: preferences,
+        colorScheme: colorScheme,
+        customFontPath: customFontPath
+      )
+
+      let baseURL: URL?
+      if let path = customFontPath {
+        baseURL = URL(fileURLWithPath: path).deletingLastPathComponent()
+      } else {
+        baseURL = nil
+      }
+
+      webView.loadHTMLString(html, baseURL: baseURL)
     }
   }
 
-  private func generatePreviewHTML(preferences: EpubReaderPreferences, colorScheme: ColorScheme) -> String {
+  private func generatePreviewHTML(
+    preferences: EpubReaderPreferences,
+    colorScheme: ColorScheme,
+    customFontPath: String?
+  ) -> String {
     let theme = preferences.resolvedTheme(for: colorScheme)
     let backgroundColor = theme.backgroundColorHex
     let textColor = theme.textColorHex
@@ -325,16 +355,40 @@
     let fontFamily =
       preferences.fontFamily.fontName.map { "'\($0)'" } ?? "system-ui, -apple-system, sans-serif"
 
-    // Calculate font weight (0.0 to 2.5 maps to 300 to 700)
-    let fontWeightValue = 300 + Int(preferences.fontWeight * 160)
+    // Calculate font weight (0.0 to 5.0 maps to 240 to 960)
+    let fontWeightValue = 240 + Int(preferences.fontWeight * 160)
     let letterSpacingEm = preferences.letterSpacing
     let wordSpacingEm = preferences.wordSpacing
     let lineHeightValue = preferences.lineHeight
     let paragraphSpacingEm = preferences.paragraphSpacing
     let paragraphIndentEm = preferences.paragraphIndent
 
-    // Use pixel-based padding in preview
     let internalPadding = Int(preferences.pageMargins)
+
+    var fontFaceCSS = ""
+    if let fontName = preferences.fontFamily.fontName, let path = customFontPath {
+      let fontURL = URL(fileURLWithPath: path)
+      let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
+      fontFaceCSS = """
+        @font-face {
+          font-family: '\(fontName)';
+          src: url('\(fontURL.absoluteString)') format('\(fontFormat)');
+        }
+
+        """
+    }
+
+    let previewText1 = String(
+      localized:
+        "The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences.")
+    let previewText2 = String(
+      localized:
+        "You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices."
+    )
+    let previewText3 = String(
+      localized:
+        "Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination."
+    )
 
     return """
       <!DOCTYPE html>
@@ -342,7 +396,7 @@
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-          body {
+          \(fontFaceCSS)body {
             padding: \(internalPadding)px;
             background-color: \(backgroundColor);
             color: \(textColor);
@@ -361,9 +415,9 @@
         </style>
       </head>
       <body>
-        <p>The quick brown fox jumps over the lazy dog. This is a sample text to preview your reading preferences.</p>
-        <p>You can adjust the font size, spacing, and other settings to find what works best for you. Each paragraph demonstrates how the text will appear with your current choices.</p>
-        <p>Reading should be comfortable and enjoyable. Take your time to customize these settings until you find the perfect combination.</p>
+        <p>\(previewText1)</p>
+        <p>\(previewText2)</p>
+        <p>\(previewText3)</p>
       </body>
       </html>
       """
