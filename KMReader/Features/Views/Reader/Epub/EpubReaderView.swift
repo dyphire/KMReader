@@ -19,7 +19,7 @@
     @Environment(ReaderPresentationManager.self) private var readerPresentation
 
     @AppStorage("epubPreferences") private var readerPrefs: EpubReaderPreferences = .init()
-    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .pageCurl
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
 
     @State private var viewModel: EpubReaderViewModel
     @State private var showingControls = true
@@ -280,7 +280,7 @@
               Image(systemName: "xmark")
             }
             .contentShape(Circle())
-            .controlSize(.large)
+            .controlSize(.extraLarge)
             .buttonBorderShape(.circle)
             .adaptiveButtonStyle(buttonStyle)
             .padding(.top, 24)
@@ -315,7 +315,7 @@
                   .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
               }
               .contentShape(Circle())
-              .controlSize(.large)
+              .controlSize(.extraLarge)
               .buttonBorderShape(.circle)
               .adaptiveButtonStyle(buttonStyle)
               .padding(.bottom, 24)
