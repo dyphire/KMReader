@@ -14,9 +14,22 @@ import UniformTypeIdentifiers
 struct PagePair: Hashable {
   let first: Int
   let second: Int?
+  let isSplitPage: Bool  // true if this is a split wide page
+  
   var id: Int { first }
 
+  init(first: Int, second: Int?, isSplitPage: Bool = false) {
+    self.first = first
+    self.second = second
+    self.isSplitPage = isSplitPage
+  }
+
   func display(readingDirection: ReadingDirection) -> String {
+    // For split pages, show the same page number
+    if isSplitPage {
+      return "\(first + 1)"
+    }
+    
     guard let second = second else {
       return "\(first + 1)"
     }
@@ -53,6 +66,7 @@ class ReaderViewModel {
   var liveTextActivePageIndex: Int? = nil
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
+  private var splitWidePages: Bool
 
   private let logger = AppLogger(.reader)
   /// Current book ID for API calls and cache access
@@ -78,14 +92,16 @@ class ReaderViewModel {
   convenience init() {
     self.init(
       isolateCoverPage: AppConfig.isolateCoverPage,
-      pageLayout: AppConfig.pageLayout
+      pageLayout: AppConfig.pageLayout,
+      splitWidePages: AppConfig.splitWidePages
     )
   }
 
-  init(isolateCoverPage: Bool, pageLayout: PageLayout) {
+  init(isolateCoverPage: Bool, pageLayout: PageLayout, splitWidePages: Bool = false) {
     self.pageImageCache = ImageCache()
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
+    self.splitWidePages = splitWidePages
     regenerateDualPageState()
   }
 
@@ -469,6 +485,12 @@ class ReaderViewModel {
     regenerateDualPageState()
   }
 
+  func updateSplitWidePages(_ enabled: Bool) {
+    guard splitWidePages != enabled else { return }
+    splitWidePages = enabled
+    regenerateDualPageState()
+  }
+
   func toggleIsolatePage(_ pageIndex: Int) {
     if let index = isolatePages.firstIndex(of: pageIndex) {
       isolatePages.remove(at: index)
@@ -487,6 +509,7 @@ class ReaderViewModel {
       pages: pages,
       noCover: !isolateCoverPageEnabled,
       forceDualPairs: forceDualPagePairs,
+      splitWidePages: splitWidePages,
       isolatePages: Set(isolatePages)
     )
     dualPageIndices = generateDualPageIndices(pairs: pagePairs)
@@ -497,6 +520,7 @@ private func generatePagePairs(
   pages: [BookPage],
   noCover: Bool,
   forceDualPairs: Bool,
+  splitWidePages: Bool,
   isolatePages: Set<Int> = []
 ) -> [PagePair] {
   guard pages.count > 0 else { return [] }
@@ -523,20 +547,34 @@ private func generatePagePairs(
     let currentPage = pages[index]
 
     var useSinglePage = false
-    if !currentPage.isPortrait {
+    var shouldSplitPage = false
+    
+    // Check if wide page should be split
+    if !currentPage.isPortrait && splitWidePages && !isolatePages.contains(index) {
+      shouldSplitPage = true
+    }
+    
+    if !currentPage.isPortrait && !shouldSplitPage {
       useSinglePage = true
     }
     if !noCover && index == 0 {
       useSinglePage = true
+      shouldSplitPage = false  // Don't split cover page
     }
     if isolatePages.contains(index) {
       useSinglePage = true
+      shouldSplitPage = false
     }
     if index == pages.count - 1 {
       useSinglePage = true
     }
 
-    if useSinglePage {
+    if shouldSplitPage {
+      // Split the wide page into two pages
+      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
+      pairs.append(PagePair(first: index, second: index, isSplitPage: true))
+      index += 1
+    } else if useSinglePage {
       pairs.append(PagePair(first: index, second: nil))
       index += 1
     } else {

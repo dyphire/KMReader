@@ -35,6 +35,7 @@ struct DivinaReaderView: View {
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
   @State private var isolateCoverPage: Bool
+  @State private var splitWidePages: Bool
 
   @State private var currentBookId: String
   @State private var viewModel = ReaderViewModel()
@@ -82,6 +83,7 @@ struct DivinaReaderView: View {
     self._readingDirection = State(initialValue: AppConfig.defaultReadingDirection)
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
+    self._splitWidePages = State(initialValue: AppConfig.splitWidePages)
   }
 
   var shouldShowControls: Bool {
@@ -126,6 +128,8 @@ struct DivinaReaderView: View {
     pageLayout = AppConfig.pageLayout
     viewModel.updatePageLayout(pageLayout)
     isolateCoverPage = AppConfig.isolateCoverPage
+    splitWidePages = AppConfig.splitWidePages
+    viewModel.updateSplitWidePages(splitWidePages)
     readingDirection = AppConfig.defaultReadingDirection
   }
 
@@ -303,6 +307,9 @@ struct DivinaReaderView: View {
     }
     .onChange(of: pageLayout) { _, newValue in
       viewModel.updatePageLayout(newValue)
+    }
+    .onChange(of: splitWidePages) { _, newValue in
+      viewModel.updateSplitWidePages(newValue)
     }
     .task(id: currentBookId) {
       if !preserveReaderOptions {
