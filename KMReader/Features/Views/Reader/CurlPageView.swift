@@ -13,6 +13,7 @@
     @Bindable var viewModel: ReaderViewModel
     let mode: PageViewMode
     let readingDirection: ReadingDirection
+    let splitWidePageMode: SplitWidePageMode
     let nextBook: Book?
     let readList: ReadList?
     let onDismiss: () -> Void
@@ -51,12 +52,28 @@
       pageVC.view.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
 
       // Set initial page (non-animated, so single VC is fine)
-      if let initialVC = context.coordinator.pageViewController(for: viewModel.currentPageIndex) {
+      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
+      let initialIndex: Int
+      if hasSplitPages {
+        // Use currentViewItemIndex if available, otherwise find the view item index for currentPageIndex
+        if viewModel.currentViewItemIndex < viewModel.pagePairs.count {
+          initialIndex = viewModel.currentViewItemIndex
+        } else if let foundIndex = context.coordinator.findViewItemIndex(forPageIndex: viewModel.currentPageIndex) {
+          initialIndex = foundIndex
+        } else {
+          initialIndex = 0
+        }
+      } else {
+        initialIndex = viewModel.currentPageIndex
+      }
+      
+      if let initialVC = context.coordinator.pageViewController(for: initialIndex) {
         pageVC.setViewControllers(
           [initialVC],
           direction: .forward,
           animated: false
         )
+        context.coordinator.currentPageIndex = initialIndex
       }
 
       return pageVC
@@ -65,28 +82,99 @@
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
 
-      // Handle programmatic page changes via targetPageIndex
-      if let targetIndex = viewModel.targetPageIndex,
-        targetIndex != context.coordinator.currentPageIndex
-      {
-        if let targetVC = context.coordinator.pageViewController(for: targetIndex) {
-          let direction: UIPageViewController.NavigationDirection
-          if mode.isRTL {
-            direction = targetIndex > context.coordinator.currentPageIndex ? .reverse : .forward
-          } else {
-            direction = targetIndex > context.coordinator.currentPageIndex ? .forward : .reverse
-          }
+      let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
 
-          pageVC.setViewControllers(
-            [targetVC],
-            direction: direction,
-            animated: true
-          ) { completed in
-            if completed {
-              context.coordinator.currentPageIndex = targetIndex
+      // Handle programmatic page changes via targetPageIndex or targetViewItemIndex
+      if hasSplitPages {
+        // When split pages are enabled, use targetViewItemIndex
+        if let targetViewItemIndex = viewModel.targetViewItemIndex,
+          targetViewItemIndex != context.coordinator.currentPageIndex
+        {
+          if let targetVC = context.coordinator.pageViewController(for: targetViewItemIndex) {
+            let direction: UIPageViewController.NavigationDirection
+            if mode.isRTL {
+              direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
+            } else {
+              direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+            }
+
+            pageVC.setViewControllers(
+              [targetVC],
+              direction: direction,
+              animated: true
+            ) { completed in
+              if completed {
+                context.coordinator.currentPageIndex = targetViewItemIndex
+                Task { @MainActor in
+                  if targetViewItemIndex < viewModel.pagePairs.count {
+                    let pagePair = viewModel.pagePairs[targetViewItemIndex]
+                    viewModel.currentPageIndex = pagePair.first
+                    viewModel.currentViewItemIndex = targetViewItemIndex
+                  }
+                  viewModel.targetViewItemIndex = nil
+                }
+              }
+            }
+          }
+        } else if let targetPageIndex = viewModel.targetPageIndex {
+          // Convert page index to view item index
+          if let targetViewItemIndex = context.coordinator.findViewItemIndex(forPageIndex: targetPageIndex) {
+            if targetViewItemIndex != context.coordinator.currentPageIndex {
+              if let targetVC = context.coordinator.pageViewController(for: targetViewItemIndex) {
+                let direction: UIPageViewController.NavigationDirection
+                if mode.isRTL {
+                  direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
+                } else {
+                  direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+                }
+
+                pageVC.setViewControllers(
+                  [targetVC],
+                  direction: direction,
+                  animated: true
+                ) { completed in
+                  if completed {
+                    context.coordinator.currentPageIndex = targetViewItemIndex
+                    Task { @MainActor in
+                      viewModel.currentPageIndex = targetPageIndex
+                      viewModel.currentViewItemIndex = targetViewItemIndex
+                      viewModel.targetPageIndex = nil
+                    }
+                  }
+                }
+              }
+            } else {
+              // Already at target, just clear the target
               Task { @MainActor in
-                viewModel.currentPageIndex = targetIndex
                 viewModel.targetPageIndex = nil
+              }
+            }
+          }
+        }
+      } else {
+        // Original logic for non-split pages
+        if let targetIndex = viewModel.targetPageIndex,
+          targetIndex != context.coordinator.currentPageIndex
+        {
+          if let targetVC = context.coordinator.pageViewController(for: targetIndex) {
+            let direction: UIPageViewController.NavigationDirection
+            if mode.isRTL {
+              direction = targetIndex > context.coordinator.currentPageIndex ? .reverse : .forward
+            } else {
+              direction = targetIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+            }
+
+            pageVC.setViewControllers(
+              [targetVC],
+              direction: direction,
+              animated: true
+            ) { completed in
+              if completed {
+                context.coordinator.currentPageIndex = targetIndex
+                Task { @MainActor in
+                  viewModel.currentPageIndex = targetIndex
+                  viewModel.targetPageIndex = nil
+                }
               }
             }
           }
@@ -109,7 +197,12 @@
 
       // Total page count including end page
       var totalPages: Int {
-        parent.viewModel.pages.count + 1
+        // When split wide pages is enabled, use pagePairs count
+        let hasSplitPages = parent.viewModel.pagePairs.contains { $0.isSplitPage }
+        if hasSplitPages {
+          return parent.viewModel.pagePairs.count + 1
+        }
+        return parent.viewModel.pages.count + 1
       }
 
       func pageViewController(for index: Int) -> UIViewController? {
@@ -117,34 +210,115 @@
 
         let hostingController: UIHostingController<AnyView>
 
-        if index == parent.viewModel.pages.count {
-          // End page
-          let endPageView = EndPageView(
-            viewModel: parent.viewModel,
-            nextBook: parent.nextBook,
-            readList: parent.readList,
-            onDismiss: parent.onDismiss,
-            onNextBook: parent.onNextBook,
-            readingDirection: parent.readingDirection,
-            onPreviousPage: parent.goToPreviousPage,
-            onFocusChange: parent.onEndPageFocusChange,
-            showImage: true,
-          )
-          hostingController = UIHostingController(rootView: AnyView(endPageView))
+        // Check if split wide pages is enabled
+        let hasSplitPages = parent.viewModel.pagePairs.contains { $0.isSplitPage }
+
+        if hasSplitPages {
+          // When using split pages, check if we're at the end page
+          if index == parent.viewModel.pagePairs.count {
+            // End page
+            let endPageView = EndPageView(
+              viewModel: parent.viewModel,
+              nextBook: parent.nextBook,
+              readList: parent.readList,
+              onDismiss: parent.onDismiss,
+              onNextBook: parent.onNextBook,
+              readingDirection: parent.readingDirection,
+              onPreviousPage: parent.goToPreviousPage,
+              onFocusChange: parent.onEndPageFocusChange,
+              showImage: true,
+            )
+            hostingController = UIHostingController(rootView: AnyView(endPageView))
+          } else {
+            // Get the page pair for this view item index
+            let pagePair = parent.viewModel.pagePairs[index]
+            
+            if pagePair.isSplitPage {
+              // Determine if this is the left or right half based on reading direction
+              let isLeftHalf: Bool = {
+                // Find the first occurrence of this split page
+                guard
+                  let firstIndex = parent.viewModel.pagePairs.firstIndex(where: { $0.first == pagePair.first && $0.isSplitPage })
+                else {
+                  return true
+                }
+
+                let isFirstHalf = index == firstIndex
+
+                // Determine the base order based on reading direction
+                let effectiveDirection = parent.splitWidePageMode.effectiveReadingDirection(for: parent.readingDirection)
+                let shouldShowLeftFirst = effectiveDirection != .rtl
+
+                // Return whether this position should show left half
+                return shouldShowLeftFirst ? isFirstHalf : !isFirstHalf
+              }()
+
+              let splitPageView = CurlSinglePageView(
+                viewModel: parent.viewModel,
+                pageIndex: pagePair.first,
+                readingDirection: parent.readingDirection,
+                splitWidePageMode: parent.splitWidePageMode,
+                isLeftHalf: isLeftHalf,
+                onNextPage: parent.goToNextPage,
+                onPreviousPage: parent.goToPreviousPage,
+                onToggleControls: parent.toggleControls
+              )
+              hostingController = UIHostingController(rootView: AnyView(splitPageView))
+            } else {
+              let pageView = CurlSinglePageView(
+                viewModel: parent.viewModel,
+                pageIndex: pagePair.first,
+                readingDirection: parent.readingDirection,
+                splitWidePageMode: parent.splitWidePageMode,
+                onNextPage: parent.goToNextPage,
+                onPreviousPage: parent.goToPreviousPage,
+                onToggleControls: parent.toggleControls
+              )
+              hostingController = UIHostingController(rootView: AnyView(pageView))
+            }
+          }
         } else {
-          let pageView = CurlSinglePageView(
-            viewModel: parent.viewModel,
-            pageIndex: index,
-            readingDirection: parent.readingDirection,
-            onNextPage: parent.goToNextPage,
-            onPreviousPage: parent.goToPreviousPage,
-            onToggleControls: parent.toggleControls
-          )
-          hostingController = UIHostingController(rootView: AnyView(pageView))
+          // Original logic for non-split pages
+          if index == parent.viewModel.pages.count {
+            // End page
+            let endPageView = EndPageView(
+              viewModel: parent.viewModel,
+              nextBook: parent.nextBook,
+              readList: parent.readList,
+              onDismiss: parent.onDismiss,
+              onNextBook: parent.onNextBook,
+              readingDirection: parent.readingDirection,
+              onPreviousPage: parent.goToPreviousPage,
+              onFocusChange: parent.onEndPageFocusChange,
+              showImage: true,
+            )
+            hostingController = UIHostingController(rootView: AnyView(endPageView))
+          } else {
+            let pageView = CurlSinglePageView(
+              viewModel: parent.viewModel,
+              pageIndex: index,
+              readingDirection: parent.readingDirection,
+              splitWidePageMode: parent.splitWidePageMode,
+              onNextPage: parent.goToNextPage,
+              onPreviousPage: parent.goToPreviousPage,
+              onToggleControls: parent.toggleControls
+            )
+            hostingController = UIHostingController(rootView: AnyView(pageView))
+          }
         }
 
         hostingController.view.tag = index
         return hostingController
+      }
+
+      // Helper method to find view item index for a given page index
+      func findViewItemIndex(forPageIndex pageIndex: Int) -> Int? {
+        for (index, pagePair) in parent.viewModel.pagePairs.enumerated() {
+          if pagePair.first == pageIndex {
+            return index
+          }
+        }
+        return nil
       }
 
       // MARK: - UIPageViewControllerDataSource
@@ -189,7 +363,15 @@
         currentPageIndex = newIndex
 
         Task { @MainActor in
-          parent.viewModel.currentPageIndex = newIndex
+          // When using split pages, convert view item index to page index
+          let hasSplitPages = parent.viewModel.pagePairs.contains { $0.isSplitPage }
+          if hasSplitPages && newIndex < parent.viewModel.pagePairs.count {
+            let pagePair = parent.viewModel.pagePairs[newIndex]
+            parent.viewModel.currentPageIndex = pagePair.first
+            parent.viewModel.currentViewItemIndex = newIndex
+          } else {
+            parent.viewModel.currentPageIndex = newIndex
+          }
           await parent.viewModel.updateProgress()
           await parent.viewModel.preloadPages()
         }
@@ -277,6 +459,8 @@
     let viewModel: ReaderViewModel
     let pageIndex: Int
     let readingDirection: ReadingDirection
+    let splitWidePageMode: SplitWidePageMode
+    var isLeftHalf: Bool? = nil  // nil for non-split pages, true/false for split pages
     let onNextPage: () -> Void
     let onPreviousPage: () -> Void
     let onToggleControls: () -> Void
@@ -288,15 +472,31 @@
         ZStack {
           readerBackground.color.readerIgnoresSafeArea()
 
-          SinglePageImageView(
-            viewModel: viewModel,
-            pageIndex: pageIndex,
-            screenSize: proxy.size,
-            readingDirection: readingDirection,
-            onNextPage: onNextPage,
-            onPreviousPage: onPreviousPage,
-            onToggleControls: onToggleControls
-          )
+          // Check if current page is a split wide page
+          if let isLeftHalf = isLeftHalf {
+            // This is a split page
+            SplitWidePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              isLeftHalf: isLeftHalf,
+              screenSize: proxy.size,
+              readingDirection: readingDirection,
+              onNextPage: onNextPage,
+              onPreviousPage: onPreviousPage,
+              onToggleControls: onToggleControls
+            )
+          } else {
+            // Regular single page
+            SinglePageImageView(
+              viewModel: viewModel,
+              pageIndex: pageIndex,
+              screenSize: proxy.size,
+              readingDirection: readingDirection,
+              onNextPage: onNextPage,
+              onPreviousPage: onPreviousPage,
+              onToggleControls: onToggleControls
+            )
+          }
         }
         .frame(width: proxy.size.width, height: proxy.size.height)
       }
