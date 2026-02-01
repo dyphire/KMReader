@@ -52,28 +52,38 @@
       pageVC.view.semanticContentAttribute = mode.isRTL ? .forceRightToLeft : .forceLeftToRight
 
       // Set initial page (non-animated, so single VC is fine)
+      // If split pages are enabled, convert page index to view item index
       let hasSplitPages = viewModel.pagePairs.contains { $0.isSplitPage }
       let initialIndex: Int
       if hasSplitPages {
-        // Use currentViewItemIndex if available, otherwise find the view item index for currentPageIndex
-        if viewModel.currentViewItemIndex < viewModel.pagePairs.count {
-          initialIndex = viewModel.currentViewItemIndex
-        } else if let foundIndex = context.coordinator.findViewItemIndex(forPageIndex: viewModel.currentPageIndex) {
-          initialIndex = foundIndex
-        } else {
-          initialIndex = 0
+        // Convert page index to view item index
+        initialIndex = context.coordinator.findViewItemIndexForInitialPage(viewModel.currentPageIndex)
+        // Update coordinator's currentPageIndex to match the view item index
+        context.coordinator.currentPageIndex = initialIndex
+
+        // Ensure viewModel reflects the view item index so navigation callbacks use correct base
+        Task { @MainActor in
+          viewModel.currentViewItemIndex = initialIndex
+          if initialIndex < viewModel.pagePairs.count {
+            viewModel.currentPageIndex = viewModel.pagePairs[initialIndex].first
+          }
         }
       } else {
         initialIndex = viewModel.currentPageIndex
+        context.coordinator.currentPageIndex = initialIndex
+
+        // Keep viewModel.currentViewItemIndex in sync for consistency
+        Task { @MainActor in
+          viewModel.currentViewItemIndex = initialIndex
+        }
       }
-      
+
       if let initialVC = context.coordinator.pageViewController(for: initialIndex) {
         pageVC.setViewControllers(
           [initialVC],
           direction: .forward,
           animated: false
         )
-        context.coordinator.currentPageIndex = initialIndex
       }
 
       return pageVC
@@ -87,33 +97,48 @@
       // Handle programmatic page changes via targetPageIndex or targetViewItemIndex
       if hasSplitPages {
         // When split pages are enabled, use targetViewItemIndex
-        if let targetViewItemIndex = viewModel.targetViewItemIndex,
-          targetViewItemIndex != context.coordinator.currentPageIndex
-        {
-          if let targetVC = context.coordinator.pageViewController(for: targetViewItemIndex) {
-            let direction: UIPageViewController.NavigationDirection
-            if mode.isRTL {
-              direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
-            } else {
-              direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
-            }
+        if let targetViewItemIndex = viewModel.targetViewItemIndex {
+          if targetViewItemIndex != context.coordinator.currentPageIndex {
+            if let targetVC = context.coordinator.pageViewController(for: targetViewItemIndex) {
+              let direction: UIPageViewController.NavigationDirection
+              if mode.isRTL {
+                direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .reverse : .forward
+              } else {
+                direction = targetViewItemIndex > context.coordinator.currentPageIndex ? .forward : .reverse
+              }
 
-            pageVC.setViewControllers(
-              [targetVC],
-              direction: direction,
-              animated: true
-            ) { completed in
-              if completed {
-                context.coordinator.currentPageIndex = targetViewItemIndex
-                Task { @MainActor in
-                  if targetViewItemIndex < viewModel.pagePairs.count {
-                    let pagePair = viewModel.pagePairs[targetViewItemIndex]
-                    viewModel.currentPageIndex = pagePair.first
-                    viewModel.currentViewItemIndex = targetViewItemIndex
+              pageVC.setViewControllers(
+                [targetVC],
+                direction: direction,
+                animated: true
+              ) { completed in
+                if completed {
+                  context.coordinator.currentPageIndex = targetViewItemIndex
+                  Task { @MainActor in
+                    if targetViewItemIndex < viewModel.pagePairs.count {
+                      let pagePair = viewModel.pagePairs[targetViewItemIndex]
+                      viewModel.currentPageIndex = pagePair.first
+                      viewModel.currentViewItemIndex = targetViewItemIndex
+                    }
+                    viewModel.targetViewItemIndex = nil
                   }
-                  viewModel.targetViewItemIndex = nil
+                } else {
+                  // Animation cancelled, clear the target
+                  Task { @MainActor in
+                    viewModel.targetViewItemIndex = nil
+                  }
                 }
               }
+            } else {
+              // Failed to create view controller, clear the target
+              Task { @MainActor in
+                viewModel.targetViewItemIndex = nil
+              }
+            }
+          } else {
+            // Already at target, just clear the target
+            Task { @MainActor in
+              viewModel.targetViewItemIndex = nil
             }
           }
         } else if let targetPageIndex = viewModel.targetPageIndex {
@@ -192,6 +217,7 @@
 
       init(_ parent: CurlPageView) {
         self.parent = parent
+        // Initialize with page index (will be updated to view item index in makeUIViewController if needed)
         self.currentPageIndex = parent.viewModel.currentPageIndex
       }
 
@@ -207,10 +233,13 @@
 
       func pageViewController(for index: Int) -> UIViewController? {
         guard index >= 0 && index < totalPages else { return nil }
+        
+        // Safety check: ensure we have pages loaded
+        guard !parent.viewModel.pages.isEmpty else { return nil }
 
         let hostingController: UIHostingController<AnyView>
 
-        // Check if split wide pages is enabled
+        // Check if split wide pages is enabled and pagePairs is ready
         let hasSplitPages = parent.viewModel.pagePairs.contains { $0.isSplitPage }
 
         if hasSplitPages {
@@ -231,6 +260,22 @@
             hostingController = UIHostingController(rootView: AnyView(endPageView))
           } else {
             // Get the page pair for this view item index
+            guard index < parent.viewModel.pagePairs.count else {
+              // Fallback: create a regular page view with the index as page number
+              let pageView = CurlSinglePageView(
+                viewModel: parent.viewModel,
+                pageIndex: index,
+                readingDirection: parent.readingDirection,
+                splitWidePageMode: parent.splitWidePageMode,
+                onNextPage: parent.goToNextPage,
+                onPreviousPage: parent.goToPreviousPage,
+                onToggleControls: parent.toggleControls
+              )
+              hostingController = UIHostingController(rootView: AnyView(pageView))
+              hostingController.view.tag = index
+              return hostingController
+            }
+            
             let pagePair = parent.viewModel.pagePairs[index]
             
             if pagePair.isSplitPage {
@@ -313,12 +358,34 @@
 
       // Helper method to find view item index for a given page index
       func findViewItemIndex(forPageIndex pageIndex: Int) -> Int? {
+        guard !parent.viewModel.pagePairs.isEmpty else {
+          return nil
+        }
+        
         for (index, pagePair) in parent.viewModel.pagePairs.enumerated() {
           if pagePair.first == pageIndex {
             return index
           }
         }
-        return nil
+        
+        // Fallback: return a safe index
+        return min(pageIndex, parent.viewModel.pagePairs.count - 1)
+      }
+
+      // Helper method specifically for initial page setup
+      func findViewItemIndexForInitialPage(_ pageIndex: Int) -> Int {
+        guard !parent.viewModel.pagePairs.isEmpty else {
+          return pageIndex
+        }
+        
+        for (index, pagePair) in parent.viewModel.pagePairs.enumerated() {
+          if pagePair.first == pageIndex {
+            return index
+          }
+        }
+        
+        // Fallback: use page index directly if not found
+        return min(pageIndex, parent.viewModel.pagePairs.count - 1)
       }
 
       // MARK: - UIPageViewControllerDataSource
