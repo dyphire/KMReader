@@ -443,6 +443,7 @@ struct DivinaReaderView: View {
                   viewModel: viewModel,
                   mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                   readingDirection: readingDirection,
+                  splitWidePageMode: splitWidePageMode,
                   nextBook: nextBook,
                   readList: readList,
                   onDismiss: { closeReader() },
