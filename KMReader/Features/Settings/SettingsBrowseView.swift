@@ -39,6 +39,7 @@ struct SettingsBrowseView: View {
             .font(.caption)
             .foregroundColor(.secondary)
         }
+
       }
 
       Section(header: Text(String(localized: "settings.appearance.search"))) {

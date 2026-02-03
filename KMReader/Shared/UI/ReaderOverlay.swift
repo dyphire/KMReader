@@ -59,6 +59,11 @@ import SwiftUI
         }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .komgaHandoff(
+        title: readerPresentation.handoffTitle,
+        url: readerPresentation.handoffURL,
+        scope: .reader
+      )
       #if os(iOS)
         .statusBarHidden(readerPresentation.hideStatusBar)
       #endif
