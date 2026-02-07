@@ -13,6 +13,8 @@ struct SeriesDetailContentView: View {
 
   @State private var thumbnailRefreshKey = UUID()
 
+  private let collapsedMetadataChipLimit = 10
+
   var body: some View {
     VStack(alignment: .leading) {
       HStack(alignment: .bottom) {
@@ -160,46 +162,35 @@ struct SeriesDetailContentView: View {
               )
             }
 
-            if let authors = series.booksMetadata.authors, !authors.isEmpty {
-              HFlow {
-                ForEach(authors.sortedByRole(), id: \.self) { author in
-                  TappableInfoChip(
-                    label: author.name,
-                    systemImage: author.role.icon,
-                    color: .purple,
-                    destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
-                  )
-                }
-              }
+            CollapsibleChipSection(items: sortedAuthors, collapsedLimit: collapsedMetadataChipLimit) {
+              author in
+              TappableInfoChip(
+                label: author.name,
+                systemImage: author.role.icon,
+                color: .purple,
+                destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
+              )
             }
           }
         }
       }
 
-      if let genres = series.metadata.genres, !genres.isEmpty {
-        HFlow {
-          ForEach(genres.sorted(), id: \.self) { genre in
-            TappableInfoChip(
-              label: genre,
-              systemImage: "theatermasks",
-              color: .teal,
-              destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
-            )
-          }
-        }
+      CollapsibleChipSection(items: sortedGenres, collapsedLimit: collapsedMetadataChipLimit) { genre in
+        TappableInfoChip(
+          label: genre,
+          systemImage: "theatermasks",
+          color: .teal,
+          destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
+        )
       }
 
-      if let tags = series.metadata.tags, !tags.isEmpty {
-        HFlow {
-          ForEach(tags.sorted(), id: \.self) { tag in
-            TappableInfoChip(
-              label: tag,
-              systemImage: "tag",
-              color: .secondary,
-              destination: MetadataFilterHelper.seriesDestinationForTag(tag)
-            )
-          }
-        }
+      CollapsibleChipSection(items: sortedTags, collapsedLimit: collapsedMetadataChipLimit) { tag in
+        TappableInfoChip(
+          label: tag,
+          systemImage: "tag",
+          color: .secondary,
+          destination: MetadataFilterHelper.seriesDestinationForTag(tag)
+        )
       }
 
       HStack(spacing: 6) {
@@ -290,5 +281,17 @@ struct SeriesDetailContentView: View {
       return true
     }
     return false
+  }
+
+  private var sortedAuthors: [Author] {
+    (series.booksMetadata.authors ?? []).sortedByRole()
+  }
+
+  private var sortedGenres: [String] {
+    (series.metadata.genres ?? []).sorted()
+  }
+
+  private var sortedTags: [String] {
+    (series.metadata.tags ?? []).sorted()
   }
 }
