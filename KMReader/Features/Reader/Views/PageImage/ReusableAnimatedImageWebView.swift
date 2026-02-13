@@ -74,10 +74,8 @@ import SwiftUI
           justify-content: center;
         }
         img {
-          max-width: 100%;
-          max-height: 100%;
-          width: auto;
-          height: auto;
+          width: 100%;
+          height: 100%;
           object-fit: contain;
           image-rendering: auto;
         }
@@ -89,8 +87,14 @@ import SwiftUI
         </html>
         """
 
-      let baseURL = fileURL.deletingLastPathComponent()
-      sharedWebView.loadHTMLString(html, baseURL: baseURL)
+      let baseDir = fileURL.deletingLastPathComponent()
+      let htmlFileURL = baseDir.appendingPathComponent(".animated_preview.html")
+      do {
+        try html.write(to: htmlFileURL, atomically: true, encoding: .utf8)
+      } catch {
+        return false
+      }
+      sharedWebView.loadFileURL(htmlFileURL, allowingReadAccessTo: baseDir)
       lastLoadedURL = fileURL
       return true
     }
