@@ -969,6 +969,7 @@ struct DivinaReaderView: View {
 
   private func goToNextPage() {
     guard !viewModel.pages.isEmpty else { return }
+    guard !viewModel.viewItems.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
       let currentIndex =
@@ -976,7 +977,7 @@ struct DivinaReaderView: View {
         ? viewModel.currentViewItemIndex
         : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
       let nextIndex = currentIndex + 1
-      guard nextIndex < viewModel.viewItems.count else { return }
+      guard nextIndex >= 0, nextIndex < viewModel.viewItems.count else { return }
       viewModel.targetViewItemIndex = nextIndex
     case .webtoon:
       // webtoon do not have an end page
@@ -989,6 +990,7 @@ struct DivinaReaderView: View {
 
   private func goToPreviousPage() {
     guard !viewModel.pages.isEmpty else { return }
+    guard !viewModel.viewItems.isEmpty else { return }
     switch readingDirection {
     case .ltr, .rtl, .vertical:
       let currentIndex =
@@ -996,7 +998,7 @@ struct DivinaReaderView: View {
         ? viewModel.currentViewItemIndex
         : viewModel.viewItemIndex(forPageIndex: viewModel.currentPageIndex)
       let previousIndex = currentIndex - 1
-      guard previousIndex >= 0 else { return }
+      guard previousIndex >= 0, previousIndex < viewModel.viewItems.count else { return }
       viewModel.targetViewItemIndex = previousIndex
     case .webtoon:
       guard viewModel.currentPageIndex > 0 else { return }

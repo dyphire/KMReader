@@ -140,20 +140,17 @@
         self.currentPageIndex = parent.viewModel.currentViewItemIndex
       }
 
-      // Total page count including end page
-      var totalPages: Int {
-        parent.viewModel.viewItems.count
-      }
-
       func pageViewController(for index: Int) -> UIViewController? {
-        guard index >= 0 && index < totalPages else { return nil }
-
         // Safety check: ensure we have pages loaded
         guard !parent.viewModel.pages.isEmpty else { return nil }
 
+        // Cache viewItems to avoid concurrent modification issues
+        let viewItems = parent.viewModel.viewItems
+        guard index >= 0 && index < viewItems.count else { return nil }
+
         let hostingController: UIHostingController<AnyView>
 
-        let item = parent.viewModel.viewItems[index]
+        let item = viewItems[index]
 
         switch item {
         case .end:
@@ -265,7 +262,8 @@
       // MARK: - UIGestureRecognizerDelegate
 
       private func isValidIndex(_ index: Int) -> Bool {
-        index >= 0 && index < totalPages
+        let count = parent.viewModel.viewItems.count
+        return index >= 0 && index < count
       }
 
       private func nextIndex(from index: Int) -> Int {
