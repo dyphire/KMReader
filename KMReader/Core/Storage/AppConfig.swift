@@ -669,6 +669,29 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var enableImageUpscaling: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableImageUpscaling") != nil {
+        return UserDefaults.standard.bool(forKey: "enableImageUpscaling")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "enableImageUpscaling")
+    }
+  }
+
+  static nonisolated var imageUpscaleMaxHeight: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "imageUpscaleMaxHeight") != nil {
+        return UserDefaults.standard.integer(forKey: "imageUpscaleMaxHeight")
+      }
+      return 2200
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "imageUpscaleMaxHeight")
+    }
+  }
   static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
