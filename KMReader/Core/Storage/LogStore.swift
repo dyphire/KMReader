@@ -157,8 +157,8 @@ actor LogStore {
         let id = sqlite3_column_int64(stmt, 0)
         let date = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 1))
         let level = Int(sqlite3_column_int(stmt, 2))
-        let category = String(cString: sqlite3_column_text(stmt, 3))
-        let message = String(cString: sqlite3_column_text(stmt, 4))
+        let category = sqlite3_column_text(stmt, 3).map { String(cString: $0) } ?? ""
+        let message = sqlite3_column_text(stmt, 4).map { String(cString: $0) } ?? ""
         entries.append(
           LogEntry(id: id, date: date, level: level, category: category, message: message))
       }
@@ -175,7 +175,9 @@ actor LogStore {
 
     if sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK {
       while sqlite3_step(stmt) == SQLITE_ROW {
-        categories.append(String(cString: sqlite3_column_text(stmt, 0)))
+        if let categoryPtr = sqlite3_column_text(stmt, 0) {
+          categories.append(String(cString: categoryPtr))
+        }
       }
     }
     sqlite3_finalize(stmt)
@@ -217,7 +219,10 @@ actor LogStore {
       }
 
       while sqlite3_step(stmt) == SQLITE_ROW {
-        let category = String(cString: sqlite3_column_text(stmt, 0))
+        guard let categoryPtr = sqlite3_column_text(stmt, 0) else {
+          continue
+        }
+        let category = String(cString: categoryPtr)
         let count = Int(sqlite3_column_int(stmt, 1))
         counts[category] = count
       }
