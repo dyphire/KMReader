@@ -220,21 +220,26 @@ struct SubscriptionView: View {
   private var legalLinksSection: some View {
     VStack(spacing: 8) {
       HStack(spacing: 16) {
-        Link(
-          destination: URL(
-            string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+        if let termsURL = URL(
+          string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
         ) {
-          Text(String(localized: "Terms of Use"))
-            .font(.caption)
-            .foregroundColor(.secondary)
+          Link(destination: termsURL) {
+            Text(String(localized: "Terms of Use"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
+
         Text("·")
           .font(.caption)
           .foregroundColor(.secondary)
-        Link(destination: URL(string: "https://kmreader.everpcpc.com/privacy/")!) {
-          Text(String(localized: "Privacy Policy"))
-            .font(.caption)
-            .foregroundColor(.secondary)
+
+        if let privacyURL = URL(string: "https://kmreader.everpcpc.com/privacy/") {
+          Link(destination: privacyURL) {
+            Text(String(localized: "Privacy Policy"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
         }
       }
     }

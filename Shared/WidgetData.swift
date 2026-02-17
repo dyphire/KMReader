@@ -104,7 +104,9 @@ enum WidgetDataStore: Sendable {
     let encodedId = id.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
     components.path = "/" + encodedId
 
-    return components.url ?? URL(string: "kmreader://\(host)")!
+    return components.url
+      ?? URL(string: "kmreader://\(host)/")
+      ?? URL(fileURLWithPath: "/")
   }
 
   static nonisolated func bookDeepLinkURL(bookId: String) -> URL {
