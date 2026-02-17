@@ -87,6 +87,11 @@
         return nil
       }
 
+      let requiredInputCount = 3 * channelStride
+      guard input.count >= requiredInputCount else {
+        return nil
+      }
+
       let expanded = image.expand(shrinkSize: shrinkSize)
       let rects = Self.calculateRects(width: width, height: height, blockSize: modelBlockSize)
       var imgData = [UInt8](repeating: 0, count: outWidth * outHeight * channels)
@@ -116,6 +121,11 @@
             input: input
           )
         else {
+          continue
+        }
+
+        let requiredOutputCount = 3 * outBlockSize * outBlockSize
+        guard prediction.count >= requiredOutputCount else {
           continue
         }
 
