@@ -44,6 +44,10 @@ struct BookDetailView: View {
     book?.metadata.title ?? String(localized: "Book")
   }
 
+  private var shareURL: URL? {
+    KomgaWebLinkBuilder.book(serverURL: current.serverURL, bookId: bookId)
+  }
+
   var body: some View {
     ScrollView {
       LazyVStack(alignment: .leading) {
@@ -234,7 +238,14 @@ struct BookDetailView: View {
 
   @ViewBuilder
   private var bookToolbarContent: some View {
-    HStack(spacing: PlatformHelper.buttonSpacing) {
+    HStack {
+      #if !os(tvOS)
+        if let shareURL {
+          ShareLink(item: shareURL, subject: Text(navigationTitle)) {
+            Image(systemName: "square.and.arrow.up")
+          }
+        }
+      #endif
 
       Menu {
         if current.isAdmin {

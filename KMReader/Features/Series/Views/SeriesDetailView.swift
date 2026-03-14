@@ -70,6 +70,10 @@ struct SeriesDetailView: View {
     series?.metadata.title ?? String(localized: "Series")
   }
 
+  private var shareURL: URL? {
+    KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId)
+  }
+
   var body: some View {
     ScrollView {
       LazyVStack(alignment: .leading) {
@@ -282,6 +286,14 @@ extension SeriesDetailView {
   @ViewBuilder
   private var seriesToolbarContent: some View {
     HStack {
+      #if !os(tvOS)
+        if let shareURL {
+          ShareLink(item: shareURL, subject: Text(navigationTitle)) {
+            Image(systemName: "square.and.arrow.up")
+          }
+        }
+      #endif
+
       Button {
         showSavedFilters = true
       } label: {
