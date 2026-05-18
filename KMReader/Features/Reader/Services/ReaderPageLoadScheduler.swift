@@ -2,8 +2,11 @@ import Foundation
 import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
+import os
 
-#if os(macOS)
+#if os(iOS) || os(tvOS)
+  import UIKit
+#elseif os(macOS)
   import AppKit
 #endif
 
@@ -54,6 +57,10 @@ final class ReaderPageLoadScheduler {
     self.preloadAfter = preloadAfter
     self.keepRangeBefore = keepRangeBefore
     self.keepRangeAfter = keepRangeAfter
+
+    #if os(iOS) || os(tvOS)
+      MemoryWarningCenter.shared.addListener(self)
+    #endif
   }
 
   func setPresentationInvalidationHandler(_ handler: PresentationInvalidationHandler?) {
@@ -169,6 +176,42 @@ final class ReaderPageLoadScheduler {
     for key in animatedKeysToRemove {
       updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
     }
+  }
+
+  /// Drop decoded bitmaps for every page outside the visible set, keeping
+  /// only what's strictly required to render the current screen. More
+  /// aggressive than `cleanupDistantImagesAroundCurrentPage` (which keeps
+  /// the full `keepRangeBefore`/`keepRangeAfter` keep-window of ~10 pages)
+  /// because this is invoked under memory pressure, when iOS would
+  /// otherwise reclaim the view tree and force a full reader rebuild.
+  ///
+  /// The on-disk image cache survives this prune untouched; the next
+  /// preload cycle (driven by the next page change) re-decodes the keep
+  /// window from disk transparently. Falls back to keeping `currentPageID`
+  /// when `visiblePageIDs` is unexpectedly empty so the user never loses
+  /// the page they're actively reading.
+  func pruneToVisiblePagesOnly() {
+    var keepPageIDs = Set(visiblePageIDs)
+    if keepPageIDs.isEmpty, let currentPageID {
+      keepPageIDs.insert(currentPageID)
+    }
+
+    let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
+    for key in imageKeysToRemove {
+      clearPreloadedImage(for: key)
+    }
+
+    let animatedKeysToRemove = Set(animatedPageStates.keys)
+      .union(animatedPageSourceFileURLs.keys)
+      .filter { !keepPageIDs.contains($0) }
+
+    for key in animatedKeysToRemove {
+      updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
+    }
+
+    logger.debug(
+      "🧹 [Reader/Memory] Pruned to visible pages: kept=\(keepPageIDs.count), removed=\(imageKeysToRemove.count)"
+    )
   }
 
   func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
@@ -869,3 +912,12 @@ final class ReaderPageLoadScheduler {
     return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
   }
 }
+
+#if os(iOS) || os(tvOS)
+  extension ReaderPageLoadScheduler: MemoryWarningListener {
+    func handleMemoryWarning() {
+      logger.warning("⚠️ [Reader/Memory] Received memory warning; pruning to visible pages only")
+      pruneToVisiblePagesOnly()
+    }
+  }
+#endif
