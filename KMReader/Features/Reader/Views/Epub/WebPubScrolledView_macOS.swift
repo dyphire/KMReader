@@ -61,6 +61,7 @@
     private var currentSubPageIndex: Int = 0
     private var totalPagesInChapter: Int = 1
     private var chapterURL: URL?
+    private var chapterMediaType: String?
     private var rootURL: URL?
     private var contentCSS: String = ""
     private var readiumProperties: [String: String?] = [:]
@@ -114,8 +115,10 @@
       )
 
       let nextChapterURL = parent.viewModel.chapterURL(at: selectedChapterIndex)
+      let nextChapterMediaType = parent.viewModel.chapterMediaType(at: selectedChapterIndex)
       let nextRootURL = parent.viewModel.resourceRootURL
-      let shouldReload = nextChapterURL != chapterURL || nextRootURL != rootURL
+      let shouldReload =
+        nextChapterURL != chapterURL || nextChapterMediaType != chapterMediaType || nextRootURL != rootURL
       let appearanceChanged =
         contentCSS != readiumPayload.css
         || readiumProperties != readiumPayload.properties
@@ -125,6 +128,7 @@
 
       chapterIndex = selectedChapterIndex
       chapterURL = nextChapterURL
+      chapterMediaType = nextChapterMediaType
       rootURL = nextRootURL
       contentCSS = readiumPayload.css
       readiumProperties = readiumPayload.properties
@@ -172,7 +176,7 @@
       lastKnownDocumentContentHeight = 0
       lastKnownDocumentViewportHeight = 0
       totalPagesInChapter = 1
-      webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
     }
 
     private func installOverlayIfNeeded() {
@@ -592,97 +596,13 @@
     }
 
     private func injectCSS(on webView: WKWebView, completion: (() -> Void)? = nil) {
-      let readiumAssets = ReadiumCSSLoader.cssAssets(
+      let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
+        contentCSS: contentCSS,
+        readiumProperties: readiumProperties,
+        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       )
-      let readiumVariant = ReadiumCSSLoader.resolveVariantSubdirectory(
-        language: publicationLanguage,
-        readingProgression: publicationReadingProgression
-      )
-      let shouldSetDir = readiumVariant == "rtl"
-
-      let readiumBefore = Data(readiumAssets.before.utf8).base64EncodedString()
-      let readiumDefault = Data(readiumAssets.defaultCSS.utf8).base64EncodedString()
-      let readiumAfter = Data(readiumAssets.after.utf8).base64EncodedString()
-      let customCSS = Data(contentCSS.utf8).base64EncodedString()
-
-      var properties: [String: Any] = [:]
-      for (key, value) in readiumProperties {
-        properties[key] = value ?? NSNull()
-      }
-      let propertiesJSON = WebPubJavaScriptSupport.encodeJSON(properties, fallback: "{}")
-      let propertyKeysJSON = WebPubJavaScriptSupport.encodeJSON(
-        EpubReaderPreferences.readiumPropertyKeys, fallback: "[]")
-      let languageJSON = WebPubJavaScriptSupport.escapedJSONString(publicationLanguage)
-
-      let js = """
-          (function() {
-            var root = document.documentElement;
-            var lang = \(languageJSON);
-            if (lang) {
-              if (!root.hasAttribute('lang')) {
-                root.setAttribute('lang', lang);
-              }
-              if (!root.hasAttribute('xml:lang')) {
-                root.setAttribute('xml:lang', lang);
-              }
-              if (document.body) {
-                if (!document.body.hasAttribute('lang')) {
-                  document.body.setAttribute('lang', lang);
-                }
-                if (!document.body.hasAttribute('xml:lang')) {
-                  document.body.setAttribute('xml:lang', lang);
-                }
-              }
-            }
-            if (\(shouldSetDir ? "true" : "false")) {
-              root.setAttribute('dir', 'rtl');
-              if (document.body) {
-                document.body.setAttribute('dir', 'rtl');
-              }
-            }
-
-            var props = \(propertiesJSON);
-            Object.keys(props).forEach(function(key) {
-              var value = props[key];
-              if (value === null || value === undefined) {
-                root.style.removeProperty(key);
-              } else {
-                root.style.setProperty(key, value, 'important');
-              }
-            });
-            var knownKeys = \(propertyKeysJSON);
-            knownKeys.forEach(function(key) {
-              if (!(key in props)) {
-                root.style.removeProperty(key);
-              }
-            });
-
-            var meta = document.querySelector('meta[name=viewport]');
-            if (!meta) {
-              meta = document.createElement('meta');
-              meta.name = 'viewport';
-              document.head.appendChild(meta);
-            }
-            meta.setAttribute('content', 'width=device-width, initial-scale=1.0');
-
-            var style = document.getElementById('kmreader-style');
-            if (!style) {
-              style = document.createElement('style');
-              style.id = 'kmreader-style';
-              document.head.appendChild(style);
-            }
-            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
-            var css = atob('\(readiumBefore)') + "\\n"
-              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
-              + atob('\(readiumAfter)') + "\\n"
-              + atob('\(customCSS)');
-            style.textContent = css;
-            return true;
-          })();
-        """
-
       webView.evaluateJavaScript(js) { _, _ in
         completion?()
       }

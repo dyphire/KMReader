@@ -606,6 +606,11 @@
       chapterURLCache[index]
     }
 
+    func chapterMediaType(at index: Int) -> String? {
+      guard index >= 0, index < readingOrder.count else { return nil }
+      return readingOrder[index].type
+    }
+
     func chapterPageCount(at index: Int) -> Int? {
       chapterPageCounts[index]
     }
