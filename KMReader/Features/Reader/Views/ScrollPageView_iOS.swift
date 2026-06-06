@@ -12,6 +12,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     init(
       mode: PageViewMode,
@@ -22,7 +23,8 @@
       renderConfig: ReaderRenderConfig,
       viewModel: ReaderViewModel,
       readListContext: ReaderReadListContext?,
-      onDismiss: @escaping () -> Void
+      onDismiss: @escaping () -> Void,
+      onTapZoneTap: @escaping ReaderTapZoneTapHandler
     ) {
       self.mode = mode
       self.viewportSize = viewportSize
@@ -33,6 +35,7 @@
       self.viewModel = viewModel
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneTap = onTapZoneTap
     }
 
     private var shouldDisableScrollInteraction: Bool {
@@ -67,7 +70,7 @@
       collectionView.isPrefetchingEnabled = false
       collectionView.semanticContentAttribute = .forceLeftToRight
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         collectionView.isPagingEnabled = true
         collectionView.scrollsToTop = false
       #endif
@@ -80,6 +83,33 @@
         NativePagedEndCell.self,
         forCellWithReuseIdentifier: Coordinator.endCellReuseIdentifier
       )
+
+      let singleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleSingleTap(_:))
+      )
+      singleTapGesture.numberOfTapsRequired = 1
+      singleTapGesture.cancelsTouchesInView = false
+      singleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(singleTapGesture)
+
+      let doubleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleTap(_:))
+      )
+      doubleTapGesture.numberOfTapsRequired = 2
+      doubleTapGesture.cancelsTouchesInView = false
+      doubleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(doubleTapGesture)
+
+      let longPressGesture = UILongPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPressGesture.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+      longPressGesture.cancelsTouchesInView = false
+      longPressGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(longPressGesture)
 
       context.coordinator.collectionView = collectionView
       collectionView.onDidLayout = { [weak coordinator = context.coordinator] in
@@ -103,12 +133,13 @@
     }
 
     static func dismantleUIView(_ uiView: UICollectionView, coordinator: Coordinator) {
+      coordinator.synchronizeCurrentPositionBeforeTeardown(in: uiView)
       coordinator.teardown()
     }
 
     @MainActor
     final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout,
-      UIScrollViewDelegate, NativePagedPagePresentationHost
+      UIScrollViewDelegate, UIGestureRecognizerDelegate, NativePagedPagePresentationHost
     {
       private struct RenderInputs: Equatable {
         let readingDirection: ReadingDirection
@@ -134,6 +165,9 @@
       private var visiblePreloadTask: Task<Void, Never>?
       private var visiblePreloadItem: ReaderViewItem?
       private var applicationWillResignActiveObserver: NSObjectProtocol?
+      private var singleTapWorkItem: DispatchWorkItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -142,6 +176,9 @@
       }
 
       func teardown() {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+        isLongPressing = false
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -156,6 +193,15 @@
         }
         pagePresentationCoordinator.teardown()
         engine.teardown()
+      }
+
+      func synchronizeCurrentPositionBeforeTeardown(in collectionView: UICollectionView) {
+        deferredViewModelCommitTask?.cancel()
+        deferredViewModelCommitTask = nil
+        collectionView.layoutIfNeeded()
+
+        guard let item = currentAnchorItem(in: collectionView) else { return }
+        synchronizeViewModelCurrentPosition(to: item)
       }
 
       func update(parent: ScrollPageView, collectionView: UICollectionView) {
@@ -175,7 +221,7 @@
           collectionView.layoutIfNeeded()
           refreshedVisibleContent = synchronizeInitialPositionIfPossible(in: collectionView)
         } else if displayedItems != engine.renderedItems {
-          if engine.isInteractionActive {
+          if isScrollInteractionActive(in: collectionView) || engine.isProgrammaticScrolling {
             engine.queueRenderedItems(displayedItems, anchor: anchorItem)
           } else {
             applyRenderedItems(
@@ -189,7 +235,7 @@
         }
 
         if engine.hasSyncedInitialPosition, sizeChanged, !refreshedVisibleContent {
-          if engine.isInteractionActive {
+          if isScrollInteractionActive(in: collectionView) {
             needsViewportResyncAfterInteraction = true
             refreshVisibleCells(in: collectionView)
             refreshedVisibleContent = true
@@ -199,12 +245,7 @@
           }
         }
 
-        let finishedProgrammaticScroll = finishProgrammaticScrollIfTargetReached(in: collectionView)
-        if finishedProgrammaticScroll {
-          refreshedVisibleContent = true
-        }
-
-        if !finishedProgrammaticScroll, let navigationTarget = parent.viewModel.navigationTarget {
+        if let navigationTarget = parent.viewModel.navigationTarget {
           handleNavigationChange(navigationTarget, in: collectionView)
         } else if renderInputsChanged && !refreshedVisibleContent {
           refreshVisibleCells(in: collectionView)
@@ -281,12 +322,18 @@
         }
         guard canApplyInitialPosition(in: collectionView) else { return false }
 
-        scrollToItem(currentItem, animated: false, in: collectionView)
+        guard scrollToItem(currentItem, animated: false, in: collectionView) else {
+          return false
+        }
         guard let committedItem = engine.completeInitialPosition() else { return false }
         preloadVisiblePages(for: committedItem)
         refreshVisibleCells(in: collectionView)
         if parent.viewModel.navigationTarget == nil {
           scheduleViewModelCommit(for: committedItem)
+        }
+        Task { @MainActor [weak self] in
+          guard let self, self.engine.committedItem == committedItem else { return }
+          await self.parent.viewModel.preloadPages(bypassThrottle: true)
         }
         return true
       }
@@ -309,7 +356,7 @@
         collectionView.layoutIfNeeded()
 
         if let anchor = engine.resolveItem(anchor) {
-          scrollToItem(anchor, animated: false, in: collectionView)
+          _ = scrollToItem(anchor, animated: false, in: collectionView)
         }
 
         refreshVisibleCells(in: collectionView)
@@ -319,8 +366,16 @@
       }
 
       @discardableResult
-      private func applyQueuedRenderedItemsIfNeeded(in collectionView: UICollectionView) -> Bool {
-        guard let update = engine.consumeQueuedRenderedItems(anchorFallback: currentAnchorItem(in: collectionView))
+      private func applyQueuedRenderedItemsIfNeeded(
+        in collectionView: UICollectionView,
+        anchorFallback: ReaderViewItem? = nil,
+        preferAnchorFallback: Bool = false
+      ) -> Bool {
+        guard
+          let update = engine.consumeQueuedRenderedItems(
+            anchorFallback: anchorFallback ?? currentAnchorItem(in: collectionView),
+            preferAnchorFallback: preferAnchorFallback
+          )
         else {
           return false
         }
@@ -338,6 +393,14 @@
         _ navigationTarget: ReaderViewItem,
         in collectionView: UICollectionView
       ) {
+        // While the user is in the middle of a swipe (drag or its deceleration), ignore
+        // tap-initiated navigation. The drag's intent dominates; layering a programmatic
+        // scroll over natural deceleration produces a double page advance.
+        if isScrollInteractionActive(in: collectionView) {
+          parent.viewModel.clearNavigationTarget()
+          return
+        }
+
         guard let resolvedTarget = parent.viewModel.resolvedViewItem(for: navigationTarget),
           let targetItem = engine.resolveItem(resolvedTarget)
         else {
@@ -361,29 +424,35 @@
           return
         }
 
-        scrollToItem(targetItem, animated: true, in: collectionView)
+        _ = scrollToItem(targetItem, animated: true, in: collectionView)
       }
 
+      @discardableResult
       private func scrollToItem(
         _ item: ReaderViewItem,
         animated: Bool,
         in collectionView: UICollectionView
-      ) {
-        guard let index = engine.renderedItems.firstIndex(of: item) else { return }
+      ) -> Bool {
+        guard let index = engine.renderedItems.firstIndex(of: item) else {
+          return false
+        }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutIfNeeded()
         guard let targetOffset = targetContentOffset(for: indexPath, in: collectionView) else {
-          return
+          return false
         }
 
         if isEquivalentContentOffset(targetOffset, to: collectionView.contentOffset) {
+          guard isPositionedOnItem(item, in: collectionView) else {
+            return false
+          }
           pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           refreshVisibleCells(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
-          return
+          return true
         }
 
         let shouldAnimate = animated && parent.navigationAnimationDuration > 0
@@ -397,11 +466,16 @@
           pendingProgrammaticTargetOffset = nil
           engine.clearPendingProgrammaticCommit()
           collectionView.setContentOffset(targetOffset, animated: false)
+          collectionView.layoutIfNeeded()
+          guard isPositionedOnItem(item, in: collectionView) else {
+            return false
+          }
           refreshVisibleCells(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
         }
+        return true
       }
 
       private func targetContentOffset(
@@ -455,6 +529,22 @@
         return centeredItem(in: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func isPositionedOnItem(_ item: ReaderViewItem, in collectionView: UICollectionView) -> Bool {
+        centeredItem(in: collectionView) == item
+      }
+
+      private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
+        let resolvedItem = engine.resolveItem(item) ?? item
+        engine.commit(resolvedItem)
+
+        if parent.viewModel.currentViewItem() != resolvedItem {
+          parent.viewModel.updateCurrentPosition(viewItem: resolvedItem)
+        }
+        if parent.viewModel.navigationTarget != nil {
+          parent.viewModel.clearNavigationTarget()
+        }
       }
 
       private func clearProgrammaticScrollState() {
@@ -549,7 +639,7 @@
         _ anchor: ReaderViewItem,
         in collectionView: UICollectionView
       ) {
-        scrollToItem(anchor, animated: false, in: collectionView)
+        _ = scrollToItem(anchor, animated: false, in: collectionView)
         refreshVisibleCells(in: collectionView)
         if parent.viewModel.navigationTarget == nil {
           commitRestoredItemIfNeeded(anchor: anchor, in: collectionView)
@@ -563,30 +653,6 @@
         collectionView.layoutIfNeeded()
         guard let anchorItem = currentAnchorItem(in: collectionView) else { return false }
         restoreViewportAnchor(anchorItem, in: collectionView)
-        return true
-      }
-
-      @discardableResult
-      private func finishProgrammaticScrollIfTargetReached(in collectionView: UICollectionView) -> Bool {
-        guard engine.isProgrammaticScrolling || engine.hasPendingProgrammaticCommit else {
-          return false
-        }
-        guard engine.programmaticTargetItem != nil else {
-          clearProgrammaticScrollState()
-          return false
-        }
-
-        let reachedTargetOffset =
-          pendingProgrammaticTargetOffset.map {
-            isEquivalentContentOffset($0, to: collectionView.contentOffset)
-          }
-          ?? false
-
-        guard reachedTargetOffset else {
-          return false
-        }
-
-        finishProgrammaticScroll(in: collectionView)
         return true
       }
 
@@ -787,7 +853,6 @@
         guard let collectionView else { return }
 
         collectionView.layoutIfNeeded()
-        _ = engine.endUserInteraction()
         clearProgrammaticScrollState()
         needsViewportResyncAfterInteraction = false
         pendingUserInteractionTargetItem = nil
@@ -801,8 +866,11 @@
 
         let interactionTargetItem =
           pendingUserInteractionTargetItem.flatMap { engine.resolveItem($0) } ?? pendingUserInteractionTargetItem
-        _ = engine.endUserInteraction()
-        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
+          in: collectionView,
+          anchorFallback: interactionTargetItem,
+          preferAnchorFallback: interactionTargetItem != nil
+        )
         let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
         if !appliedQueuedItems, !restoredViewport, parent.viewModel.navigationTarget == nil {
           if let interactionTargetItem {
@@ -819,9 +887,14 @@
           return
         }
 
+        let programmaticTargetItem = engine.programmaticTargetItem
         pendingProgrammaticTargetOffset = nil
         _ = engine.endProgrammaticScroll()
-        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
+          in: collectionView,
+          anchorFallback: programmaticTargetItem,
+          preferAnchorFallback: true
+        )
         let committedPendingItem = commitPendingProgrammaticItemIfNeeded(in: collectionView)
         let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
         if !committedPendingItem {
@@ -880,10 +953,87 @@
         resolvedViewportSize(for: collectionView)
       }
 
+      @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let collectionView else { return }
+        guard !isTapZoneSuppressed(in: collectionView) else { return }
+
+        let location = gesture.location(in: collectionView)
+        let workItem = DispatchWorkItem { [weak self, weak collectionView] in
+          guard let self, let collectionView else { return }
+          self.dispatchTapZoneTap(at: location, in: collectionView)
+        }
+        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
+      }
+
+      @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+      }
+
+      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+          isLongPressing = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
+      private func isScrollInteractionActive(in collectionView: UICollectionView) -> Bool {
+        collectionView.isDragging || collectionView.isDecelerating || collectionView.isTracking
+      }
+
+      private func isTapZoneSuppressed(in collectionView: UICollectionView) -> Bool {
+        parent.viewModel.isZoomed
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
+          || collectionView.isDragging
+          || collectionView.isDecelerating
+          || collectionView.isTracking
+      }
+
+      private func dispatchTapZoneTap(at location: CGPoint, in collectionView: UICollectionView) {
+        singleTapWorkItem = nil
+        guard !isTapZoneSuppressed(in: collectionView) else { return }
+
+        let visibleBounds = collectionView.bounds
+        guard visibleBounds.width > 0, visibleBounds.height > 0 else { return }
+        let normalizedX = min(max((location.x - visibleBounds.minX) / visibleBounds.width, 0), 1)
+        let normalizedY = min(max((location.y - visibleBounds.minY) / visibleBounds.height, 0), 1)
+        parent.onTapZoneTap(normalizedX, normalizedY)
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        touch.view?.hasInteractiveAncestor != true
+      }
+
       func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         pendingUserInteractionTargetItem = nil
         cancelProgrammaticNavigationIfNeeded()
-        _ = engine.beginUserInteraction()
       }
 
       func scrollViewWillEndDragging(
@@ -906,12 +1056,14 @@
       }
 
       func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard collectionView != nil else { return }
         if !decelerate {
           finishScrollInteractionIfNeeded()
         }
       }
 
       func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard collectionView != nil else { return }
         finishScrollInteractionIfNeeded()
       }
 

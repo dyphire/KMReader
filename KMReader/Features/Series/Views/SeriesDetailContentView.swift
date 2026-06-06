@@ -21,13 +21,12 @@ struct SeriesDetailContentView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      HStack(alignment: .bottom) {
-        Text(series.metadata.title)
-          .font(.title2)
+      HStack(alignment: .bottom, spacing: 8) {
+        DetailTitleView(title: series.metadata.title)
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
-        Spacer()
+        Spacer(minLength: 0)
       }
 
       HStack(alignment: .top) {
@@ -185,7 +184,8 @@ struct SeriesDetailContentView: View {
         )
       }
 
-      CollapsibleChipSection(items: combinedTagItems, collapsedLimit: collapsedMetadataChipLimit) { (tagItem: TagItem) in
+      CollapsibleChipSection(items: combinedTagItems, collapsedLimit: collapsedMetadataChipLimit) {
+        (tagItem: TagItem) in
         TappableInfoChip(
           label: tagItem.name,
           systemImage: "tag",
@@ -224,6 +224,7 @@ struct SeriesDetailContentView: View {
                 Text(altTitle.title)
                   .font(.caption)
                   .foregroundColor(.primary)
+                  .textSelectionIfAvailable()
               }
             }
           }
@@ -235,10 +236,8 @@ struct SeriesDetailContentView: View {
           Divider()
           Text("Links")
             .font(.headline)
-          HFlow {
-            ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              ExternalLinkChip(label: link.label, url: link.url)
-            }
+          CollapsibleChipSection(items: links, collapsedLimit: collapsedMetadataChipLimit) { link in
+            ExternalLinkChip(label: link.label, url: link.url)
           }
         }.padding(.bottom, 8)
       }

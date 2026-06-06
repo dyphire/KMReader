@@ -8,57 +8,11 @@
   import UIKit
   import WebKit
 
-  extension ReaderTheme {
-    var uiColorBackground: UIColor { UIColor(hex: backgroundColorHex) ?? .white }
-    var uiColorText: UIColor { UIColor(hex: textColorHex) ?? .black }
-  }
-
-  extension UIColor {
-    convenience init?(hex: String) {
-      var trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-      if trimmed.hasPrefix("#") {
-        trimmed.removeFirst()
-      }
-      guard trimmed.count == 6, let value = Int(trimmed, radix: 16) else { return nil }
-      let red = CGFloat((value >> 16) & 0xFF) / 255.0
-      let green = CGFloat((value >> 8) & 0xFF) / 255.0
-      let blue = CGFloat(value & 0xFF) / 255.0
-      self.init(red: red, green: green, blue: blue, alpha: 1.0)
-    }
-
-    var brightness: CGFloat {
-      var r: CGFloat = 0
-      var g: CGFloat = 0
-      var b: CGFloat = 0
-      var a: CGFloat = 0
-      guard getRed(&r, green: &g, blue: &b, alpha: &a) else { return 0 }
-      return (r * 299 + g * 587 + b * 114) / 1000
-    }
-  }
-
-  /// A weak wrapper for WKScriptMessageHandler to avoid retain cycles.
-  /// WKUserContentController retains its message handlers strongly, so we use this
-  /// wrapper to prevent the view controller from being retained by the web view.
-  private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
-    private weak var delegate: WKScriptMessageHandler?
-
-    init(delegate: WKScriptMessageHandler) {
-      self.delegate = delegate
-      super.init()
-    }
-
-    func userContentController(
-      _ userContentController: WKUserContentController,
-      didReceive message: WKScriptMessage
-    ) {
-      delegate?.userContentController(userContentController, didReceive: message)
-    }
-  }
-
   struct WebPubPagedCurlView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -135,10 +89,24 @@
           direction: .forward,
           animated: false
         )
+        context.coordinator.commitInstalledLocation(
+          chapterIndex: initialChapterIndex,
+          pageIndex: initialPageIndex
+        )
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
           context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
+      } else {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: pageVC,
+            backgroundColor: preferences.resolvedTheme(for: colorScheme).uiColorBackground
+          ),
+          on: pageVC,
+          direction: .forward,
+          animated: false
+        )
       }
 
       return pageVC
@@ -154,7 +122,12 @@
       let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
       let initialPageIndex = max(0, min(viewModel.currentPageIndex, initialPageCount - 1))
 
-      if uiViewController.viewControllers?.isEmpty ?? true,
+      let visibleController = uiViewController.viewControllers?.first
+      let needsInitialControllers =
+        !context.coordinator.isAnimating
+        && !(visibleController is EpubPageViewController)
+        && !(visibleController is PageCurlBacksideViewController)
+      if needsInitialControllers,
         initialChapterIndex >= 0,
         initialChapterIndex < viewModel.chapterCount,
         let initialVC = context.coordinator.pageViewController(
@@ -176,17 +149,30 @@
           direction: .forward,
           animated: false
         )
-        context.coordinator.currentChapterIndex = initialChapterIndex
-        context.coordinator.currentPageIndex = initialPageIndex
+        context.coordinator.commitInstalledLocation(
+          chapterIndex: initialChapterIndex,
+          pageIndex: initialPageIndex
+        )
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: uiViewController)
           context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
+      } else if needsInitialControllers {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: uiViewController,
+            backgroundColor: preferences.resolvedTheme(for: colorScheme).uiColorBackground
+          ),
+          on: uiViewController,
+          direction: .forward,
+          animated: false
+        )
       }
 
       if let targetChapterIndex = viewModel.targetChapterIndex,
         let targetPageIndex = viewModel.targetPageIndex,
         !context.coordinator.isAnimating,
+        !(uiViewController.transitionCoordinator?.isAnimated ?? false),
         targetChapterIndex >= 0,
         targetChapterIndex < viewModel.chapterCount,
         targetChapterIndex != context.coordinator.currentChapterIndex
@@ -214,7 +200,7 @@
         let direction: UIPageViewController.NavigationDirection = isForward ? .forward : .reverse
 
         context.coordinator.isAnimating = true
-        let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+        let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
         let transitionControllers = pageCurlControllers(
           primary: targetVC,
           targetChapterIndex: targetChapterIndex,
@@ -260,19 +246,15 @@
 
       if let currentVC = uiViewController.viewControllers?.first as? EpubPageViewController {
         let chapterIndex = currentVC.chapterIndex
-        let containerInsets = viewModel.containerInsetsForLabels()
+        let containerInsets = viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = preferences.resolvedTheme(for: colorScheme)
-
-        // Ensure the selected font is copied to the resource directory
-        if let fontName = preferences.fontFamily.fontName {
-          viewModel.ensureFontCopied(fontName: fontName)
-        }
 
         let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
         let readiumPayload = preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: viewModel.resourceRootURL
+          rootURL: viewModel.resourceRootURL,
+          viewportSize: viewModel.resolvedViewportSize
         )
 
         guard
@@ -281,7 +263,8 @@
             pageIndex: currentVC.currentSubPageIndex
           )
         else { return }
-        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let chapterProgress =
+          location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = viewModel.totalProgression(
           location: location,
           chapterProgress: chapterProgress
@@ -289,7 +272,9 @@
 
         currentVC.configure(
           chapterURL: viewModel.chapterURL(at: chapterIndex),
+          chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
           rootURL: viewModel.resourceRootURL,
+          mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -403,6 +388,23 @@
         "\(chapterIndex)-\(pageIndex)"
       }
 
+      func commitInstalledLocation(chapterIndex: Int, pageIndex: Int) {
+        currentChapterIndex = chapterIndex
+        currentPageIndex = pageIndex
+        if parent.viewModel.currentChapterIndex != chapterIndex {
+          parent.viewModel.currentChapterIndex = chapterIndex
+        }
+        if parent.viewModel.currentPageIndex != pageIndex {
+          parent.viewModel.currentPageIndex = pageIndex
+        }
+        if parent.viewModel.targetChapterIndex == chapterIndex,
+          parent.viewModel.targetPageIndex == pageIndex
+        {
+          parent.viewModel.targetChapterIndex = nil
+          parent.viewModel.targetPageIndex = nil
+        }
+      }
+
       func storeBacksideSnapshotIfReady(from controller: EpubPageViewController) {
         guard let image = controller.makeBacksideSnapshotImage() else { return }
         let key = cacheKey(chapterIndex: controller.chapterIndex, pageIndex: controller.currentSubPageIndex)
@@ -466,21 +468,20 @@
           guard subPageIndex >= 0 else { return nil }
         }
 
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
 
         // Ensure the selected font is copied to the resource directory
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
 
         let fontPath = parent.preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
+        let chapterMediaType = parent.viewModel.chapterMediaType(at: chapterIndex)
         let rootURL = parent.viewModel.resourceRootURL
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: rootURL
+          rootURL: rootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
         let chapterIndexForCallback = chapterIndex
         let onPageCountReady: (Int) -> Void = { [weak viewModel = parent.viewModel] pageCount in
@@ -496,7 +497,8 @@
             pageIndex: locationPageIndex
           )
         else { return nil }
-        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let chapterProgress =
+          location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = parent.viewModel.totalProgression(
           location: location,
           chapterProgress: chapterProgress
@@ -507,7 +509,9 @@
         if let cached = cachedControllers[key] {
           cached.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -540,7 +544,9 @@
         }) {
           reusable.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -572,7 +578,9 @@
 
         let controller = EpubPageViewController(
           chapterURL: chapterURL,
+          chapterMediaType: chapterMediaType,
           rootURL: rootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -701,6 +709,7 @@
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
         guard !pendingViewControllers.isEmpty else { return }
+        isAnimating = true
         clearReservedControllers()
 
         for controller in pendingViewControllers {
@@ -742,6 +751,7 @@
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        isAnimating = false
         pendingControllers.removeAll()
         clearReservedControllers()
 
@@ -784,8 +794,7 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        PageCurlControllerPlanner.configure(pageViewController: pageViewController)
-        return .min
+        .min
       }
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
@@ -804,9 +813,9 @@
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: AppConfig.tapZoneMode,
-          readingDirection: tapReadingDirection(),
-          zoneThreshold: AppConfig.tapZoneSize.value
+          tapZoneMode: AppConfig.epubTapZoneMode,
+          tapZoneInversionMode: AppConfig.epubTapZoneInversionMode,
+          readingDirection: tapReadingDirection()
         )
 
         switch action {
@@ -1127,7 +1136,9 @@
     private var publicationLanguage: String?
     private var publicationReadingProgression: WebPubReadingProgression?
     private var chapterURL: URL?
+    private var chapterMediaType: String?
     private var rootURL: URL?
+    private var mediaTypesByRelativePath: [String: String]
     private var lastLayoutSize: CGSize = .zero
     private var isContentLoaded = false
     private var pendingPageIndex: Int?
@@ -1146,18 +1157,17 @@
     private var labelBottomOffset: CGFloat
     private var useSafeArea: Bool
 
-    // Overlay labels
-    private var topBookTitleLabel: UILabel?
-    private var topProgressLabel: UILabel?
-    private var bottomChapterLabel: UILabel?
-    private var bottomPageCenterLabel: UILabel?
-    private var bottomPageRightLabel: UILabel?
+    private let epubResourceSchemeHandler = EpubResourceSchemeHandler()
+
+    private var infoOverlay: WebPubInfoOverlaySupport.UIKitOverlay?
 
     private var loadingIndicator: UIActivityIndicatorView?
 
     init(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
@@ -1177,7 +1187,9 @@
       onPageCountReady: ((Int) -> Void)?
     ) {
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
       self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
@@ -1265,7 +1277,9 @@
 
     func configure(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
@@ -1286,7 +1300,11 @@
       targetProgressionOnReady: Double? = nil,
       onPageCountReady: ((Int) -> Void)?
     ) {
-      let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
+      let shouldReload =
+        chapterURL != self.chapterURL
+        || chapterMediaType != self.chapterMediaType
+        || rootURL != self.rootURL
+        || mediaTypesByRelativePath != self.mediaTypesByRelativePath
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
@@ -1304,7 +1322,10 @@
       }
 
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
       self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
@@ -1365,141 +1386,28 @@
     }
 
     func setupOverlayLabels() {
-      let topOffset = labelTopOffset
-      let bottomOffset = -labelBottomOffset
-
-      // Top book title label
-      let bookTitleLabel = UILabel()
-      bookTitleLabel.font = .systemFont(ofSize: 14)
-      bookTitleLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      bookTitleLabel.textAlignment = .center
-      bookTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-      bookTitleLabel.isUserInteractionEnabled = false
-      bookTitleLabel.alpha = 0
-      view.addSubview(bookTitleLabel)
-      NSLayoutConstraint.activate([
-        bookTitleLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
-        bookTitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-        bookTitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-      ])
-      self.topBookTitleLabel = bookTitleLabel
-
-      // Top progress label
-      let progressLabel = UILabel()
-      progressLabel.font = .systemFont(ofSize: 14)
-      progressLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      progressLabel.textAlignment = .center
-      progressLabel.translatesAutoresizingMaskIntoConstraints = false
-      progressLabel.isUserInteractionEnabled = false
-      progressLabel.alpha = 0
-      view.addSubview(progressLabel)
-      NSLayoutConstraint.activate([
-        progressLabel.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
-        progressLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-        progressLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-      ])
-      self.topProgressLabel = progressLabel
-
-      // Bottom chapter label
-      let chapterLabel = UILabel()
-      chapterLabel.font = .systemFont(ofSize: 12)
-      chapterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      chapterLabel.textAlignment = .left
-      chapterLabel.translatesAutoresizingMaskIntoConstraints = false
-      chapterLabel.isUserInteractionEnabled = false
-      chapterLabel.alpha = 0
-      view.addSubview(chapterLabel)
-      NSLayoutConstraint.activate([
-        chapterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        chapterLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-      ])
-      self.bottomChapterLabel = chapterLabel
-
-      // Bottom page label (centered)
-      let pageCenterLabel = UILabel()
-      pageCenterLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageCenterLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      pageCenterLabel.textAlignment = .center
-      pageCenterLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageCenterLabel.isUserInteractionEnabled = false
-      pageCenterLabel.alpha = 0
-      view.addSubview(pageCenterLabel)
-      NSLayoutConstraint.activate([
-        pageCenterLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        pageCenterLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      ])
-      self.bottomPageCenterLabel = pageCenterLabel
-
-      // Bottom page label (right side)
-      let pageRightLabel = UILabel()
-      pageRightLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-      pageRightLabel.textColor = theme.uiColorText.withAlphaComponent(0.6)
-      pageRightLabel.textAlignment = .right
-      pageRightLabel.translatesAutoresizingMaskIntoConstraints = false
-      pageRightLabel.isUserInteractionEnabled = false
-      pageRightLabel.alpha = 0
-      view.addSubview(pageRightLabel)
-      NSLayoutConstraint.activate([
-        pageRightLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: bottomOffset),
-        pageRightLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-        pageRightLabel.leadingAnchor.constraint(greaterThanOrEqualTo: chapterLabel.trailingAnchor, constant: 8),
-      ])
-      self.bottomPageRightLabel = pageRightLabel
+      infoOverlay = WebPubInfoOverlaySupport.UIKitOverlay(
+        containerView: view,
+        topAnchor: topAnchor,
+        bottomAnchor: bottomAnchor,
+        topOffset: labelTopOffset,
+        bottomOffset: labelBottomOffset,
+        theme: theme
+      )
     }
 
     func updateOverlayLabels() {
-      UIView.animate {
-        // Top labels
-        if self.showingControls {
-          self.topBookTitleLabel?.alpha = 0.0
-          if let totalProgression = self.totalProgression {
-            let percentage = String(format: "%.2f%%", totalProgression * 100)
-            self.topProgressLabel?.text = String(localized: "Book Progress \(percentage)")
-            self.topProgressLabel?.alpha = 1.0
-          } else {
-            self.topProgressLabel?.alpha = 0.0
-          }
-        } else {
-          self.topProgressLabel?.alpha = 0.0
-          if let bookTitle = self.bookTitle, !bookTitle.isEmpty {
-            self.topBookTitleLabel?.text = bookTitle
-            self.topBookTitleLabel?.alpha = 1.0
-          } else {
-            self.topBookTitleLabel?.alpha = 0.0
-          }
-        }
-
-        // Bottom labels
-        if self.totalPagesInChapter > 0 {
-          if self.showingControls {
-            self.bottomChapterLabel?.alpha = 0.0
-            let current = self.currentSubPageIndex + 1
-            let total = self.totalPagesInChapter
-            self.bottomPageCenterLabel?.text = String(localized: "Chapter Progress \(current) / \(total)")
-            self.bottomPageCenterLabel?.alpha = 1.0
-            self.bottomPageRightLabel?.alpha = 0.0
-          } else {
-            if let chapterTitle = self.chapterTitle, !chapterTitle.isEmpty {
-              self.bottomChapterLabel?.text = chapterTitle
-              self.bottomChapterLabel?.alpha = 1.0
-            } else {
-              self.bottomChapterLabel?.alpha = 0.0
-            }
-            self.bottomPageCenterLabel?.alpha = 0.0
-            let remainingPages = self.totalPagesInChapter - (self.currentSubPageIndex + 1)
-            if remainingPages > 0 {
-              self.bottomPageRightLabel?.text = String(localized: "\(remainingPages) pages left")
-            } else {
-              self.bottomPageRightLabel?.text = String(localized: "Last page")
-            }
-            self.bottomPageRightLabel?.alpha = 1.0
-          }
-        } else {
-          self.bottomChapterLabel?.alpha = 0.0
-          self.bottomPageCenterLabel?.alpha = 0.0
-          self.bottomPageRightLabel?.alpha = 0.0
-        }
-      }
+      let content = WebPubInfoOverlaySupport.content(
+        flowStyle: .paged,
+        bookTitle: bookTitle,
+        chapterTitle: chapterTitle,
+        totalProgression: totalProgression,
+        currentPageIndex: currentSubPageIndex,
+        totalPagesInChapter: totalPagesInChapter,
+        showingControls: showingControls,
+        showProgressFooter: AppConfig.epubShowsProgressFooter
+      )
+      infoOverlay?.update(content: content, animated: true)
     }
 
     func forceEnsureContentLoaded() {
@@ -1531,9 +1439,12 @@
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
+      config.registerEpubResourceSchemeHandler(epubResourceSchemeHandler)
+      config.defaultWebpagePreferences.preferredContentMode = .mobile
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle (WKUserContentController retains handlers strongly)
-      controller.add(WeakScriptMessageHandler(delegate: self), name: "readerBridge")
+      controller.add(WeakWKScriptMessageHandler(delegate: self), name: "readerBridge")
       config.userContentController = controller
 
       // Set background to fill entire view (including safe area)
@@ -1598,12 +1509,7 @@
       loadingIndicator?.color = theme.uiColorText
 
       // Update overlay label colors
-      let labelColor = theme.uiColorText.withAlphaComponent(0.6)
-      topBookTitleLabel?.textColor = labelColor
-      topProgressLabel?.textColor = labelColor
-      bottomChapterLabel?.textColor = labelColor
-      bottomPageCenterLabel?.textColor = labelColor
-      bottomPageRightLabel?.textColor = labelColor
+      infoOverlay?.apply(theme: theme)
     }
 
     private func applyContainerInsets() {
@@ -1649,7 +1555,7 @@
         loadingIndicator?.startAnimating()
       }
 
-      webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -1665,6 +1571,8 @@
       preferences: WKWebpagePreferences,
       decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
+      preferences.preferredContentMode = .mobile
+
       // Allow initial page load
       guard let url = navigationAction.request.url else {
         decisionHandler(.allow, preferences)
@@ -1709,7 +1617,7 @@
       injectCSS(
         contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in
@@ -1725,128 +1633,13 @@
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
     ) {
-      // Determine if the current theme is dark based on the background color brightness.
-      // This allows the CSS to apply theme-specific rules (like image blending).
-      let isDark = theme.uiColorBackground.brightness < 0.5
-      let themeName = isDark ? "dark" : "light"
-
-      let readiumAssets = ReadiumCSSLoader.cssAssets(
+      let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
+        contentCSS: css,
+        readiumProperties: readiumProperties,
+        readiumPropertyKeys: readiumPropertyKeys,
         language: language,
         readingProgression: readingProgression
       )
-      let readiumVariant = ReadiumCSSLoader.resolveVariantSubdirectory(
-        language: language,
-        readingProgression: readingProgression
-      )
-      let shouldSetDir = readiumVariant == "rtl"
-
-      let readiumBefore = Data(readiumAssets.before.utf8).base64EncodedString()
-      let readiumDefault = Data(readiumAssets.defaultCSS.utf8).base64EncodedString()
-      let readiumAfter = Data(readiumAssets.after.utf8).base64EncodedString()
-      let customCSS = Data(css.utf8).base64EncodedString()
-
-      var properties: [String: Any] = [:]
-      for (key, value) in readiumProperties {
-        properties[key] = value ?? NSNull()
-      }
-      let propertiesJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: properties, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "{}"
-        }
-        return json
-      }()
-      let propertyKeysJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: readiumPropertyKeys, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "[]"
-        }
-        return json
-      }()
-      let languageJSON: String = {
-        guard let language else { return "null" }
-        var escaped = language
-        escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\")
-        escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
-        escaped = escaped.replacingOccurrences(of: "\n", with: "\\n")
-        escaped = escaped.replacingOccurrences(of: "\r", with: "\\r")
-        escaped = escaped.replacingOccurrences(of: "\t", with: "\\t")
-        return "\"\(escaped)\""
-      }()
-
-      let js = """
-          (function() {
-            var root = document.documentElement;
-            root.setAttribute('data-kmreader-theme', '\(themeName)');
-            var lang = \(languageJSON);
-            if (lang) {
-              if (!root.hasAttribute('lang')) {
-                root.setAttribute('lang', lang);
-              }
-              if (!root.hasAttribute('xml:lang')) {
-                root.setAttribute('xml:lang', lang);
-              }
-              if (document.body) {
-                if (!document.body.hasAttribute('lang')) {
-                  document.body.setAttribute('lang', lang);
-                }
-                if (!document.body.hasAttribute('xml:lang')) {
-                  document.body.setAttribute('xml:lang', lang);
-                }
-              }
-            }
-            if (\(shouldSetDir ? "true" : "false")) {
-              root.setAttribute('dir', 'rtl');
-              if (document.body) {
-                document.body.setAttribute('dir', 'rtl');
-              }
-            }
-
-            var props = \(propertiesJSON);
-            Object.keys(props).forEach(function(key) {
-              var value = props[key];
-              if (value === null || value === undefined) {
-                root.style.removeProperty(key);
-              } else {
-                root.style.setProperty(key, value, 'important');
-              }
-            });
-            var knownKeys = \(propertyKeysJSON);
-            knownKeys.forEach(function(key) {
-              if (!(key in props)) {
-                root.style.removeProperty(key);
-              }
-            });
-
-            var meta = document.querySelector('meta[name=viewport]');
-            if (!meta) {
-              meta = document.createElement('meta');
-              meta.name = 'viewport';
-              document.head.appendChild(meta);
-            }
-            meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-
-            var style = document.getElementById('kmreader-style');
-            if (!style) {
-              style = document.createElement('style');
-              style.id = 'kmreader-style';
-              document.head.appendChild(style);
-            }
-            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
-            var css = atob('\(readiumBefore)') + "\\n"
-              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
-              + atob('\(readiumAfter)') + "\\n"
-              + atob('\(customCSS)');
-            style.textContent = css;
-
-            return true;
-          })();
-        """
-
       webView.evaluateJavaScript(js) { _, _ in
         completion?()
       }

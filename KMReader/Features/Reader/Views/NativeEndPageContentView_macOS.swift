@@ -10,12 +10,14 @@
     private var readingDirection: ReadingDirection = .ltr
     private var sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both
     private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
+      tapZoneMode: .defaultLayout,
+      tapZoneInversionMode: .auto,
       showPageNumber: true,
       showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
+      enableImageContextMenu: false,
+      supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
       doubleTapZoomMode: .fast
     )
@@ -346,6 +348,7 @@
         nextCoverView.isHidden = !presentation.next.showsCover
         nextMetadataStack.isHidden = !presentation.next.showsMetadata
         caughtUpStack.isHidden = !presentation.next.showsCaughtUp
+        caughtUpLabel.stringValue = presentation.next.showsCaughtUp ? String(localized: "You're all caught up!") : ""
         nextTitleLabel.stringValue = presentation.next.title ?? ""
         nextDetailLabel.stringValue = presentation.next.detail ?? ""
         nextCoverView.configure(bookID: presentation.next.bookID)
@@ -354,16 +357,14 @@
         nextBadgeLabel.isHidden = true
         nextCoverView.isHidden = true
         nextMetadataStack.isHidden = true
-        caughtUpStack.isHidden = false
+        caughtUpStack.isHidden = true
+        caughtUpLabel.stringValue = ""
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
         nextCoverView.configure(bookID: nil)
       }
 
-      closeButton.title = String(localized: "Close")
-      closeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: nil)
-      closeButton.imagePosition = .imageLeading
-      closeButton.contentTintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
       closeButton.isHidden = !presentation.showsCloseButton
 
       applyDynamicMetrics()

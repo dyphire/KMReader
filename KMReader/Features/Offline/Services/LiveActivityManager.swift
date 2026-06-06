@@ -20,7 +20,7 @@ import Foundation
 
     /// Start or update a download Live Activity
     func startActivity(
-      seriesTitle: String, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
+      seriesTitle: String?, bookInfo: String, totalBooks: Int, pendingCount: Int, failedCount: Int
     ) {
       if resolveActivity() != nil {
         updateActivity(
@@ -61,7 +61,7 @@ import Foundation
 
     /// Update the current Live Activity with new progress
     func updateActivity(
-      seriesTitle: String,
+      seriesTitle: String?,
       bookInfo: String,
       progress: Double,
       pendingCount: Int,
@@ -77,19 +77,36 @@ import Foundation
         failedCount: failedCount
       )
 
+      let activityID = activity.id
       Task {
-        await activity.update(.init(state: state, staleDate: nil))
+        await Self.updateActivity(id: activityID, state: state)
       }
     }
 
     /// End the current Live Activity
     func endActivity() {
       guard let activity = resolveActivity() else { return }
+      let activityID = activity.id
 
       Task {
-        await activity.end(nil, dismissalPolicy: .immediate)
+        await Self.endActivity(id: activityID)
       }
       currentActivity = nil
+    }
+
+    private static nonisolated func updateActivity(
+      id: String,
+      state: DownloadActivityAttributes.ContentState
+    ) async {
+      guard let activity = Activity<DownloadActivityAttributes>.activities.first(where: { $0.id == id })
+      else { return }
+      await activity.update(.init(state: state, staleDate: nil))
+    }
+
+    private static nonisolated func endActivity(id: String) async {
+      guard let activity = Activity<DownloadActivityAttributes>.activities.first(where: { $0.id == id })
+      else { return }
+      await activity.end(nil, dismissalPolicy: .immediate)
     }
 
     private func resolveActivity() -> Activity<DownloadActivityAttributes>? {

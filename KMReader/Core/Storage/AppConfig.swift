@@ -62,6 +62,24 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "apiRetryCount") }
   }
 
+  static nonisolated var readingHistoryAutoSyncIntervalHours: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "readingHistoryAutoSyncIntervalHours") != nil {
+        return max(0, UserDefaults.standard.integer(forKey: "readingHistoryAutoSyncIntervalHours"))
+      }
+      return 24
+    }
+    set {
+      UserDefaults.standard.set(max(0, newValue), forKey: "readingHistoryAutoSyncIntervalHours")
+    }
+  }
+
+  static nonisolated var readingHistoryAutoSyncMinimumInterval: TimeInterval? {
+    let hours = readingHistoryAutoSyncIntervalHours
+    guard hours > 0 else { return nil }
+    return TimeInterval(hours * 60 * 60)
+  }
+
   static nonisolated var isLoggedIn: Bool {
     get { UserDefaults.standard.bool(forKey: "isLoggedInV2") }
     set { UserDefaults.standard.set(newValue, forKey: "isLoggedInV2") }
@@ -99,6 +117,48 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "splitWidePageMode") }
   }
 
+  static nonisolated var enableDivinaImageContextMenu: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "enableDivinaImageContextMenu") != nil {
+        return UserDefaults.standard.bool(forKey: "enableDivinaImageContextMenu")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "enableDivinaImageContextMenu") }
+  }
+
+  static nonisolated var divinaPreloadProfile: ReaderPreloadProfile {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "divinaPreloadProfile"),
+        let profile = ReaderPreloadProfile(rawValue: stored)
+      {
+        return profile
+      }
+      return .balanced
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "divinaPreloadProfile") }
+  }
+
+  static nonisolated var showDivinaControlsGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDivinaControlsGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showDivinaControlsGradientBackground")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showDivinaControlsGradientBackground") }
+  }
+
+  static nonisolated var showDivinaProgressBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDivinaProgressBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "showDivinaProgressBarWhileReading")
+      }
+      return true
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showDivinaProgressBarWhileReading") }
+  }
+
   static nonisolated var pdfOfflineRenderQuality: PdfOfflineRenderQuality {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pdfOfflineRenderQuality"),
@@ -111,9 +171,120 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfOfflineRenderQuality") }
   }
 
+  static nonisolated var pdfPagePresentation: PdfPagePresentation {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "pdfPagePresentation"),
+        let presentation = PdfPagePresentation(rawValue: stored)
+      {
+        return presentation
+      }
+      return .auto
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfPagePresentation") }
+  }
+
+  static nonisolated var pdfIsolateCoverPage: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "pdfIsolateCoverPage") != nil {
+        return UserDefaults.standard.bool(forKey: "pdfIsolateCoverPage")
+      }
+      return true
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "pdfIsolateCoverPage") }
+  }
+
+  static nonisolated var showPdfControlsGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showPdfControlsGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showPdfControlsGradientBackground")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showPdfControlsGradientBackground") }
+  }
+
+  static nonisolated var showPdfProgressBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showPdfProgressBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "showPdfProgressBarWhileReading")
+      }
+      return true
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showPdfProgressBarWhileReading") }
+  }
+
   static nonisolated var isOffline: Bool {
     get { UserDefaults.standard.bool(forKey: "isOffline") }
     set { UserDefaults.standard.set(newValue, forKey: "isOffline") }
+  }
+
+  /// Records whether the current offline-mode state was entered automatically
+  /// (e.g., from connection failures, bootstrap failures) vs. manually (the user
+  /// explicitly tapped "Enter Offline Mode" in the dashboard menu).
+  ///
+  /// Used to gate automatic recovery: only auto-entered offline mode should be
+  /// auto-exited when the network returns. Manually-entered offline mode is
+  /// sticky and only exits via an explicit user action (tap the wifi-slash
+  /// icon, log in, etc.).
+  static nonisolated var offlineWasAutomatic: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlineWasAutomatic") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlineWasAutomatic") }
+  }
+
+  /// Transition to offline mode because a connection failure or bootstrap step
+  /// failed. Eligible for automatic recovery when the configured server becomes
+  /// reachable again.
+  ///
+  /// **No-op when already offline** — preserves the existing provenance flag.
+  /// This is important: a failed network probe at app boot must not silently
+  /// convert a user's previously-manual offline mode into auto-offline (which
+  /// would then become eligible for automatic recovery against their intent).
+  ///
+  /// Sets `offlineWasAutomatic` *before* `isOffline` so that any `@AppStorage`
+  /// observer reacting to the `isOffline` change sees the freshly-set
+  /// provenance flag (avoids any race where the observer fires while the
+  /// provenance is still stale).
+  static nonisolated func enterAutoOfflineMode() {
+    guard !isOffline else { return }
+    offlineWasAutomatic = true
+    isOffline = true
+  }
+
+  /// Transition to offline mode because the user explicitly opted in via the
+  /// dashboard menu. NOT eligible for automatic recovery — the user has to
+  /// explicitly tap to reconnect.
+  static nonisolated func enterManualOfflineMode() {
+    offlineWasAutomatic = false
+    isOffline = true
+  }
+
+  /// Exit offline mode. Resets both flags so the next entry can correctly
+  /// classify itself. Safe to call when already online (idempotent).
+  static nonisolated func exitOfflineMode() {
+    offlineWasAutomatic = false
+    isOffline = false
+  }
+
+  /// One-time migration to classify a persisted `isOffline = true` state as
+  /// auto-offline for users upgrading from a version that did not track
+  /// offline-mode provenance. Without this, an upgraded user whose previous
+  /// session left them offline would be stuck in fake-manual-offline (the
+  /// default `offlineWasAutomatic = false`) and the new auto-recovery loop
+  /// would never run.
+  ///
+  /// Conservatively classifies the persisted state as auto: users who genuinely
+  /// wanted manual offline would normally re-enter it explicitly post-upgrade,
+  /// and the alternative (leaving them stranded) is worse.
+  ///
+  /// Idempotent via a marker key in UserDefaults. Safe to call on every launch;
+  /// subsequent invocations are no-ops.
+  static nonisolated func migrateOfflineProvenanceIfNeeded() {
+    let migrationKey = "offlineProvenanceMigrated_v1"
+    guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+    UserDefaults.standard.set(true, forKey: migrationKey)
+    if isOffline {
+      offlineWasAutomatic = true
+    }
   }
 
   static nonisolated var maxPageCacheSize: Int {
@@ -134,6 +305,20 @@ enum AppConfig {
       return 512  // Default 512 MB
     }
     set { UserDefaults.standard.set(newValue, forKey: "maxCoverCacheSize") }
+  }
+
+  static nonisolated var coverCacheExpirationDays: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "coverCacheExpirationDays") != nil {
+        return max(1, UserDefaults.standard.integer(forKey: "coverCacheExpirationDays"))
+      }
+      return 7
+    }
+    set { UserDefaults.standard.set(max(1, newValue), forKey: "coverCacheExpirationDays") }
+  }
+
+  static nonisolated var coverCacheExpirationInterval: TimeInterval {
+    TimeInterval(coverCacheExpirationDays * 24 * 60 * 60)
   }
 
   // MARK: - SSE (Server-Sent Events)
@@ -190,6 +375,11 @@ enum AppConfig {
   static nonisolated var offlineAutoDeleteRead: Bool {
     get { UserDefaults.standard.bool(forKey: "offlineAutoDeleteRead") }
     set { UserDefaults.standard.set(newValue, forKey: "offlineAutoDeleteRead") }
+  }
+
+  static nonisolated var offlineFirstReading: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlineFirstReading") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlineFirstReading") }
   }
 
   static nonisolated var backgroundDownloadTasksData: Data? {
@@ -257,6 +447,18 @@ enum AppConfig {
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "themeColorHex")
+    }
+  }
+
+  static nonisolated var showDashboardSectionGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDashboardSectionGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showDashboardSectionGradientBackground")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "showDashboardSectionGradientBackground")
     }
   }
 
@@ -463,24 +665,54 @@ enum AppConfig {
       {
         return mode
       }
-      return .auto
+      return .defaultLayout
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneMode")
     }
   }
 
-  static nonisolated var tapZoneSize: TapZoneSize {
+  static nonisolated var tapZoneInversionMode: TapZoneInversionMode {
     get {
-      if let stored = UserDefaults.standard.string(forKey: "tapZoneSize"),
-        let size = TapZoneSize(rawValue: stored)
+      if let stored = UserDefaults.standard.string(forKey: "tapZoneInversionMode"),
+        let mode = TapZoneInversionMode(rawValue: stored)
       {
-        return size
+        return mode
       }
-      return .large
+      return .auto
     }
     set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneSize")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneInversionMode")
+    }
+  }
+
+  static nonisolated var epubTapZoneMode: TapZoneMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "epubTapZoneMode"),
+        let mode = TapZoneMode(rawValue: stored)
+      {
+        return mode
+      }
+
+      return .defaultLayout
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneMode")
+    }
+  }
+
+  static nonisolated var epubTapZoneInversionMode: TapZoneInversionMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "epubTapZoneInversionMode"),
+        let mode = TapZoneInversionMode(rawValue: stored)
+      {
+        return mode
+      }
+
+      return .auto
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneInversionMode")
     }
   }
 
@@ -493,6 +725,39 @@ enum AppConfig {
     }
     set {
       UserDefaults.standard.set(newValue, forKey: "showKeyboardHelpOverlay")
+    }
+  }
+
+  static nonisolated var pdfShowKeyboardHelpOverlay: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "pdfShowKeyboardHelpOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "pdfShowKeyboardHelpOverlay")
+      }
+
+      let migratedValue: Bool
+      if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {
+        migratedValue = UserDefaults.standard.bool(forKey: "showKeyboardHelpOverlay")
+      } else {
+        migratedValue = true
+      }
+
+      UserDefaults.standard.set(migratedValue, forKey: "pdfShowKeyboardHelpOverlay")
+      return migratedValue
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "pdfShowKeyboardHelpOverlay")
+    }
+  }
+
+  static nonisolated var epubShowKeyboardHelpOverlay: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowKeyboardHelpOverlay") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowKeyboardHelpOverlay")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowKeyboardHelpOverlay")
     }
   }
 
@@ -637,15 +902,39 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var tapPageTransitionDuration: Double {
+  static nonisolated var animateTapTurns: Bool {
     get {
-      if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {
-        return UserDefaults.standard.double(forKey: "tapPageTransitionDuration")
+      if UserDefaults.standard.object(forKey: "animateTapTurns") != nil {
+        return UserDefaults.standard.bool(forKey: "animateTapTurns")
       }
-      return 0.3
+      return true
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "tapPageTransitionDuration")
+      UserDefaults.standard.set(newValue, forKey: "animateTapTurns")
+    }
+  }
+
+  static nonisolated var animateEpubTapTurns: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "animateEpubTapTurns") != nil {
+        return UserDefaults.standard.bool(forKey: "animateEpubTapTurns")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "animateEpubTapTurns")
+    }
+  }
+
+  static nonisolated var epubTapScrollPercentage: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "epubTapScrollPercentage") != nil {
+        return UserDefaults.standard.double(forKey: "epubTapScrollPercentage")
+      }
+      return 80.0
+    }
+    set {
+      UserDefaults.standard.set(min(100.0, max(25.0, newValue)), forKey: "epubTapScrollPercentage")
     }
   }
 
@@ -738,6 +1027,21 @@ enum AppConfig {
       UserDefaults.standard.set(max(newValue, 1.0), forKey: "imageUpscaleAlwaysMaxScreenScale")
     }
   }
+
+  static nonisolated var divinaPageBorderCropMode: ReaderPageBorderCropMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "divinaPageBorderCropMode"),
+        let mode = ReaderPageBorderCropMode(rawValue: stored)
+      {
+        return mode
+      }
+      return .disabled
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "divinaPageBorderCropMode")
+    }
+  }
+
   static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
@@ -750,17 +1054,41 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var epubPreferences: EpubReaderPreferences {
+  static nonisolated var epubThemePreferences: EpubThemePreferences {
     get {
       if let stored = UserDefaults.standard.string(forKey: "epubPreferences"),
-        let prefs = EpubReaderPreferences(rawValue: stored)
+        let prefs = EpubThemePreferences(rawValue: stored)
       {
         return prefs
       }
-      return EpubReaderPreferences()
+      return EpubThemePreferences()
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "epubPreferences")
+    }
+  }
+
+  static nonisolated var epubShowsStatusBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowsStatusBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowsStatusBarWhileReading")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowsStatusBarWhileReading")
+    }
+  }
+
+  static nonisolated var epubShowsProgressFooter: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "epubShowsProgressFooter") != nil {
+        return UserDefaults.standard.bool(forKey: "epubShowsProgressFooter")
+      }
+      return false
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "epubShowsProgressFooter")
     }
   }
 

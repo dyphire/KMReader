@@ -10,12 +10,14 @@
     private var readingDirection: ReadingDirection = .ltr
     private var sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both
     private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
+      tapZoneMode: .defaultLayout,
+      tapZoneInversionMode: .auto,
       showPageNumber: true,
       showPageShadow: true,
       readerBackground: .system,
       enableLiveText: false,
+      enableImageContextMenu: false,
+      supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
       doubleTapZoomMode: .fast
     )
@@ -50,7 +52,7 @@
     private let trailingDivider = UIView()
     private let verticalDivider = UIView()
 
-    private let buttonStack = UIStackView()
+    private let buttonContainer = UIView()
     private let closeButton = UIButton(type: .system)
     private var sectionsEqualWidthConstraint: NSLayoutConstraint?
     private var contentLeadingConstraint: NSLayoutConstraint?
@@ -227,13 +229,15 @@
       verticalDividerHeightConstraint = verticalDivider.heightAnchor.constraint(equalToConstant: 220)
       verticalDividerHeightConstraint?.isActive = true
 
-      buttonStack.axis = .horizontal
-      buttonStack.alignment = .center
-      buttonStack.spacing = 16
-      contentStack.addArrangedSubview(buttonStack)
+      buttonContainer.translatesAutoresizingMaskIntoConstraints = false
+      buttonContainer.setContentCompressionResistancePriority(.required, for: .vertical)
+      contentStack.addArrangedSubview(buttonContainer)
 
+      closeButton.translatesAutoresizingMaskIntoConstraints = false
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      buttonStack.addArrangedSubview(closeButton)
+      closeButton.setContentHuggingPriority(.required, for: .horizontal)
+      closeButton.setContentCompressionResistancePriority(.required, for: .horizontal)
+      buttonContainer.addSubview(closeButton)
 
       let contentLeading = contentStack.leadingAnchor.constraint(
         greaterThanOrEqualTo: leadingAnchor,
@@ -286,6 +290,12 @@
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
         nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
+
+        closeButton.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
+        closeButton.topAnchor.constraint(equalTo: buttonContainer.topAnchor),
+        closeButton.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor),
+        closeButton.leadingAnchor.constraint(greaterThanOrEqualTo: buttonContainer.leadingAnchor),
+        closeButton.trailingAnchor.constraint(lessThanOrEqualTo: buttonContainer.trailingAnchor),
 
         previousCoverWidthConstraint!,
         previousCoverHeightConstraint!,
@@ -374,15 +384,7 @@
         nextDetailLabel.text = nil
       }
 
-      var closeConfig = borderedButtonConfiguration()
-      closeConfig.image = UIImage(systemName: "xmark")
-      closeConfig.imagePlacement = .leading
-      closeConfig.imagePadding = 8
-      closeConfig.preferredSymbolConfigurationForImage = buttonSymbolConfiguration
-      closeConfig.title = String(localized: "Close")
-      closeConfig.cornerStyle = .capsule
-      closeButton.configuration = closeConfig
-      closeButton.tintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
       closeButton.isHidden = !presentation.showsCloseButton
 
       applyDynamicMetrics()
@@ -415,7 +417,7 @@
         with: [
           showsRelationHeader ? horizontalDividerStack : nil,
           sectionsStack,
-          buttonStack,
+          buttonContainer,
         ]
       )
 
@@ -542,22 +544,6 @@
       nextCoverWidthConstraint?.constant = coverWidth
       nextCoverHeightConstraint?.constant = coverHeight
       verticalDividerHeightConstraint?.constant = dividerHeight
-    }
-
-    private func borderedButtonConfiguration() -> UIButton.Configuration {
-      #if os(iOS)
-        if #available(iOS 26.0, *) {
-          return .glass()
-        }
-      #endif
-      return .bordered()
-    }
-
-    private var buttonSymbolConfiguration: UIImage.SymbolConfiguration {
-      UIImage.SymbolConfiguration(
-        textStyle: .subheadline,
-        scale: .small
-      )
     }
 
     private var contentColor: UIColor {

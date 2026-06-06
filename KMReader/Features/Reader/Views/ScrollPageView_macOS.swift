@@ -12,6 +12,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     init(
       mode: PageViewMode,
@@ -22,7 +23,8 @@
       renderConfig: ReaderRenderConfig,
       viewModel: ReaderViewModel,
       readListContext: ReaderReadListContext?,
-      onDismiss: @escaping () -> Void
+      onDismiss: @escaping () -> Void,
+      onTapZoneTap: @escaping ReaderTapZoneTapHandler
     ) {
       self.mode = mode
       self.viewportSize = viewportSize
@@ -33,6 +35,7 @@
       self.viewModel = viewModel
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneTap = onTapZoneTap
     }
 
     func makeCoordinator() -> Coordinator {
@@ -69,6 +72,30 @@
       scrollView.drawsBackground = true
       scrollView.contentView.postsBoundsChangedNotifications = true
 
+      let clickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleClick(_:))
+      )
+      clickGesture.numberOfClicksRequired = 1
+      clickGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(clickGesture)
+
+      let doubleClickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleClick(_:))
+      )
+      doubleClickGesture.numberOfClicksRequired = 2
+      doubleClickGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(doubleClickGesture)
+
+      let longPressGesture = NSPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPressGesture.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+      longPressGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(longPressGesture)
+
       collectionView.frame = CGRect(origin: .zero, size: scrollView.contentView.bounds.size)
       collectionView.autoresizingMask = [.width, .height]
 
@@ -100,12 +127,13 @@
     }
 
     static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
+      coordinator.synchronizeCurrentPositionBeforeTeardown(in: nsView)
       coordinator.teardown()
     }
 
     @MainActor
     final class Coordinator: NSObject, NSCollectionViewDataSource, NSCollectionViewDelegateFlowLayout,
-      NativePagedPagePresentationHost
+      NSGestureRecognizerDelegate, NativePagedPagePresentationHost
     {
       private struct RenderInputs: Equatable {
         let readingDirection: ReadingDirection
@@ -132,6 +160,9 @@
       private var visiblePreloadItem: ReaderViewItem?
       private var programmaticScrollToken: Int = 0
       private var lastObservedClipBounds: CGRect = .zero
+      private var singleClickWorkItem: DispatchWorkItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -159,6 +190,9 @@
 
       func teardown() {
         NotificationCenter.default.removeObserver(self)
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
+        isLongPressing = false
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -166,6 +200,19 @@
         visiblePreloadItem = nil
         pagePresentationCoordinator.teardown()
         engine.teardown()
+      }
+
+      func synchronizeCurrentPositionBeforeTeardown(in scrollView: NSScrollView) {
+        deferredViewModelCommitTask?.cancel()
+        deferredViewModelCommitTask = nil
+
+        guard let collectionView = scrollView.documentView as? NSCollectionView else { return }
+        collectionView.layoutSubtreeIfNeeded()
+
+        guard let item = currentAnchorItem(in: scrollView, collectionView: collectionView) else {
+          return
+        }
+        synchronizeViewModelCurrentPosition(to: item)
       }
 
       func update(
@@ -213,7 +260,7 @@
 
         if engine.hasSyncedInitialPosition, sizeChanged || frameChanged, !refreshedVisibleContent {
           if let anchorItem {
-            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            _ = scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
             refreshVisibleItems(in: collectionView)
             if parent.viewModel.navigationTarget == nil {
               commitItemIfNeeded(anchorItem, in: collectionView)
@@ -328,7 +375,10 @@
         guard canApplyInitialPosition(in: scrollView, collectionView: collectionView) else { return false }
         _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
 
-        scrollToItem(currentItem, animated: false, in: scrollView, collectionView: collectionView)
+        guard scrollToItem(currentItem, animated: false, in: scrollView, collectionView: collectionView)
+        else {
+          return false
+        }
         guard let committedItem = engine.completeInitialPosition() else { return false }
         preloadVisiblePages(for: committedItem)
         refreshVisibleItems(in: collectionView)
@@ -363,7 +413,7 @@
         _ = synchronizeCollectionViewFrame(in: scrollView, collectionView: collectionView)
 
         if let anchor = engine.resolveItem(anchor) {
-          scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
+          _ = scrollToItem(anchor, animated: false, in: scrollView, collectionView: collectionView)
         }
 
         refreshVisibleItems(in: collectionView)
@@ -404,6 +454,16 @@
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) {
+        // While the user is in the middle of a swipe (drag or its deceleration), ignore
+        // tap-initiated navigation. The drag's intent dominates; layering a programmatic
+        // scroll over natural deceleration produces a double page advance. Mirrors the
+        // existing guard in `scrollViewWillBeginDragging` that lets a drag override an
+        // in-flight programmatic scroll.
+        if engine.isUserInteracting {
+          parent.viewModel.clearNavigationTarget()
+          return
+        }
+
         guard let resolvedTarget = parent.viewModel.resolvedViewItem(for: navigationTarget),
           let targetItem = engine.resolveItem(resolvedTarget)
         else {
@@ -427,23 +487,24 @@
           return
         }
 
-        scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
+        _ = scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
       }
 
+      @discardableResult
       private func scrollToItem(
         _ item: ReaderViewItem,
         animated: Bool,
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
-      ) {
-        guard let index = engine.renderedItems.firstIndex(of: item) else { return }
+      ) -> Bool {
+        guard let index = engine.renderedItems.firstIndex(of: item) else { return false }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutSubtreeIfNeeded()
 
         guard
           let attributes = collectionView.collectionViewLayout?.layoutAttributesForItem(at: indexPath)
         else {
-          return
+          return false
         }
 
         let targetOrigin = clampedContentOrigin(
@@ -456,12 +517,15 @@
         )
 
         if isEquivalentContentOrigin(targetOrigin, to: scrollView.contentView.bounds.origin) {
+          guard isPositionedOnItem(item, in: scrollView, collectionView: collectionView) else {
+            return false
+          }
           engine.clearPendingProgrammaticCommit()
           refreshVisibleItems(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
-          return
+          return true
         }
 
         let shouldAnimate = animated && parent.navigationAnimationDuration > 0
@@ -490,11 +554,15 @@
           isAdjustingBounds = false
           lastObservedClipBounds = scrollView.contentView.bounds
           collectionView.layoutSubtreeIfNeeded()
+          guard isPositionedOnItem(item, in: scrollView, collectionView: collectionView) else {
+            return false
+          }
           refreshVisibleItems(in: collectionView)
           if animated {
             commitItemIfNeeded(item, in: collectionView)
           }
         }
+        return true
       }
 
       private func clampedContentOrigin(
@@ -525,6 +593,26 @@
         centeredItem(in: scrollView, collectionView: collectionView)
           ?? parent.viewModel.currentViewItem()
           ?? engine.committedItem
+      }
+
+      private func isPositionedOnItem(
+        _ item: ReaderViewItem,
+        in scrollView: NSScrollView,
+        collectionView: NSCollectionView
+      ) -> Bool {
+        centeredItem(in: scrollView, collectionView: collectionView) == item
+      }
+
+      private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
+        let resolvedItem = engine.resolveItem(item) ?? item
+        engine.commit(resolvedItem)
+
+        if parent.viewModel.currentViewItem() != resolvedItem {
+          parent.viewModel.updateCurrentPosition(viewItem: resolvedItem)
+        }
+        if parent.viewModel.navigationTarget != nil {
+          parent.viewModel.clearNavigationTarget()
+        }
       }
 
       private func centeredItem(
@@ -647,7 +735,7 @@
         animated: Bool
       ) {
         guard let item = centeredItem(in: scrollView, collectionView: collectionView) else { return }
-        scrollToItem(item, animated: animated, in: scrollView, collectionView: collectionView)
+        _ = scrollToItem(item, animated: animated, in: scrollView, collectionView: collectionView)
       }
 
       func applyPagePresentationInvalidation(_ invalidation: ReaderPagePresentationInvalidation) {
@@ -806,7 +894,7 @@
           }
 
           if engine.hasSyncedInitialPosition, let anchorItem {
-            scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
+            _ = scrollToItem(anchorItem, animated: false, in: scrollView, collectionView: collectionView)
             refreshVisibleItems(in: collectionView)
             if parent.viewModel.navigationTarget == nil {
               commitItemIfNeeded(anchorItem, in: collectionView)
@@ -834,6 +922,79 @@
         if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
           snapToNearestItemIfNeeded(in: scrollView, collectionView: collectionView, animated: true)
         }
+      }
+
+      @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let scrollView else { return }
+        guard !isTapZoneSuppressed(in: scrollView) else { return }
+
+        let location = gesture.location(in: scrollView)
+        guard !isInteractiveElement(at: location, in: scrollView) else { return }
+        let workItem = DispatchWorkItem { [weak self, weak scrollView] in
+          guard let self, let scrollView else { return }
+          self.dispatchTapZoneTap(at: location, in: scrollView)
+        }
+        singleClickWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+      }
+
+      @objc func handleDoubleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
+      }
+
+      @objc func handleLongPress(_ gesture: NSPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+          isLongPressing = true
+          singleClickWorkItem?.cancel()
+          singleClickWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
+      private func isTapZoneSuppressed(in scrollView: NSScrollView) -> Bool {
+        parent.viewModel.isZoomed
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
+          || isAdjustingBounds
+          || engine.isUserInteracting
+      }
+
+      private func dispatchTapZoneTap(
+        at location: CGPoint,
+        in scrollView: NSScrollView
+      ) {
+        singleClickWorkItem = nil
+        guard !isTapZoneSuppressed(in: scrollView) else { return }
+
+        let bounds = scrollView.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let normalizedX = min(max(location.x / bounds.width, 0), 1)
+        let normalizedY = min(max(1 - (location.y / bounds.height), 0), 1)
+        parent.onTapZoneTap(normalizedX, normalizedY)
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        true
+      }
+
+      private func isInteractiveElement(at location: CGPoint, in scrollView: NSScrollView) -> Bool {
+        let contentLocation = scrollView.contentView.convert(location, from: scrollView)
+        return scrollView.contentView.hitTest(contentLocation)?.hasInteractiveAncestor == true
       }
 
       func numberOfSections(in collectionView: NSCollectionView) -> Int {

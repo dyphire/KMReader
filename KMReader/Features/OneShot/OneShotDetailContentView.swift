@@ -16,6 +16,8 @@ struct OneShotDetailContentView: View {
 
   @State private var thumbnailRefreshKey = UUID()
 
+  private let collapsedMetadataChipLimit = 10
+
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
@@ -32,14 +34,12 @@ struct OneShotDetailContentView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      HStack(alignment: .bottom) {
-        Text(book.metadata.title)
-          .font(.title2)
-          .fixedSize(horizontal: false, vertical: true)
+      HStack(alignment: .bottom, spacing: 8) {
+        DetailTitleView(title: book.metadata.title)
         if let ageRating = series.metadata.ageRating, ageRating > 0 {
           AgeRatingBadge(ageRating: ageRating)
         }
-        Spacer()
+        Spacer(minLength: 0)
       }
 
       HStack(alignment: .top) {
@@ -184,15 +184,14 @@ struct OneShotDetailContentView: View {
           }
 
           if let authors = book.metadata.authors, !authors.isEmpty {
-            HFlow {
-              ForEach(authors.sortedByRole(), id: \.self) { author in
-                TappableInfoChip(
-                  label: author.name,
-                  systemImage: author.role.icon,
-                  color: .purple,
-                  destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
-                )
-              }
+            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) {
+              author in
+              TappableInfoChip(
+                label: author.name,
+                systemImage: author.role.icon,
+                color: .purple,
+                destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
+              )
             }
           }
         }
@@ -200,29 +199,25 @@ struct OneShotDetailContentView: View {
 
       // Series genres
       if let genres = series.metadata.genres, !genres.isEmpty {
-        HFlow {
-          ForEach(genres.sorted(), id: \.self) { genre in
-            TappableInfoChip(
-              label: genre,
-              systemImage: "theatermasks",
-              color: .teal,
-              destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
-            )
-          }
+        CollapsibleChipSection(items: genres.sorted(), collapsedLimit: collapsedMetadataChipLimit) { genre in
+          TappableInfoChip(
+            label: genre,
+            systemImage: "theatermasks",
+            color: .teal,
+            destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
+          )
         }
       }
 
       // Book tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        HFlow {
-          ForEach(tags.sorted(), id: \.self) { tag in
-            TappableInfoChip(
-              label: tag,
-              systemImage: "tag",
-              color: .secondary,
-              destination: MetadataFilterHelper.seriesDestinationForTag(tag)
-            )
-          }
+        CollapsibleChipSection(items: tags.sorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
+          TappableInfoChip(
+            label: tag,
+            systemImage: "tag",
+            color: .secondary,
+            destination: MetadataFilterHelper.seriesDestinationForTag(tag)
+          )
         }
       }
 
@@ -270,6 +265,7 @@ struct OneShotDetailContentView: View {
                 Text(altTitle.title)
                   .font(.caption)
                   .foregroundColor(.primary)
+                  .textSelectionIfAvailable()
               }
             }
           }
@@ -281,10 +277,8 @@ struct OneShotDetailContentView: View {
           Divider()
           Text("Links")
             .font(.headline)
-          HFlow {
-            ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              ExternalLinkChip(label: link.label, url: link.url)
-            }
+          CollapsibleChipSection(items: links, collapsedLimit: collapsedMetadataChipLimit) { link in
+            ExternalLinkChip(label: link.label, url: link.url)
           }
         }
       }
@@ -303,6 +297,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.media.mediaType.uppercased())
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -313,6 +308,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.size)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -323,6 +319,7 @@ struct OneShotDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.url)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -334,6 +331,7 @@ struct OneShotDetailContentView: View {
               Text(comment)
                 .font(.caption)
                 .foregroundColor(.red)
+                .textSelectionIfAvailable()
             }
           }
         }

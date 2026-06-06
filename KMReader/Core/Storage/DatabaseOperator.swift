@@ -210,10 +210,11 @@ actor DatabaseOperator {
           progressCompleted: existing.progressCompleted,
           progressPage: existing.progressPage
         )
+        let readProgressRaw = RawCodableStore.encodeOptional(book.readProgress)
 
-        guard existing.readProgress != book.readProgress else { continue }
+        guard existing.readProgressRaw != readProgressRaw else { continue }
 
-        existing.updateReadProgress(book.readProgress)
+        existing.updateReadProgress(book.readProgress, raw: readProgressRaw)
 
         let newStatus = readingStatus(
           progressCompleted: existing.progressCompleted,
@@ -367,22 +368,38 @@ actor DatabaseOperator {
     }
   }
 
-  func fetchBookEpubPreferences(bookId: String) -> EpubReaderPreferences? {
+  func fetchPageRotations(id: String) -> [Int: Int]? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    return try? modelContext.fetch(descriptor).first?.pageRotations
+  }
+
+  func updatePageRotations(bookId: String, rotations: [Int: Int]) {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.pageRotations = rotations
+    }
+  }
+
+  func fetchBookEpubThemePreferences(bookId: String) -> EpubThemePreferences? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     guard let raw = try? modelContext.fetch(descriptor).first?.epubPreferencesRaw else {
       return nil
     }
-    return EpubReaderPreferences(rawValue: raw)
+    return EpubThemePreferences(rawValue: raw)
   }
 
-  func updateBookEpubPreferences(bookId: String, preferences: EpubReaderPreferences?) {
+  func updateBookEpubThemePreferences(bookId: String, preferences: EpubThemePreferences?) {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
-      book.epubPreferences = preferences
+      book.epubThemePreferences = preferences
     }
   }
 
@@ -860,17 +877,24 @@ actor DatabaseOperator {
   }
 
   private func applyBook(dto: Book, to existing: KomgaBook) {
+    let mediaRaw = RawCodableStore.encode(dto.media)
+    let metadataRaw = RawCodableStore.encode(dto.metadata)
+    let readProgressRaw = RawCodableStore.encodeOptional(dto.readProgress)
+
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.number != dto.number { existing.number = dto.number }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
     if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
     if existing.size != dto.size { existing.size = dto.size }
-    if existing.media != dto.media
-      || existing.metadata != dto.metadata
-      || existing.readProgress != dto.readProgress
-    {
-      existing.applyContent(media: dto.media, metadata: dto.metadata, readProgress: dto.readProgress)
+    if mediaRaw == nil || existing.mediaRaw != mediaRaw {
+      existing.updateMedia(dto.media, raw: mediaRaw)
+    }
+    if metadataRaw == nil || existing.metadataRaw != metadataRaw {
+      existing.updateMetadata(dto.metadata, raw: metadataRaw)
+    }
+    if existing.readProgressRaw != readProgressRaw {
+      existing.updateReadProgress(dto.readProgress, raw: readProgressRaw)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
@@ -878,6 +902,9 @@ actor DatabaseOperator {
   }
 
   private func applySeries(dto: Series, to existing: KomgaSeries) {
+    let metadataRaw = RawCodableStore.encode(dto.metadata)
+    let booksMetadataRaw = RawCodableStore.encode(dto.booksMetadata)
+
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
@@ -891,8 +918,11 @@ actor DatabaseOperator {
     if existing.booksInProgressCount != dto.booksInProgressCount {
       existing.booksInProgressCount = dto.booksInProgressCount
     }
-    if existing.metadata != dto.metadata || existing.booksMetadata != dto.booksMetadata {
-      existing.applyContent(metadata: dto.metadata, booksMetadata: dto.booksMetadata)
+    if metadataRaw == nil || existing.metadataRaw != metadataRaw {
+      existing.updateMetadata(dto.metadata, raw: metadataRaw)
+    }
+    if booksMetadataRaw == nil || existing.booksMetadataRaw != booksMetadataRaw {
+      existing.updateBooksMetadata(dto.booksMetadata, raw: booksMetadataRaw)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
@@ -1234,6 +1264,34 @@ actor DatabaseOperator {
     }
   }
 
+  /// Removes a locally cached book after the server confirms the ID no longer exists.
+  /// `isUnavailable` is reserved for the server DTO's deleted state.
+  func deleteLocalBookAfterNotFound(bookId: String, instanceId: String) {
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.id == compositeId }
+    )
+    guard let book = try? modelContext.fetch(descriptor).first else { return }
+
+    let seriesId = book.seriesId
+    removeBookFromCachedReadLists(bookId: bookId, instanceId: instanceId)
+    modelContext.delete(book)
+
+    syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+  }
+
+  private func removeBookFromCachedReadLists(bookId: String, instanceId: String) {
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    guard let readLists = try? modelContext.fetch(descriptor) else { return }
+
+    for readList in readLists where readList.bookIds.contains(bookId) {
+      readList.bookIds = readList.bookIds.filter { $0 != bookId }
+      syncReadListDownloadStatus(readList: readList)
+    }
+  }
+
   func updateReadingProgress(bookId: String, page: Int, completed: Bool) {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
@@ -1346,8 +1404,13 @@ actor DatabaseOperator {
     let policyLimit = max(0, series.offlinePolicyLimit)
     let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
 
-    // Sort books to ensure they are processed in order
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    // Sort books to ensure they are processed in order.
+    // Server-deleted books are excluded up front so they neither consume a slot
+    // in `allowedUnreadIds` nor get re-enqueued by the loop below.
+    let sortedBooks =
+      books
+      .filter { !$0.isUnavailable }
+      .sorted { $0.metaNumberSort < $1.metaNumberSort }
     var allowedUnreadIds = Set<String>()
     if policyLimit > 0, policySupportsLimit {
       let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
@@ -1749,7 +1812,13 @@ actor DatabaseOperator {
     let allBooks = (try? modelContext.fetch(descriptor)) ?? []
     let books = allBooks.filter { bookIds.contains($0.bookId) }
 
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    // Preserve the read list's curated order, not per-series issue number.
+    let orderByBookId = Dictionary(
+      uniqueKeysWithValues: bookIds.enumerated().map { ($0.element, $0.offset) }
+    )
+    let sortedBooks = books.sorted {
+      (orderByBookId[$0.bookId] ?? Int.max) < (orderByBookId[$1.bookId] ?? Int.max)
+    }
     let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
     let limitValue = max(0, limit)
     let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
@@ -2144,6 +2213,58 @@ actor DatabaseOperator {
     } catch {
       return []
     }
+  }
+
+  @discardableResult
+  func queueBooksOffline(bookIds: [String], instanceId: String) -> Int {
+    guard !bookIds.isEmpty else { return 0 }
+
+    let compositeIds = Set(
+      bookIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
+    )
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+    let orderByBookId = Dictionary(
+      uniqueKeysWithValues: bookIds.enumerated().map { ($0.element, $0.offset) }
+    )
+
+    let orderedBooks = books.sorted { lhs, rhs in
+      let lhsIndex = orderByBookId[lhs.bookId] ?? Int.max
+      let rhsIndex = orderByBookId[rhs.bookId] ?? Int.max
+      return lhsIndex < rhsIndex
+    }
+
+    let now = Date.now
+    var queuedCount = 0
+    var affectedSeriesIds = Set<String>()
+    var affectedBookIds: [String] = []
+
+    for (index, book) in orderedBooks.enumerated() {
+      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
+        continue
+      }
+      if book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending" {
+        continue
+      }
+      book.downloadStatusRaw = "pending"
+      book.downloadError = nil
+      book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      queuedCount += 1
+      affectedSeriesIds.insert(book.seriesId)
+      affectedBookIds.append(book.bookId)
+    }
+
+    for seriesId in affectedSeriesIds {
+      syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+    }
+    syncReadListsContainingBooks(bookIds: affectedBookIds, instanceId: instanceId)
+
+    if queuedCount > 0 {
+      commit()
+    }
+    return queuedCount
   }
 
   func fetchDownloadQueueSummary(instanceId: String) -> DownloadQueueSummary {

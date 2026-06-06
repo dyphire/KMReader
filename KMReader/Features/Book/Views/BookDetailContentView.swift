@@ -15,6 +15,8 @@ struct BookDetailContentView: View {
 
   @State private var thumbnailRefreshKey = UUID()
 
+  private let collapsedMetadataChipLimit = 10
+
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
@@ -25,10 +27,9 @@ struct BookDetailContentView: View {
         .font(.subheadline)
         .foregroundColor(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+        .textSelectionIfAvailable()
 
-      Text(book.metadata.title)
-        .font(.title2)
-        .fixedSize(horizontal: false, vertical: true)
+      DetailTitleView(title: book.metadata.title)
 
       HStack(alignment: .top) {
         ThumbnailImage(
@@ -147,17 +148,16 @@ struct BookDetailContentView: View {
             )
           }
 
-          // Authors as chips
+          // Authors
           if let authors = book.metadata.authors, !authors.isEmpty {
-            HFlow {
-              ForEach(authors.sortedByRole(), id: \.self) { author in
-                TappableInfoChip(
-                  label: author.name,
-                  systemImage: author.role.icon,
-                  color: .purple,
-                  destination: MetadataFilterHelper.booksDestinationForAuthor(author.name)
-                )
-              }
+            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) {
+              author in
+              TappableInfoChip(
+                label: author.name,
+                systemImage: author.role.icon,
+                color: .purple,
+                destination: MetadataFilterHelper.booksDestinationForAuthor(author.name)
+              )
             }
           }
         }
@@ -165,15 +165,13 @@ struct BookDetailContentView: View {
 
       // Tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        HFlow {
-          ForEach(tags.sorted(), id: \.self) { tag in
-            TappableInfoChip(
-              label: tag,
-              systemImage: "tag",
-              color: .secondary,
-              destination: MetadataFilterHelper.booksDestinationForTag(tag)
-            )
-          }
+        CollapsibleChipSection(items: tags.sorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
+          TappableInfoChip(
+            label: tag,
+            systemImage: "tag",
+            color: .secondary,
+            destination: MetadataFilterHelper.booksDestinationForTag(tag)
+          )
         }
       }
 
@@ -221,6 +219,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.media.mediaType.uppercased())
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -231,6 +230,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.size)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -241,6 +241,7 @@ struct BookDetailContentView: View {
               .frame(minWidth: 16)
             Text(book.url)
               .font(.caption)
+              .textSelectionIfAvailable()
             Spacer()
           }
 
@@ -252,6 +253,7 @@ struct BookDetailContentView: View {
               Text(comment)
                 .font(.caption)
                 .foregroundColor(.red)
+                .textSelectionIfAvailable()
             }
           }
         }
@@ -263,10 +265,8 @@ struct BookDetailContentView: View {
         VStack(alignment: .leading, spacing: 8) {
           Text("Links")
             .font(.headline)
-          HFlow {
-            ForEach(Array(links.enumerated()), id: \.offset) { _, link in
-              ExternalLinkChip(label: link.label, url: link.url)
-            }
+          CollapsibleChipSection(items: links, collapsedLimit: collapsedMetadataChipLimit) { link in
+            ExternalLinkChip(label: link.label, url: link.url)
           }
           Divider()
         }

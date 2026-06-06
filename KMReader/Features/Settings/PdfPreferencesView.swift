@@ -2,53 +2,28 @@
   import SwiftUI
 
   struct PdfPreferencesView: View {
-    let inSheet: Bool
-
     @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
     @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
-    @AppStorage("pdfReaderControlsGradientBackground")
-    private var readerControlsGradientBackground: Bool = false
     @AppStorage("pdfDefaultReadingDirection")
     private var defaultReadingDirection: ReadingDirection = .ltr
     @AppStorage("pdfForceDefaultReadingDirection")
     private var forceDefaultReadingDirection: Bool = false
-    @AppStorage("pdfPageLayout")
-    private var pageLayout: PageLayout = .auto
+    @AppStorage("pdfPagePresentation")
+    private var pagePresentation: PdfPagePresentation = AppConfig.pdfPagePresentation
     @AppStorage("pdfIsolateCoverPage")
     private var isolateCoverPage: Bool = true
+    @AppStorage("pdfShowKeyboardHelpOverlay")
+    private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    @AppStorage("showPdfControlsGradientBackground")
+    private var showControlsGradientBackground: Bool =
+      AppConfig.showPdfControlsGradientBackground
+    @AppStorage("showPdfProgressBarWhileReading")
+    private var showProgressBarWhileReading: Bool =
+      AppConfig.showPdfProgressBarWhileReading
     @AppStorage("pdfOfflineRenderQuality")
     private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
-    init(inSheet: Bool = false) {
-      self.inSheet = inSheet
-    }
-
     var body: some View {
-      Group {
-        if inSheet {
-          SheetView(
-            title: String(localized: "Reader Settings"),
-            size: .medium,
-            applyFormStyle: true
-          ) {
-            preferencesForm
-          }
-          .presentationDragIndicator(.visible)
-        } else {
-          preferencesForm
-            .formStyle(.grouped)
-            .inlineNavigationBarTitle(SettingsSection.pdfReader.title)
-        }
-      }
-      .onAppear {
-        if defaultReadingDirection == .webtoon {
-          defaultReadingDirection = .vertical
-        }
-      }
-      .animation(.easeInOut(duration: 0.2), value: useNativePdfReader)
-    }
-
-    private var preferencesForm: some View {
       Form {
         Section {
           Toggle(isOn: $useNativePdfReader) {
@@ -90,20 +65,20 @@
             }
 
             VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Layout", selection: $pageLayout) {
-                ForEach(PageLayout.allCases, id: \.self) { layout in
-                  Label(layout.displayName, systemImage: layout.icon)
-                    .tag(layout)
+              Picker("Page Presentation", selection: $pagePresentation) {
+                ForEach(PdfPagePresentation.allCases, id: \.self) { presentation in
+                  Label(presentation.displayName, systemImage: presentation.icon)
+                    .tag(presentation)
                 }
               }
               .pickerStyle(.menu)
 
-              Text("Used for single and dual-page presentation in continuous mode")
+              Text(pagePresentation.detailText)
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
 
-            if pageLayout.supportsDualPageOptions {
+            if pagePresentation.supportsCoverIsolation {
               Toggle(isOn: $isolateCoverPage) {
                 VStack(alignment: .leading, spacing: 4) {
                   Text("Isolate Cover Page")
@@ -122,9 +97,34 @@
               }
             }
             .pickerStyle(.menu)
+          }
 
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
+          Section(header: Text("Reader Overlay")) {
+            Toggle(isOn: $showControlsGradientBackground) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Controls Gradient Background")
+                Text("Add a gradient behind reader controls for better contrast over pages.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            Toggle(isOn: $showProgressBarWhileReading) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Show Progress Bar While Reading")
+                Text("Keep book progress pinned to the bottom until reader controls are shown.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            Toggle(isOn: $showKeyboardHelpOverlay) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Auto-Show Keyboard Help")
+                Text("Briefly show keyboard shortcuts when opening the reader")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
           }
         }
@@ -148,9 +148,16 @@
                 .foregroundColor(.secondary)
             }
           }
-
         }
       }
+      .onAppear {
+        if defaultReadingDirection == .webtoon {
+          defaultReadingDirection = .vertical
+        }
+      }
+      .animation(.easeInOut(duration: 0.2), value: useNativePdfReader)
+      .formStyle(.grouped)
+      .inlineNavigationBarTitle(SettingsSection.pdfReader.title)
     }
   }
 #endif

@@ -1,19 +1,19 @@
-Reader Improvements
-- DIVINA now offers cover-style page transitions on iPhone, iPad, Mac, and Apple TV, with steadier scroll and paged reading, better viewport alignment, improved RTL behavior, more consistent wide-page handling, more reliable preloading, and smoother recovery during fast navigation or app interruptions.
-- Webtoon and scroll reading behave more predictably, including fixes for backward chapter jumps and page-position jumps after app background/foreground transitions.
-- EPUB adds cover transitions on iPhone, iPad, and Mac, cover-style turns feel smoother thanks to better adjacent page preloading, and single-page content now supports swipe chapter navigation more reliably.
-- Animated GIF and WebP pages now start immediately, stay smooth while you zoom or scroll, and behave more reliably when you reopen, revisit, or switch pages.
-- Added a Show Page Shadow option for cleaner seamless spreads, and reader interactions are more consistent with improved tap-zone handling.
+New
+- Added optional border cropping for DIVINA pages, helping comics with large empty margins use more of the screen.
+- Added DIVINA image preloading profiles so you can choose between lower memory use and smoother page turns.
+- Added dedicated EPUB settings and EPUB theme controls, separating reading behavior from per-book theme and typography choices.
 
-Offline and Library Workflows
-- EPUB downloads are now saved as a single file and extracted locally, making offline reading faster and more reliable.
-- Offline sync and iOS background downloads now behave more predictably during reconnects and long-running transfers.
-- Added an option to blur unread book and series covers to help avoid spoiler-heavy artwork.
+Improvements
+- EPUB books with custom fonts, images, and mixed HTML/XHTML chapters now load publication resources more reliably.
+- EPUB tap zones now have their own settings instead of sharing DIVINA tap zone preferences.
+- DIVINA scroll and page-curl navigation is more stable, especially around rapid taps, animations, and book boundaries.
+- Reader memory handling is improved on iOS, with decoded pages pruned more gracefully under memory pressure.
+- Browse views avoid unnecessary refreshes when returning from detail pages.
+- The Browse tab is now positioned as the trailing search-style entry point on iPhone and Apple TV.
+- macOS Settings keeps its sidebar stable while using EPUB settings and log search.
 
-Management and Platform Polish
-- Added in-app media management tools for media analysis, missing posters, duplicate files, duplicate pages, and page-hash matches.
-- Komga media error messages are clearer in the app, so unsupported files and analysis issues are easier to understand.
-- macOS reader actions now live in the system menu bar for quicker keyboard-first control.
-
-Live Activities
-- Reader Live Activities can now be disabled, close immediately with the reader, and show reading progress or incognito status instead of a generic ON/OFF label.
+Fixes
+- Fixed cases where continuing from one volume into the next could jump back or regress progress for the previous volume.
+- Fixed UTF-8 archive path handling for offline CBZ/ZIP extraction.
+- Fixed EPUB chapters that could appear blank when their manifest media type did not match the file extension.
+- Reduced unnecessary offline downloads for previous-book preloads while keeping forward offline-first preparation.

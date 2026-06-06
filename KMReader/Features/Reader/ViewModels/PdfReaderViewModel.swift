@@ -13,9 +13,9 @@
   @MainActor
   @Observable
   class PdfReaderViewModel {
-    var isLoading: Bool = false
+    var isLoading: Bool = true
     var errorMessage: String?
-    var loadingStage: PdfLoadingStage = .idle
+    var loadingStage: PdfLoadingStage = .fetchingMetadata
 
     var downloadProgress: Double = 0.0
     var downloadBytesReceived: Int64 = 0
@@ -305,12 +305,8 @@
       downloadBytesExpected = nil
 
       switch status {
-      case .notDownloaded:
-        await OfflineManager.shared.toggleDownload(instanceId: instanceId, info: downloadInfo)
-      case .failed:
-        await OfflineManager.shared.retryDownload(instanceId: instanceId, bookId: bookId)
-      case .pending:
-        break
+      case .notDownloaded, .failed, .pending:
+        await OfflineManager.shared.downloadForReading(instanceId: instanceId, info: downloadInfo)
       case .downloaded:
         downloadProgress = 1.0
         return
@@ -330,7 +326,7 @@
           throw AppErrorType.operationFailed(message: error)
         case .notDownloaded:
           throw AppErrorType.operationFailed(
-            message: "Download did not start. Please try again."
+            message: String(localized: "Download did not start. Please try again.")
           )
         case .pending:
           if let progress = DownloadProgressTracker.shared.progress[bookId] {

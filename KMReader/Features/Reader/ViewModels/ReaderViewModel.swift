@@ -13,6 +13,7 @@ class ReaderViewModel {
   private(set) var segments: [ReaderSegment] = []
   var isolatePages: [Int] = []
   private var isolatePagesByBookId: [String: Set<Int>] = [:]
+  private var pageRotationsByBookId: [String: [Int: Int]] = [:]
   private var currentPageID: ReaderPageID?
   private var currentViewItemID: ReaderViewItem?
   var navigationTarget: ReaderViewItem?
@@ -32,10 +33,25 @@ class ReaderViewModel {
   private var isolateCoverPageEnabled: Bool
   private var forceDualPagePairs: Bool
   private var splitWidePageMode: SplitWidePageMode
+  private var pageTransitionStyle: PageTransitionStyle
   private var isActuallyUsingDualPageMode: Bool = false
   typealias PagePresentationInvalidationHandler = @MainActor (ReaderPagePresentationInvalidation) -> Void
   @ObservationIgnored
   private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
+
+  private enum SegmentFetchPurpose {
+    case nextPreload
+    case previousPreload
+
+    var shouldEnsureOfflineReady: Bool {
+      switch self {
+      case .nextPreload:
+        return true
+      case .previousPreload:
+        return false
+      }
+    }
+  }
 
   private let logger = AppLogger(.reader)
   private let pageLoadScheduler: ReaderPageLoadScheduler
@@ -93,9 +109,29 @@ class ReaderViewModel {
     return isolatePagesByBookId[currentReaderPage.bookId]?.contains(isolatePosition.localIndex) == true
   }
 
+  func isPageIsolated(_ pageID: ReaderPageID) -> Bool {
+    guard let isolatePosition = isolatePosition(for: pageID) else { return false }
+    return isolatePagesByBookId[isolatePosition.bookId]?.contains(isolatePosition.localIndex) == true
+  }
+
+  func pageRotationDegrees(for pageID: ReaderPageID) -> Int {
+    guard let position = isolatePosition(for: pageID) else { return 0 }
+    return pageRotationsByBookId[position.bookId]?[position.localIndex] ?? 0
+  }
+
+  var currentPageRotationDegrees: Int {
+    guard let currentReaderPage else { return 0 }
+    return pageRotationDegrees(for: currentReaderPage.id)
+  }
+
   /// Whether the current page is a wide (non-portrait) image, which cannot be isolated.
   var isCurrentPageWide: Bool {
     guard let currentReaderPage else { return false }
+    let rotation = pageRotationDegrees(for: currentReaderPage.id)
+    let normalized = ((rotation % 360) + 360) % 360
+    if normalized == 90 || normalized == 270 {
+      return currentReaderPage.page.isPortrait
+    }
     return !currentReaderPage.page.isPortrait
   }
 
@@ -104,6 +140,8 @@ class ReaderViewModel {
       isolateCoverPage: AppConfig.isolateCoverPage,
       pageLayout: AppConfig.pageLayout,
       splitWidePageMode: AppConfig.splitWidePageMode,
+      pageTransitionStyle: AppConfig.pageTransitionStyle,
+      preloadWindow: AppConfig.divinaPreloadProfile.window,
       incognitoMode: false
     )
   }
@@ -112,12 +150,15 @@ class ReaderViewModel {
     isolateCoverPage: Bool,
     pageLayout: PageLayout,
     splitWidePageMode: SplitWidePageMode = .none,
+    pageTransitionStyle: PageTransitionStyle = AppConfig.pageTransitionStyle,
+    preloadWindow: ReaderPreloadWindow = ReaderPreloadWindow.balanced,
     incognitoMode: Bool = false
   ) {
-    self.pageLoadScheduler = ReaderPageLoadScheduler()
+    self.pageLoadScheduler = ReaderPageLoadScheduler(preloadWindow: preloadWindow)
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
+    self.pageTransitionStyle = pageTransitionStyle
     self.incognitoMode = incognitoMode
     pageLoadScheduler.setPresentationInvalidationHandler { [weak self] invalidation in
       self?.notifyPagePresentationInvalidation(invalidation)
@@ -207,6 +248,10 @@ class ReaderViewModel {
       preferredItem: item,
       preferredPageID: item?.pageID
     )
+  }
+
+  func updatePreloadWindow(_ preloadWindow: ReaderPreloadWindow) {
+    pageLoadScheduler.updatePreloadWindow(preloadWindow)
   }
 
   func preloadedImage(for pageID: ReaderPageID) -> PlatformImage? {
@@ -482,6 +527,26 @@ class ReaderViewModel {
     )
   }
 
+  /// Update the adjacent-book metadata for an existing segment. Called when the
+  /// reader's deferred adjacent-book fetch resolves so the segment's
+  /// `previousBook`/`nextBook` reflect the freshly-fetched values, preventing
+  /// redundant re-fetches from later code paths such as `resolveSegmentPreloadContext`
+  /// that read these from the segment.
+  ///
+  /// No-op when no segment matches `bookId` — e.g., the user has navigated away
+  /// before the deferred fetch resolved.
+  func updateAdjacentBooksForSegment(
+    bookId: String,
+    previousBook: Book?,
+    nextBook: Book?
+  ) {
+    updateSegmentContext(
+      forCurrentBookId: bookId,
+      previousBook: previousBook,
+      nextBook: nextBook
+    )
+  }
+
   private func appendSegment(
     currentBook: Book,
     previousBook: Book?,
@@ -516,8 +581,20 @@ class ReaderViewModel {
     rebuildReaderPages()
   }
 
-  private func fetchSegmentPages(for book: Book) async -> [BookPage]? {
+  private func fetchSegmentPages(for book: Book, purpose: SegmentFetchPurpose) async -> [BookPage]? {
     let database = await DatabaseOperator.databaseIfConfigured()
+
+    if AppConfig.offlineFirstReading, purpose.shouldEnsureOfflineReady {
+      do {
+        try await ensureOfflineReady(book: book, updatesLoadingState: false)
+      } catch {
+        logger.error("❌ Failed to prepare offline segment for book \(book.id): \(error)")
+        return nil
+      }
+
+      return await database?.fetchPages(id: book.id)
+    }
+
     if let cachedPages = await database?.fetchPages(id: book.id) {
       return cachedPages
     }
@@ -542,8 +619,29 @@ class ReaderViewModel {
     isolatePagesByBookId[bookId] = Set(isolatePagesForBook)
   }
 
+  private func hydratePageRotations(for bookId: String) async {
+    let database = await DatabaseOperator.databaseIfConfigured()
+    let rotations = await database?.fetchPageRotations(id: bookId) ?? [:]
+    pageRotationsByBookId[bookId] = rotations
+  }
+
+  private func persistPageRotations(_ rotations: [Int: Int], for bookId: String) {
+    Task {
+      if let database = await DatabaseOperator.databaseIfConfigured() {
+        await database.updatePageRotations(bookId: bookId, rotations: rotations)
+        await database.commit()
+      }
+    }
+  }
+
+  private func normalizedPageRotation(_ degrees: Int) -> Int {
+    let normalized = degrees % 360
+    return normalized >= 0 ? normalized : normalized + 360
+  }
+
   private func restoreCurrentPosition(using currentPageID: ReaderPageID?) {
     guard currentPageID != nil else { return }
+    guard navigationTarget == nil else { return }
     updateCurrentPosition(pageID: currentPageID)
   }
 
@@ -555,6 +653,7 @@ class ReaderViewModel {
     pageLoadScheduler.resetForBookLoad()
     isolatePages.removeAll()
     isolatePagesByBookId.removeAll()
+    pageRotationsByBookId.removeAll()
     tableOfContents.removeAll()
     tableOfContentsByBookId.removeAll()
     tableOfContentsBookId = nil
@@ -590,7 +689,7 @@ class ReaderViewModel {
       return
     }
 
-    guard let fetchedPages = await fetchSegmentPages(for: nextBook) else {
+    guard let fetchedPages = await fetchSegmentPages(for: nextBook, purpose: .nextPreload) else {
       regenerateViewState()
       return
     }
@@ -601,6 +700,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: nextBook.id)
+    await hydratePageRotations(for: nextBook.id)
     let currentPageID = currentReaderPage?.id
 
     appendSegment(
@@ -634,7 +734,7 @@ class ReaderViewModel {
       return
     }
 
-    guard let fetchedPages = await fetchSegmentPages(for: previousBook) else {
+    guard let fetchedPages = await fetchSegmentPages(for: previousBook, purpose: .previousPreload) else {
       regenerateViewState()
       return
     }
@@ -645,6 +745,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: previousBook.id)
+    await hydratePageRotations(for: previousBook.id)
     let currentPageID = currentReaderPage?.id
 
     prependSegment(
@@ -672,6 +773,9 @@ class ReaderViewModel {
     resetStateForBookLoad()
 
     do {
+      if AppConfig.offlineFirstReading {
+        try await ensureOfflineReady(book: book, updatesLoadingState: true)
+      }
       await prepareOfflinePDFForDivina(book: book)
       let database = await DatabaseOperator.databaseIfConfigured()
 
@@ -687,6 +791,7 @@ class ReaderViewModel {
 
       let localIsolatePages = await database?.fetchIsolatePages(id: book.id) ?? []
       isolatePagesByBookId[book.id] = Set(localIsolatePages)
+      await hydratePageRotations(for: book.id)
       currentPageID = initialPageNumber.flatMap { pageNumber in
         fetchedPages.first(where: { $0.number == pageNumber }).map {
           ReaderPageID(bookId: book.id, pageNumber: $0.number)
@@ -712,6 +817,67 @@ class ReaderViewModel {
     }
 
     isLoading = false
+  }
+
+  private func ensureOfflineReady(book: Book, updatesLoadingState: Bool) async throws {
+    let downloadInfo = book.downloadInfo
+    let status = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
+    if case .downloaded = status {
+      if updatesLoadingState {
+        loadingProgress = 1.0
+      }
+      return
+    }
+
+    if AppConfig.isOffline {
+      throw AppErrorType.networkUnavailable
+    }
+
+    if updatesLoadingState {
+      loadingTitle = String(localized: "Downloading book...")
+      loadingDetail = nil
+      loadingProgress = 0.0
+    }
+
+    switch status {
+    case .notDownloaded, .failed, .pending:
+      await OfflineManager.shared.downloadForReading(
+        instanceId: AppConfig.current.instanceId,
+        info: downloadInfo
+      )
+    case .downloaded:
+      loadingProgress = 1.0
+      return
+    }
+
+    while true {
+      if AppConfig.isOffline {
+        throw AppErrorType.networkUnavailable
+      }
+
+      let currentStatus = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
+      switch currentStatus {
+      case .downloaded:
+        if updatesLoadingState {
+          loadingProgress = 1.0
+        }
+        return
+      case .failed(let error):
+        throw AppErrorType.operationFailed(message: error)
+      case .notDownloaded:
+        throw AppErrorType.operationFailed(
+          message: String(localized: "Download did not start. Please try again.")
+        )
+      case .pending:
+        if updatesLoadingState,
+          let progress = DownloadProgressTracker.shared.progress[book.id]
+        {
+          loadingProgress = progress
+        }
+      }
+
+      try await Task.sleep(for: .milliseconds(200))
+    }
   }
 
   private func prepareOfflinePDFForDivina(book: Book) async {
@@ -919,6 +1085,13 @@ class ReaderViewModel {
     }
   }
 
+  func updatePageTransitionStyle(_ style: PageTransitionStyle) {
+    guard pageTransitionStyle != style else { return }
+    regenerateViewStatePreservingCurrentPage {
+      pageTransitionStyle = style
+    }
+  }
+
   func updateDualPagePresentationMode(_ isUsingDualPageMode: Bool) {
     guard isActuallyUsingDualPageMode != isUsingDualPageMode else { return }
 
@@ -927,10 +1100,43 @@ class ReaderViewModel {
     }
   }
 
+  func setPageRotation(_ degrees: Int, for pageID: ReaderPageID) {
+    guard let position = isolatePosition(for: pageID) else { return }
+    let normalized = normalizedPageRotation(degrees)
+    guard pageRotationDegrees(for: pageID) != normalized else { return }
+    var rotations = pageRotationsByBookId[position.bookId] ?? [:]
+    if normalized == 0 {
+      rotations.removeValue(forKey: position.localIndex)
+    } else {
+      rotations[position.localIndex] = normalized
+    }
+    pageRotationsByBookId[position.bookId] = rotations
+    persistPageRotations(rotations, for: position.bookId)
+    regenerateViewStatePreservingCurrentPage {
+      // rotation state already updated above
+    }
+    notifyPagePresentationInvalidation(.pages([pageID]))
+  }
+
+  func rotatePage(_ pageID: ReaderPageID, by degrees: Int) {
+    let current = pageRotationDegrees(for: pageID)
+    setPageRotation(current + degrees, for: pageID)
+  }
+
   func toggleIsolatePage(_ pageID: ReaderPageID) {
     guard let isolatePosition = isolatePosition(for: pageID) else { return }
-    // Wide pages always fill both slots and cannot be isolated
-    if let page = readerPage(for: pageID)?.page, !page.isPortrait { return }
+    // Wide pages (considering rotation) always fill both slots and cannot be isolated
+    let rotation = pageRotationDegrees(for: pageID)
+    let normalized = ((rotation % 360) + 360) % 360
+    if let page = readerPage(for: pageID)?.page {
+      let effectivelyPortrait: Bool
+      if normalized == 90 || normalized == 270 {
+        effectivelyPortrait = (page.width ?? 0) > (page.height ?? 0)
+      } else {
+        effectivelyPortrait = page.isPortrait
+      }
+      if !effectivelyPortrait { return }
+    }
     toggleIsolatePage(at: isolatePosition)
   }
 
@@ -958,8 +1164,8 @@ class ReaderViewModel {
     }
   }
 
-  func refreshForPageTransitionChange() {
-    regenerateViewState()
+  func preserveCurrentPageForPresentationRebuild() {
+    requestNavigation(toPageID: resolvedCurrentPageID)
   }
 
   private func regenerateViewState() {
@@ -980,8 +1186,10 @@ class ReaderViewModel {
       allowDualPairs: isActuallyUsingDualPageMode,
       forceDualPairs: forceDualPagePairs,
       splitWidePages: effectiveSplitWidePages,
-      pageCurl: AppConfig.pageTransitionStyle == .pageCurl,
-      isolatePages: Set(isolatePages)
+      pageCurl: pageTransitionStyle == .pageCurl,
+      isolatePages: Set(isolatePages),
+      pageRotationsByBookId: pageRotationsByBookId,
+      segmentPageRangeByBookId: segmentPageRangeByBookId
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
     currentViewItemID = resolvedViewItem(
@@ -1043,9 +1251,9 @@ class ReaderViewModel {
 
   func adjacentViewItem(from item: ReaderViewItem? = nil, offset: Int) -> ReaderViewItem? {
     guard offset != 0 else {
-      return item ?? currentViewItem()
+      return item ?? navigationTarget ?? currentViewItem()
     }
-    let anchorItem = item ?? currentViewItem()
+    let anchorItem = item ?? navigationTarget ?? currentViewItem()
     guard let anchorItem, let anchorIndex = viewItemIndex(for: anchorItem) else {
       return nil
     }
@@ -1131,9 +1339,42 @@ private func generateViewItems(
   forceDualPairs: Bool,
   splitWidePages: Bool,
   pageCurl: Bool,
-  isolatePages: Set<Int> = []
+  isolatePages: Set<Int> = [],
+  pageRotationsByBookId: [String: [Int: Int]] = [:],
+  segmentPageRangeByBookId: [String: Range<Int>] = [:]
 ) -> [ReaderViewItem] {
   guard !segments.isEmpty, !readerPages.isEmpty else { return [] }
+
+  enum PageOrientation {
+    case portrait
+    case landscape
+    case unknown
+
+    var isKnownLandscape: Bool {
+      self == .landscape
+    }
+
+    var isPairableInForcedDual: Bool {
+      self != .landscape
+    }
+  }
+
+  func effectiveOrientation(at index: Int) -> PageOrientation {
+    let page = readerPages[index].page
+    let bookId = readerPages[index].bookId
+    if let range = segmentPageRangeByBookId[bookId] {
+      let localIndex = index - range.lowerBound
+      let rotation = pageRotationsByBookId[bookId]?[localIndex] ?? 0
+      let normalized = ((rotation % 360) + 360) % 360
+      if normalized == 90 || normalized == 270 {
+        guard let width = page.width, let height = page.height else { return .unknown }
+        return width > height ? .portrait : .landscape
+      }
+    }
+
+    guard let width = page.width, let height = page.height else { return .unknown }
+    return height > width ? .portrait : .landscape
+  }
 
   var items: [ReaderViewItem] = []
   let shouldForceDualPairs = allowDualPairs && forceDualPairs
@@ -1150,12 +1391,12 @@ private func generateViewItems(
 
     while index < segmentEndExclusive {
       if shouldForceDualPairs {
-        let currentPage = readerPages[index].page
+        let currentOrientation = effectiveOrientation(at: index)
         let isCoverPage = !noCover && index == segmentStartIndex
-        let isWideCoverPage = isCoverPage && !currentPage.isPortrait
+        let isWideCoverPage = isCoverPage && currentOrientation.isKnownLandscape
         let isWidePageEligibleForSplit =
           (splitWidePages || pageCurl)
-          && !currentPage.isPortrait
+          && currentOrientation.isKnownLandscape
           && (noCover || isWideCoverPage || index != segmentStartIndex)
 
         if isWidePageEligibleForSplit {
@@ -1164,17 +1405,20 @@ private func generateViewItems(
           continue
         }
 
-        if !currentPage.isPortrait && !pageCurl {
+        if currentOrientation.isKnownLandscape && !pageCurl {
           items.append(.page(id: readerPages[index].id))
           index += 1
           continue
         }
 
-        let nextPage = index + 1 < segmentEndExclusive ? readerPages[index + 1].page : nil
+        let nextIsPairable =
+          index + 1 < segmentEndExclusive
+          ? effectiveOrientation(at: index + 1).isPairableInForcedDual
+          : true
         let shouldShowSingle =
-          (isCoverPage && currentPage.isPortrait) || index == segmentEndExclusive - 1
+          (isCoverPage && currentOrientation.isPairableInForcedDual) || index == segmentEndExclusive - 1
           || isolatePages.contains(index) || isolatePages.contains(index + 1)
-          || nextPage?.isPortrait == false  // next page is wide → keep it for its own item
+          || !nextIsPairable  // next page is wide → keep it for its own item
         if shouldShowSingle {
           items.append(.page(id: readerPages[index].id))
           index += 1
@@ -1186,19 +1430,20 @@ private func generateViewItems(
         continue
       }
 
-      let currentPage = readerPages[index].page
+      let currentOrientation = effectiveOrientation(at: index)
+      let currentIsPortrait = currentOrientation == .portrait
 
       var useSinglePage = false
       var shouldSplitPage = false
 
       let isCoverPage = !noCover && index == segmentStartIndex
-      let isWideCoverPage = isCoverPage && !currentPage.isPortrait
+      let isWideCoverPage = isCoverPage && !currentIsPortrait
 
       // Wide pages split only when enabled. In dual-page mode that produces a two-slot
       // spread; otherwise the page stays as a single item.
       let isWidePageEligibleForSplit =
         (splitWidePages || (pageCurl && allowDualPairs))
-        && !currentPage.isPortrait
+        && !currentIsPortrait
         && (noCover || isWideCoverPage || index != segmentStartIndex)
 
       if isWidePageEligibleForSplit {
@@ -1206,7 +1451,7 @@ private func generateViewItems(
       }
 
       // Determine if page should be shown as single (without splitting)
-      if !currentPage.isPortrait && !shouldSplitPage {
+      if !currentIsPortrait && !shouldSplitPage {
         useSinglePage = true
       }
       if isCoverPage && !isWideCoverPage {
@@ -1231,9 +1476,9 @@ private func generateViewItems(
         items.append(.page(id: readerPages[index].id))
         index += 1
       } else {
-        let nextPage = readerPages[index + 1].page
+        let nextIsPortrait = effectiveOrientation(at: index + 1) == .portrait
         if allowDualPairs && index + 1 < segmentEndExclusive
-          && nextPage.isPortrait
+          && nextIsPortrait
           && !isolatePages.contains(index + 1)
         {
           items.append(.dual(first: readerPages[index].id, second: readerPages[index + 1].id))

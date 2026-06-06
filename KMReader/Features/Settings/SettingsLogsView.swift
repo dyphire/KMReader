@@ -36,7 +36,7 @@ struct SettingsLogsView: View {
           ForEach(logEntries) { entry in
             LogEntryRow(entry: entry)
               .tvFocusableHighlight()
-              #if !os(tvOS)
+              #if os(iOS) || os(macOS)
                 .contextMenu {
                   Button {
                     copyToClipboard(formatEntry(entry))
@@ -48,7 +48,15 @@ struct SettingsLogsView: View {
           }
         }
       } header: {
-        VStack(alignment: .leading) {
+        VStack(alignment: .leading, spacing: 12) {
+          #if os(macOS)
+            TextField(String(localized: "settings.logs.search"), text: $searchText)
+              .textFieldStyle(.roundedBorder)
+              .onSubmit {
+                Task { await loadLogs() }
+              }
+          #endif
+
           HStack {
             Menu {
               Picker("Time", selection: $selectedTimeRange) {
@@ -114,7 +122,9 @@ struct SettingsLogsView: View {
     .animation(.default, value: selectedTimeRange)
     .animation(.default, value: selectedLevel)
     .animation(.default, value: selectedCategory)
-    .searchable(text: $searchText, prompt: String(localized: "settings.logs.search"))
+    #if os(iOS)
+      .searchable(text: $searchText, prompt: String(localized: "settings.logs.search"))
+    #endif
     .onSubmit(of: .search) {
       Task { await loadLogs() }
     }
@@ -133,7 +143,7 @@ struct SettingsLogsView: View {
     .refreshable {
       await loadLogs()
     }
-    #if !os(tvOS)
+    #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           ShareLink(item: exportLogs()) {

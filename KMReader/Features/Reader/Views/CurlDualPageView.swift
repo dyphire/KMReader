@@ -11,9 +11,11 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let animateTapTurns: Bool
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     private enum SpreadSlot: Int {
       case first = 0
@@ -44,6 +46,7 @@
       context.coordinator.pageViewController = pageVC
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
+      context.coordinator.installTapRecognizers(on: pageVC.view)
 
       for recognizer in pageVC.gestureRecognizers {
         recognizer.delegate = context.coordinator
@@ -67,6 +70,16 @@
       if let initialPair = context.coordinator.pageControllerPair(for: initialSpreadIndex) {
         PageCurlControllerPlanner.safeSetViewControllers(
           initialPair,
+          on: pageVC,
+          direction: .forward,
+          animated: false
+        )
+      } else {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: pageVC,
+            backgroundColor: UIColor(renderConfig.readerBackground.color)
+          ),
           on: pageVC,
           direction: .forward,
           animated: false
@@ -129,7 +142,7 @@
       }
 
       context.coordinator.isTransitioning = true
-      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
       PageCurlControllerPlanner.safeSetViewControllers(
         targetPair,
         on: pageVC,
@@ -188,14 +201,37 @@
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
+      private var singleTapWorkItem: DispatchWorkItem?
       private var transitionTargetItem: ReaderViewItem?
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
         self.currentItem = parent.viewModel.currentViewItem()
+      }
+
+      func installTapRecognizers(on view: UIView) {
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
+        singleTap.cancelsTouchesInView = false
+        singleTap.delegate = self
+        view.addGestureRecognizer(singleTap)
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.cancelsTouchesInView = false
+        doubleTap.delegate = self
+        view.addGestureRecognizer(doubleTap)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+        longPress.cancelsTouchesInView = false
+        longPress.delegate = self
+        view.addGestureRecognizer(longPress)
       }
 
       private var totalSpreads: Int {
@@ -482,6 +518,7 @@
       }
 
       func refreshVisibleControllerConfiguration() {
+        guard !isTransitioning else { return }
         guard let pageViewController else { return }
         guard let visibleControllers = pageViewController.viewControllers else { return }
         guard let spreadIndex = resolvedVisibleSpreadIndex() else { return }
@@ -613,11 +650,68 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        PageCurlControllerPlanner.configure(
-          pageViewController: pageViewController,
-          semanticContentAttribute: parent.mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+        .mid
+      }
+
+      @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let view = gesture.view else { return }
+        guard !isTapZoneSuppressed else { return }
+
+        let location = gesture.location(in: view)
+        let workItem = DispatchWorkItem { [weak self, weak view] in
+          guard let self, let view else { return }
+          self.dispatchTapZoneTap(at: location, in: view)
+        }
+        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
+      }
+
+      @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+      }
+
+      @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+          isLongPressing = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
+      private var isTapZoneSuppressed: Bool {
+        isTransitioning
+          || parent.viewModel.isZoomed
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
+      }
+
+      private func dispatchTapZoneTap(at location: CGPoint, in view: UIView) {
+        singleTapWorkItem = nil
+        guard !isTapZoneSuppressed else { return }
+        let bounds = view.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        parent.onTapZoneTap(
+          min(max(location.x / bounds.width, 0), 1),
+          min(max(location.y / bounds.height, 0), 1)
         )
-        return .mid
       }
 
       // MARK: - UIGestureRecognizerDelegate
@@ -641,29 +735,6 @@
 
         let beforeExists = isValidSpreadIndex(beforeSpreadIndex(from: currentSpreadIndex))
         let afterExists = isValidSpreadIndex(afterSpreadIndex(from: currentSpreadIndex))
-
-        if let tap = gestureRecognizer as? UITapGestureRecognizer,
-          let view = tap.view,
-          view.bounds.width > 0,
-          view.bounds.height > 0
-        {
-          let location = tap.location(in: view)
-          let normalizedX = location.x / view.bounds.width
-          let normalizedY = location.y / view.bounds.height
-
-          let action = TapZoneHelper.action(
-            normalizedX: normalizedX,
-            normalizedY: normalizedY,
-            tapZoneMode: parent.renderConfig.tapZoneMode,
-            readingDirection: parent.readingDirection,
-            zoneThreshold: parent.renderConfig.tapZoneSize.value
-          )
-
-          switch action {
-          case .next, .previous, .toggleControls:
-            return false
-          }
-        }
 
         if let pan = gestureRecognizer as? UIPanGestureRecognizer {
           let primaryTranslation = primaryTranslation(for: pan)
@@ -693,6 +764,10 @@
         }
 
         return true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        touch.view?.hasInteractiveAncestor != true
       }
     }
   }

@@ -6,6 +6,11 @@
 import SwiftUI
 
 struct DivinaReaderView: View {
+  private enum ReaderNavigationStep {
+    case previous
+    case next
+  }
+
   let sessionID: UUID
   let book: Book
   let incognito: Bool
@@ -14,22 +19,32 @@ struct DivinaReaderView: View {
   let onClose: (() -> Void)?
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.scenePhase) private var scenePhase
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+  @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
+  @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
+  @AppStorage("enableDivinaImageContextMenu")
+  private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
+  @AppStorage("showDivinaControlsGradientBackground")
+  private var showControlsGradientBackground: Bool =
+    AppConfig.showDivinaControlsGradientBackground
+  @AppStorage("showDivinaProgressBarWhileReading")
+  private var showProgressBarWhileReading: Bool =
+    AppConfig.showDivinaProgressBarWhileReading
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
 
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
@@ -41,6 +56,16 @@ struct DivinaReaderView: View {
   @State private var currentBookId: String
   @State private var viewModel: ReaderViewModel
   @State private var showingControls = false
+  // Captures `shouldShowControls` on the active → non-active scene-phase
+  // transition (before the PR #682 force-show flips `showingControls`), so the
+  // subsequent resume can decide whether to auto-hide the overlay or leave it
+  // visible. See `handleScenePhaseChange(from:to:)`.
+  @State private var wasShowingControlsBeforeBackground: Bool = false
+  // Task that fades the resume-triggered overlay back to hidden after a brief
+  // glance window. Reset on user interaction (page change) to act as an idle
+  // timeout; cancelled on tap-toggle and reader close. Nil when no auto-hide
+  // is pending.
+  @State private var autoHideAfterResumeTask: Task<Void, Never>?
   @State private var currentSeries: Series?
   @State private var currentBook: Book?
   @State private var seriesId: String?
@@ -52,6 +77,10 @@ struct DivinaReaderView: View {
   @State private var showKeyboardHelp = false
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
+  @State private var usesDualPagePresentation = false
+  @State private var webtoonScrollController = WebtoonScrollController()
+  @State private var readerSafeAreaTop: CGFloat = 0
+  @State private var readerViewHeight: CGFloat = 0
 
   // UI Panels states
   @State private var showingPageJumpSheet = false
@@ -63,6 +92,7 @@ struct DivinaReaderView: View {
   @State private var inFlightNextSegmentPreloads: [String: Task<Void, Never>] = [:]
   @State private var inFlightPreviousSegmentPreloads: [String: Task<Void, Never>] = [:]
   @State private var deferredPageMaintenanceTask: Task<Void, Never>?
+  @State private var deferredAdjacentBookTask: Task<Void, Never>?
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -96,6 +126,8 @@ struct DivinaReaderView: View {
         isolateCoverPage: AppConfig.isolateCoverPage,
         pageLayout: AppConfig.pageLayout,
         splitWidePageMode: AppConfig.splitWidePageMode,
+        pageTransitionStyle: AppConfig.pageTransitionStyle,
+        preloadWindow: AppConfig.divinaPreloadProfile.window,
         incognitoMode: incognito
       )
     )
@@ -107,12 +139,16 @@ struct DivinaReaderView: View {
 
   private var renderConfig: ReaderRenderConfig {
     ReaderRenderConfig(
-      tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
+      tapZoneInversionMode: tapZoneInversionMode,
       showPageNumber: showPageNumber,
       showPageShadow: showPageShadow,
       readerBackground: readerBackground,
       enableLiveText: enableLiveText,
+      enableImageContextMenu: enableDivinaImageContextMenu,
+      supportsPageIsolationActions: readingDirection != .webtoon
+        && readingDirection != .vertical
+        && pageLayout.supportsDualPageOptions,
       doubleTapZoomScale: doubleTapZoomScale,
       doubleTapZoomMode: doubleTapZoomMode
     )
@@ -171,7 +207,18 @@ struct DivinaReaderView: View {
   }
 
   private var pageTurnAnimationDuration: Double {
-    max(tapPageTransitionDuration, 0)
+    animateTapTurns ? 0.3 : 0
+  }
+
+  private var isPresentingModalSheet: Bool {
+    showingPageJumpSheet
+      || showingTOCSheet
+      || showingReaderSettingsSheet
+      || showingDetailSheet
+  }
+
+  private var isKeyboardCaptureEnabled: Bool {
+    !isPresentingModalSheet
   }
 
   private func shouldUseDualPage(screenSize: CGSize) -> Bool {
@@ -206,6 +253,7 @@ struct DivinaReaderView: View {
   #endif
 
   private func closeReader() {
+    cancelAutoHideAfterResume()
     logger.debug(
       "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
     )
@@ -214,6 +262,74 @@ struct DivinaReaderView: View {
     } else {
       dismiss()
     }
+  }
+
+  private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+    // Capture pre-background overlay state once, on the active → non-active
+    // edge, BEFORE the force-show below flips `showingControls`. This is what
+    // tells `scheduleAutoHideAfterResume` whether the user was reading with
+    // the overlay hidden (and therefore wants it back hidden after a glance)
+    // or with it visible (and wants it to stay visible).
+    if oldPhase == .active && newPhase != .active {
+      wasShowingControlsBeforeBackground = autoHideAfterResumeTask == nil && shouldShowControls
+      cancelAutoHideAfterResume()
+    }
+
+    // PR #682 force-show — unchanged. Keeps iOS's status-bar / safe-area state
+    // in a known configuration across the background → foreground cycle so the
+    // dashboard inherits a clean safe-area on subsequent close. The historical
+    // UX cost (overlay flashing visible on every lock/unlock until tapped) is
+    // what the auto-hide below mitigates.
+    if newPhase != .active || !shouldShowControls {
+      showingControls = true
+    }
+
+    // On returning to .active: if pre-background was hidden, schedule a brief
+    // auto-hide so the user gets a glance at title/progress and the overlay
+    // fades back to where it was.
+    if oldPhase != .active, newPhase == .active, !wasShowingControlsBeforeBackground {
+      scheduleAutoHideAfterResume()
+    }
+
+    #if os(iOS)
+      // Flush in-flight read progress to the server before iOS suspends the app, so
+      // the trailing pages of the reading session are not lost to URLSession cancellation.
+      if newPhase == .background {
+        readerPresentation.flushForBackgrounding()
+      }
+    #endif
+  }
+
+  /// Fade the overlay back to hidden after a brief glance window. Used only
+  /// on the resume path when the user had the overlay hidden before going to
+  /// background; preserves visible-overlay sessions untouched. Sub-tasks are
+  /// idempotent — re-scheduling cancels and replaces.
+  private func scheduleAutoHideAfterResume() {
+    autoHideAfterResumeTask?.cancel()
+    autoHideAfterResumeTask = Task { @MainActor in
+      try? await Task.sleep(for: .seconds(1))
+      guard !Task.isCancelled else { return }
+      withAnimation {
+        showingControls = false
+      }
+      autoHideAfterResumeTask = nil
+    }
+  }
+
+  private func cancelAutoHideAfterResume() {
+    autoHideAfterResumeTask?.cancel()
+    autoHideAfterResumeTask = nil
+  }
+
+  /// Restart the auto-hide timer if one is currently pending. Called from
+  /// existing user-interaction observers (e.g., page changes) so the auto-
+  /// hide acts as an idle timeout: any interaction within the window resets
+  /// the clock, and the overlay only fades when the user actually stops
+  /// engaging. Does nothing when no auto-hide is pending (normal reading
+  /// outside the post-resume window).
+  private func resetAutoHideAfterResumeIfPending() {
+    guard autoHideAfterResumeTask != nil else { return }
+    scheduleAutoHideAfterResume()
   }
 
   private func schedulePageMaintenanceAfterPageChange() {
@@ -245,15 +361,21 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
-  private func readerContentKey(useDualPage: Bool) -> String {
+  private func readerPresentationKey(useDualPage: Bool) -> String {
     [
-      currentBookId,
       readingDirection.rawValue,
       pageTransitionStyle.rawValue,
       pageLayout.rawValue,
       isolateCoverPage.description,
       splitWidePageMode.rawValue,
       String(useDualPage),
+    ].joined(separator: "-")
+  }
+
+  private func readerContentKey(useDualPage: Bool) -> String {
+    [
+      currentBookId,
+      readerPresentationKey(useDualPage: useDualPage),
     ].joined(separator: "-")
   }
 
@@ -326,7 +448,7 @@ struct DivinaReaderView: View {
       if isShowingEndPage {
         if isBackwardTVMove(direction) {
           logger.debug("📺 \(source) move on end page: go to previous page")
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         }
 
@@ -339,16 +461,16 @@ struct DivinaReaderView: View {
         switch direction {
         case .left:
           if readingDirection == .rtl {
-            goToNextPage()
+            goToReaderPosition(.next)
           } else {
-            goToPreviousPage()
+            goToReaderPosition(.previous)
           }
           return true
         case .right:
           if readingDirection == .rtl {
-            goToPreviousPage()
+            goToReaderPosition(.previous)
           } else {
-            goToNextPage()
+            goToReaderPosition(.next)
           }
           return true
         default:
@@ -357,10 +479,10 @@ struct DivinaReaderView: View {
       case .vertical:
         switch direction {
         case .up:
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         case .down:
-          goToNextPage()
+          goToReaderPosition(.next)
           return true
         default:
           return false
@@ -368,10 +490,10 @@ struct DivinaReaderView: View {
       case .webtoon:
         switch direction {
         case .up:
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         case .down:
-          goToNextPage()
+          goToReaderPosition(.next)
           return true
         default:
           return false
@@ -430,12 +552,24 @@ struct DivinaReaderView: View {
 
         controlsOverlay(useDualPage: useDualPage)
 
-        #if os(macOS)
-          keyboardHelpOverlay
-        #endif
+        keyboardHelpOverlay
+      }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.safeAreaInsets.top
+      } action: {
+        readerSafeAreaTop = $0
+      }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.size.height
+      } action: {
+        readerViewHeight = $0
       }
       .onChange(of: useDualPage, initial: true) { _, newValue in
+        usesDualPagePresentation = newValue
         applyDualPagePresentationMode(newValue)
+      }
+      .onChange(of: readerPresentationKey(useDualPage: useDualPage)) { _, _ in
+        viewModel.preserveCurrentPageForPresentationRebuild()
       }
       #if os(tvOS)
         .onPlayPauseCommand {
@@ -444,26 +578,16 @@ struct DivinaReaderView: View {
         }
         .onExitCommand {
           logger.debug("📺 onExitCommand: showingControls=\(showingControls)")
-          if showingControls {
-            toggleControls()
-          } else {
-            closeReader()
-          }
+          handleReaderExitCommand()
         }
       #endif
-      #if os(macOS)
-        .background(
-          // Window-level keyboard event handler
-          KeyboardEventHandler(
-            onKeyPress: { keyCode, flags in
-              handleKeyCode(keyCode, flags: flags)
-            }
-          )
-        )
-      #endif
+      .background(
+        keyboardCaptureView
+      )
     }
     .iPadIgnoresSafeArea()
     #if os(iOS)
+      .statusBarHidden(!shouldShowControls)
       .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
         if shakeToOpenLiveText {
           enableLiveText.toggle()
@@ -504,7 +628,7 @@ struct DivinaReaderView: View {
       viewModel.updateDualPageSettings(noCover: !isolateCoverPage)
       updateHandoff()
       #if os(macOS)
-        configureMacReaderCommands()
+        configureReaderCommands()
       #endif
     }
     .onChange(of: isolateCoverPage) { _, newValue in
@@ -516,8 +640,11 @@ struct DivinaReaderView: View {
     .onChange(of: splitWidePageMode) { _, newValue in
       viewModel.updateSplitWidePageMode(newValue)
     }
-    .onChange(of: pageTransitionStyle) { _, _ in
-      viewModel.refreshForPageTransitionChange()
+    .onChange(of: pageTransitionStyle) { _, newValue in
+      viewModel.updatePageTransitionStyle(newValue)
+    }
+    .onChange(of: divinaPreloadProfile) { _, newValue in
+      viewModel.updatePreloadWindow(newValue.window)
     }
     .task(id: currentBookId) {
       readerPresentation.registerFlushHandler(for: sessionID) {
@@ -525,6 +652,8 @@ struct DivinaReaderView: View {
       }
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = nil
       requestedNextSegmentPreloads.removeAll()
       requestedPreviousSegmentPreloads.removeAll()
       inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
@@ -545,7 +674,6 @@ struct DivinaReaderView: View {
       readerPresentation.updatePresentedBook(sessionID: sessionID, book: newBook)
     }
     .onChange(of: viewModel.pageCount) { oldCount, newCount in
-      // Show helper overlay when pages are first loaded (iOS and macOS)
       if oldCount == 0 && newCount > 0 {
         triggerTapZoneOverlay(timeout: 1)
         triggerKeyboardHelp(timeout: 1.5)
@@ -559,15 +687,18 @@ struct DivinaReaderView: View {
       keyboardHelpTimer?.invalidate()
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = nil
       inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
       inFlightPreviousSegmentPreloads.values.forEach { $0.cancel() }
       inFlightNextSegmentPreloads.removeAll()
       inFlightPreviousSegmentPreloads.removeAll()
       viewModel.clearPreloadedImages()
-      readerPresentation.clearFlushHandler(for: sessionID)
-      #if os(macOS)
-        readerPresentation.clearMacReaderCommands()
-      #endif
+      // Session-owned handlers are cleared on real teardown in ReaderPresentationManager.
+      // This view-level disappear can fire during macOS fullscreen/remount setup.
+    }
+    .onChange(of: scenePhase) { oldPhase, newPhase in
+      handleScenePhaseChange(from: oldPhase, to: newPhase)
     }
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
@@ -576,9 +707,7 @@ struct DivinaReaderView: View {
     }
     .onChange(of: readingDirection) { _, _ in
       #if os(iOS) || os(macOS)
-        // When switching read mode via settings, briefly show overlays again
         triggerTapZoneOverlay(timeout: 1)
-        triggerKeyboardHelp(timeout: 2)
       #endif
     }
     #if os(tvOS)
@@ -590,12 +719,11 @@ struct DivinaReaderView: View {
       }
     #endif
     #if os(macOS)
-      .onChange(of: macReaderCommandState) { _, newState in
-        readerPresentation.updateMacReaderCommandState(newState)
+      .onChange(of: readerCommandState) { _, newState in
+        readerPresentation.updateReaderCommandState(newState)
       }
     #endif
     #if os(iOS)
-      .statusBarHidden(!shouldShowControls)
       .readerDismissGesture(readingDirection: readingDirection)
     #endif
     .environment(\.readerBackgroundPreference, readerBackground)
@@ -616,7 +744,8 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                toggleControls: { toggleControls() },
+                onTapZoneTap: handleTapZoneTap,
+                scrollController: webtoonScrollController,
                 pageWidthPercentage: webtoonPageWidthPercentage,
                 renderConfig: renderConfig
               )
@@ -630,7 +759,8 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() }
+                onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap
               )
             #endif
           } else {
@@ -643,9 +773,11 @@ struct DivinaReaderView: View {
                     mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                     readingDirection: readingDirection,
                     splitWidePageMode: splitWidePageMode,
+                    animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() }
+                    onDismiss: { closeReader() },
+                    onTapZoneTap: handleTapZoneTap
                   )
                 } else {
                   CurlPageView(
@@ -653,9 +785,11 @@ struct DivinaReaderView: View {
                     mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                     readingDirection: readingDirection,
                     splitWidePageMode: splitWidePageMode,
+                    animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() }
+                    onDismiss: { closeReader() },
+                    onTapZoneTap: handleTapZoneTap
                   )
                 }
               #else
@@ -664,33 +798,22 @@ struct DivinaReaderView: View {
             case .scroll:
               standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
             case .cover:
-              CoverPageView(
+              NativeCoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
+                tapNavigationAnimationDuration: pageTurnAnimationDuration,
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() }
+                onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap
               )
             }
           }
         }
         .readerIgnoresSafeArea()
         .id(contentKey)
-        #if os(iOS) || os(macOS)
-          .background(
-            DivinaTapZoneGestureBridge(
-              isEnabled: isTapZoneGestureEnabled,
-              readingDirection: readingDirection,
-              tapZoneMode: tapZoneMode,
-              tapZoneSize: tapZoneSize,
-              doubleTapZoomMode: doubleTapZoomMode,
-              enableLiveText: enableLiveText,
-              onAction: handleTapZoneAction
-            )
-          )
-        #endif
         .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
           updateHandoff()
           #if os(iOS)
@@ -701,6 +824,11 @@ struct DivinaReaderView: View {
             await viewModel.updateProgress()
           }
           schedulePageMaintenanceAfterPageChange()
+          // Treat page changes as user activity: if we're inside the post-
+          // resume auto-hide window, restart the timer so the overlay stays
+          // visible while the user is actively flipping pages and only fades
+          // after a real pause.
+          resetAutoHideAfterResumeIfPending()
         }
         #if os(tvOS)
           .onChange(of: isShowingEndPage) { oldValue, newValue in
@@ -733,7 +861,8 @@ struct DivinaReaderView: View {
       renderConfig: renderConfig,
       viewModel: viewModel,
       readListContext: readListContext,
-      onDismiss: { closeReader() }
+      onDismiss: { closeReader() },
+      onTapZoneTap: handleTapZoneTap
     )
   }
 
@@ -750,6 +879,10 @@ struct DivinaReaderView: View {
           // Show helper overlay when tap zone mode changes
           triggerTapZoneOverlay(timeout: 1)
         }
+        .onChange(of: tapZoneInversionMode) {
+          // Show helper overlay when tap zone mirroring changes
+          triggerTapZoneOverlay(timeout: 1)
+        }
     #else
       EmptyView()
     #endif
@@ -759,11 +892,15 @@ struct DivinaReaderView: View {
     private var tvRemoteCommandOverlay: some View {
       TVRemoteCommandOverlay(
         isEnabled: shouldEnableUIKitRemoteCapture,
+        commands: keyboardCommands,
         onMoveCommand: { direction in
           handleTVMoveCommand(direction, source: "uikit.overlay")
         },
         onSelectCommand: {
           handleTVSelectCommand(source: "uikit.overlay")
+        },
+        onKeyPress: { event in
+          handleKeyboardEvent(event)
         }
       )
       .readerIgnoresSafeArea()
@@ -792,142 +929,221 @@ struct DivinaReaderView: View {
       onPreviousBook: { openPreviousBook(previousBookId: $0) },
       onNextBook: { openNextBook(nextBookId: $0) },
       controlsVisible: shouldShowControls,
-      showingControls: showingControls
+      showingControls: showingControls,
+      showGradientBackground: showControlsGradientBackground,
+      showProgressBarWhileReading: showProgressBarWhileReading
     )
   }
 
-  #if os(macOS)
-    private var keyboardHelpOverlay: some View {
+  private var keyboardCommands: [ReaderKeyboardCommand] {
+    var commands = [
+      ReaderKeyboardCommand(
+        title: "Keyboard Shortcuts",
+        event: ReaderKeyboardEvent(key: .slash, modifiers: [.command])
+      )
+    ]
+
+    if !viewModel.tableOfContents.isEmpty {
+      commands.append(
+        ReaderKeyboardCommand(
+          title: "Table of Contents",
+          event: ReaderKeyboardEvent(key: .t, modifiers: [.command])
+        )
+      )
+    }
+
+    if viewModel.hasPages {
+      commands.append(
+        ReaderKeyboardCommand(
+          title: "Jump to Page",
+          event: ReaderKeyboardEvent(key: .j, modifiers: [.command])
+        )
+      )
+    }
+
+    return commands
+  }
+
+  @ViewBuilder
+  private var keyboardCaptureView: some View {
+    #if os(tvOS)
+      EmptyView()
+    #else
+      KeyboardEventHandler(
+        isEnabled: isKeyboardCaptureEnabled,
+        commands: keyboardCommands,
+        onKeyPress: handleKeyboardEvent
+      )
+    #endif
+  }
+
+  @ViewBuilder
+  private var keyboardHelpOverlay: some View {
+    if showKeyboardHelp {
       KeyboardHelpOverlay(
         readingDirection: readingDirection,
         hasTOC: !viewModel.tableOfContents.isEmpty,
+        supportsFullscreenToggle: supportsFullscreenToggle,
+        supportsLiveText: supportsLiveTextKeyboardShortcut,
+        supportsJumpToPage: true,
+        supportsToggleControls: true,
         hasNextBook: currentSegmentNextBook != nil,
+        isInteractive: keyboardHelpOverlayIsInteractive,
         onDismiss: {
           hideKeyboardHelp()
         }
       )
-      .opacity(showKeyboardHelp ? 1.0 : 0.0)
-      .allowsHitTesting(showKeyboardHelp)
-      .animation(.default, value: showKeyboardHelp)
+      #if os(tvOS)
+        .allowsHitTesting(false)
+      #else
+        .allowsHitTesting(true)
+      #endif
+      .transition(.opacity)
+    }
+  }
+
+  private var keyboardHelpOverlayIsInteractive: Bool {
+    #if os(tvOS)
+      false
+    #else
+      true
+    #endif
+  }
+
+  private func handleKeyboardEvent(_ event: ReaderKeyboardEvent) -> Bool {
+    if event.matches(.escape) {
+      handleReaderExitCommand()
+      return true
     }
 
-    private func handleKeyCode(_ keyCode: UInt16, flags: NSEvent.ModifierFlags) {
-      // Handle ESC key to close window
-      if keyCode == 53 {  // ESC key
-        closeReader()
-        return
+    if event.matches(.slash, modifiers: [.shift])
+      || event.matches(.slash, modifiers: [.command])
+      || event.matches(.h)
+    {
+      toggleKeyboardHelpManually()
+      return true
+    }
+
+    if event.matches(.returnOrEnter) {
+      return toggleFullscreenIfSupported()
+    }
+
+    if event.matches(.space) {
+      toggleControls()
+      return true
+    }
+
+    if event.matches(.t, modifiers: [.command]) {
+      if !viewModel.tableOfContents.isEmpty {
+        showingTOCSheet = true
       }
+      return true
+    }
 
-      // Handle ? key and H key for keyboard help
-      if keyCode == 44 {  // ? key (Shift + /)
-        showKeyboardHelp.toggle()
-        return
+    if event.matches(.j, modifiers: [.command]) {
+      if viewModel.hasPages {
+        showingPageJumpSheet = true
       }
+      return true
+    }
 
-      // Handle Return/Enter key for fullscreen toggle
-      if keyCode == 36 {  // Return/Enter key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return
-      }
+    guard !event.hasSystemModifiers else { return false }
 
-      // Handle Space key for toggle controls
-      if keyCode == 49 {  // Space key
-        toggleControls()
-        return
-      }
+    if event.matches(.c) {
+      toggleControls()
+      return true
+    }
 
-      // Ignore if modifier keys are pressed (except for system shortcuts)
-      guard flags.intersection([.command, .option, .control]).isEmpty else { return }
-
-      // Handle F key for fullscreen toggle
-      if keyCode == 3 {  // F key
-        if let window = NSApplication.shared.keyWindow {
-          window.toggleFullScreen(nil)
-        }
-        return
-      }
-
-      // Handle H key for keyboard help
-      if keyCode == 4 {  // H key
-        showKeyboardHelp.toggle()
-        return
-      }
-
-      // Handle C key for toggle controls
-      if keyCode == 8 {  // C key
-        toggleControls()
-        return
-      }
-
-      if keyCode == 37 {  // L key
+    #if os(iOS) || os(macOS)
+      if event.matches(.l) {
         enableLiveText.toggle()
         let message = enableLiveText ? String(localized: "Live Text: ON") : String(localized: "Live Text: OFF")
         ErrorManager.shared.notify(message: message)
-        return
+        return true
       }
+    #endif
 
-      // Handle T key for TOC
-      if keyCode == 17 {  // T key
-        if !viewModel.tableOfContents.isEmpty {
-          showingTOCSheet = true
-        }
-        return
+    if event.matches(.t) {
+      if !viewModel.tableOfContents.isEmpty {
+        showingTOCSheet = true
       }
+      return true
+    }
 
-      // Handle J key for jump to page
-      if keyCode == 38 {  // J key
-        if viewModel.hasPages {
-          showingPageJumpSheet = true
-        }
-        return
+    if event.matches(.j) {
+      if viewModel.hasPages {
+        showingPageJumpSheet = true
       }
+      return true
+    }
 
-      // Handle N key for next book
-      if keyCode == 45 {  // N key
-        if let nextBook = currentSegmentNextBook {
-          openNextBook(nextBookId: nextBook.id)
-        }
-        return
+    if event.matches(.n) {
+      if let nextBook = currentSegmentNextBook {
+        openNextBook(nextBookId: nextBook.id)
       }
+      return true
+    }
 
-      guard viewModel.hasPages else { return }
+    guard viewModel.hasPages else { return false }
 
-      switch readingDirection {
-      case .ltr:
-        switch keyCode {
-        case 124:  // Right arrow
-          goToNextPage()
-        case 123:  // Left arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .rtl:
-        switch keyCode {
-        case 123:  // Left arrow
-          goToNextPage()
-        case 124:  // Right arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .vertical:
-        switch keyCode {
-        case 125:  // Down arrow
-          goToNextPage()
-        case 126:  // Up arrow
-          goToPreviousPage()
-        default:
-          break
-        }
-      case .webtoon:
-        // Webtoon scrolling is handled by WebtoonReaderView's own keyboard monitor
-        break
+    switch readingDirection {
+    case .ltr:
+      switch event.key {
+      case .rightArrow:
+        goToReaderPosition(.next)
+        return true
+      case .leftArrow:
+        goToReaderPosition(.previous)
+        return true
+      default:
+        return false
+      }
+    case .rtl:
+      switch event.key {
+      case .leftArrow:
+        goToReaderPosition(.next)
+        return true
+      case .rightArrow:
+        goToReaderPosition(.previous)
+        return true
+      default:
+        return false
+      }
+    case .vertical:
+      switch event.key {
+      case .downArrow:
+        goToReaderPosition(.next)
+        return true
+      case .upArrow:
+        goToReaderPosition(.previous)
+        return true
+      default:
+        return false
+      }
+    case .webtoon:
+      switch event.key {
+      case .downArrow:
+        goToReaderPosition(.next)
+        return true
+      case .upArrow:
+        goToReaderPosition(.previous)
+        return true
+      default:
+        return false
       }
     }
-  #endif
+  }
+
+  private func sendWebtoonScrollCommand(for step: ReaderNavigationStep) {
+    let direction: WebtoonScrollDirection =
+      switch step {
+      case .previous:
+        .up
+      case .next:
+        .down
+      }
+    webtoonScrollController.scroll(direction)
+  }
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
     // Mark that loading has started
@@ -1015,10 +1231,30 @@ struct DivinaReaderView: View {
         }
       }
 
-      // 4. Resolve adjacent books for current segment context
-      let adjacentBooks = await resolveAdjacentBooks(for: bookId)
-      self.previousBook = adjacentBooks.previous
-      self.nextBook = adjacentBooks.next
+      // 4. Defer adjacent-book resolution to a background task. The two server
+      // round trips (`/books/{id}/previous` + `/.../next`) account for ~2/3 of the
+      // open-time network latency on a typical setup, but neither result affects
+      // the initial render — `previousBook`/`nextBook` are consumed only by
+      // post-open features (next/prev navigation buttons, end-page hints,
+      // adjacent-segment preloading). The active segment's `activeSegmentContext`
+      // already falls back to the view's @State when the segment metadata is nil,
+      // so the open path doesn't need to wait on these.
+      self.previousBook = nil
+      self.nextBook = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = Task { [bookId] in
+        let adjacentBooks = await resolveAdjacentBooks(for: bookId)
+        guard !Task.isCancelled, currentBookId == bookId else { return }
+        previousBook = adjacentBooks.previous
+        nextBook = adjacentBooks.next
+        // Also write the resolved values back into the segment so `resolveSegmentPreloadContext`
+        // does not redundantly re-fetch when the user navigates near the start/end.
+        viewModel.updateAdjacentBooksForSegment(
+          bookId: bookId,
+          previousBook: adjacentBooks.previous,
+          nextBook: adjacentBooks.next
+        )
+      }
     }
 
     let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
@@ -1031,8 +1267,8 @@ struct DivinaReaderView: View {
     await viewModel.loadPages(
       book: activeBook,
       initialPageNumber: resumePageNumber,
-      previousBook: previousBook,
-      nextBook: nextBook
+      previousBook: nil,
+      nextBook: nil
     )
 
     // Only preload pages if pages are available
@@ -1296,12 +1532,56 @@ struct DivinaReaderView: View {
       return false
     }
     viewModel.requestNavigation(toViewItem: adjacentItem)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: adjacentItem.pageID.bookId)
     return true
+  }
+
+  /// Sync presented-book identity with the segment the user just navigated
+  /// into. Without this, `session.book` stays pinned to the originally-opened
+  /// book; a later rebuild of the reader cover (memory pressure, parent
+  /// dependency churn) re-initializes `currentBookId` from `session.book.id`,
+  /// reruns `loadBook` for the stale book, lands the user at its stale
+  /// `readProgress.page`, and regresses its server-side completed state via
+  /// the ensuing ambient `updateProgress` write. PR #785's body explicitly
+  /// calls out this multi-segment reader scenario as a gap not covered by
+  /// the pending-progress conflict-resolution work.
+  ///
+  /// `currentBookId` is intentionally left untouched so the seamless
+  /// cross-volume UX is preserved — changing it retriggers `.task(id:)` and
+  /// shows a loading overlay mid-flip. Post-cross-boundary invariant:
+  ///   - `currentBookId` is the reader's load anchor (only changed by the
+  ///     explicit Next/Previous Book entry points or a fresh cover init).
+  ///   - `currentBook` / `session.book` follow the segment under the current
+  ///     reader page.
+  ///
+  /// Must be invoked from every view-level call site that hands a navigation
+  /// request to the viewmodel (`requestNavigation(toViewItem:)` /
+  /// `requestNavigation(toPageID:)`), because once the next/previous segment
+  /// has been proactively preloaded by `preloadNextSegmentForCurrentPositionIfNeeded`,
+  /// the common-case page turn near a boundary goes through the direct
+  /// adjacent-item branch in `goToPagedReaderPosition` rather than
+  /// `navigateAcrossBoundaryIfNeeded`.
+  private func syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId newSegmentBookId: String) {
+    guard newSegmentBookId != currentBook?.id,
+      let newBook = viewModel.currentBook(forSegmentBookId: newSegmentBookId)
+    else {
+      return
+    }
+    // Flush the outgoing book's progress so any pending terminal state
+    // (e.g. freshly-completed) is durable before further writes for the
+    // new book.
+    viewModel.flushProgress()
+    currentBook = newBook
   }
 
   private func jumpToPageID(_ pageID: ReaderPageID) {
     guard pageID != viewModel.currentReaderPage?.id else { return }
     viewModel.requestNavigation(toPageID: pageID)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: pageID.bookId)
+  }
+
+  private func displayPageNumber(for pageID: ReaderPageID) -> Int {
+    viewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
   }
 
   private func jumpToTOCEntry(_ entry: ReaderTOCEntry) {
@@ -1317,7 +1597,50 @@ struct DivinaReaderView: View {
   }
 
   #if os(macOS)
-    private var macReaderCommandState: ReaderPresentationManager.MacReaderCommandState {
+    private var macPageIsolationActions: [ReaderPageIsolationActions.Action] {
+      ReaderPageIsolationActions.resolve(
+        supportsDualPageOptions: readingDirection != .webtoon
+          && readingDirection != .vertical
+          && pageLayout.supportsDualPageOptions,
+        dualPage: usesDualPagePresentation,
+        readingDirection: readingDirection,
+        currentPageID: viewModel.currentReaderPage?.id,
+        currentPairIDs: viewModel.currentViewItem()?.pagePairIDs,
+        isCurrentPageWide: viewModel.isCurrentPageWide,
+        isCurrentPageIsolated: viewModel.isCurrentPageIsolated,
+        displayPageNumber: displayPageNumber(for:)
+      )
+    }
+
+    private var macCommandPageIDs: [ReaderPageID] {
+      if let pair = viewModel.currentViewItem()?.pagePairIDs {
+        return [pair.first, pair.second].compactMap(\.self)
+      }
+      guard let pageID = viewModel.currentReaderPage?.id else { return [] }
+      return [pageID]
+    }
+
+    private var macDisplayPageNumbersByID: [ReaderPageID: Int] {
+      Dictionary(
+        uniqueKeysWithValues: macCommandPageIDs.map { pageID in
+          (pageID, displayPageNumber(for: pageID))
+        })
+    }
+
+    private var macPageRotationsByID: [ReaderPageID: Int] {
+      Dictionary(
+        uniqueKeysWithValues: macCommandPageIDs.map { pageID in
+          (pageID, viewModel.pageRotationDegrees(for: pageID))
+        })
+    }
+
+    private func sharePageFromCommand(_ pageID: ReaderPageID) {
+      guard let image = viewModel.preloadedImage(for: pageID) else { return }
+      let fileName = viewModel.page(for: pageID)?.fileName
+      ImageShareHelper.share(image: image, fileName: fileName)
+    }
+
+    private var readerCommandState: ReaderCommandState {
       let supportsDualPageOptions =
         readingDirection != .webtoon
         && readingDirection != .vertical
@@ -1326,25 +1649,38 @@ struct DivinaReaderView: View {
       let supportsSplitWidePageMode =
         readingDirection != .webtoon
 
-      return ReaderPresentationManager.MacReaderCommandState(
+      return ReaderCommandState(
         isActive: true,
+        supportsReaderSettings: true,
+        supportsBookDetails: currentSegmentBook != nil,
         hasPages: viewModel.hasPages,
         hasTableOfContents: !viewModel.tableOfContents.isEmpty,
+        supportsPageJump: viewModel.hasPages,
+        supportsBookNavigation: true,
         canOpenPreviousBook: currentSegmentPreviousBook != nil,
         canOpenNextBook: currentSegmentNextBook != nil,
         readingDirection: readingDirection,
+        availableReadingDirections: ReadingDirection.availableCases,
         pageLayout: pageLayout,
         isolateCoverPage: isolateCoverPage,
+        pageIsolationActions: macPageIsolationActions,
+        commandPageIDs: macCommandPageIDs,
+        displayPageNumbersByID: macDisplayPageNumbersByID,
+        pageRotationsByID: macPageRotationsByID,
         splitWidePageMode: splitWidePageMode,
+        supportsSearch: false,
+        canSearch: false,
+        supportsReadingDirectionSelection: true,
+        supportsPageLayoutSelection: true,
         supportsDualPageOptions: supportsDualPageOptions,
         supportsSplitWidePageMode: supportsSplitWidePageMode
       )
     }
 
-    private func configureMacReaderCommands() {
-      readerPresentation.configureMacReaderCommands(
-        state: macReaderCommandState,
-        handlers: ReaderPresentationManager.MacReaderCommandHandlers(
+    private func configureReaderCommands() {
+      readerPresentation.configureReaderCommands(
+        state: readerCommandState,
+        handlers: ReaderCommandHandlers(
           showReaderSettings: {
             showingReaderSettingsSheet = true
           },
@@ -1363,6 +1699,7 @@ struct DivinaReaderView: View {
               showingPageJumpSheet = true
             }
           },
+          showSearch: {},
           openPreviousBook: {
             if let previousBook = currentSegmentPreviousBook {
               openPreviousBook(previousBookId: previousBook.id)
@@ -1382,57 +1719,89 @@ struct DivinaReaderView: View {
           toggleIsolateCoverPage: {
             isolateCoverPage.toggle()
           },
+          toggleIsolatePage: { pageID in
+            viewModel.toggleIsolatePage(pageID)
+          },
+          sharePage: { pageID in
+            sharePageFromCommand(pageID)
+          },
+          setPageRotation: { pageID, degrees in
+            viewModel.setPageRotation(degrees, for: pageID)
+          },
           setSplitWidePageMode: { mode in
             splitWidePageMode = mode
-          }
+          },
+          toggleContinuousScroll: {}
         )
       )
     }
   #endif
 
-  #if os(iOS) || os(macOS)
-    private var isTapZoneGestureEnabled: Bool {
-      viewModel.hasPages
-        && readingDirection != .webtoon
-        && !viewModel.isZoomed
+  // T-Split controls strip height below the safe-area top, in points. Adaptive:
+  // thin while controls are hidden so the navigation halves stay large; taller
+  // while they're shown so a band below the toolbar can toggle them back off (a
+  // fixed strip sized to the toolbar leaves no tappable dismiss surface). Tunable;
+  // the shown band clears the toolbar (~80pt iPhone, ~105pt iPad) plus a ~44pt
+  // tap row, so dismiss stays comfortable on both.
+  private static let tSplitSummonBand: CGFloat = 44
+  private static let tSplitDismissBand: CGFloat = 150
+
+  private func handleTapZoneTap(normalizedX: CGFloat, normalizedY: CGFloat) {
+    let stripHeightFraction: CGFloat?
+    if tapZoneMode == .tSplit, readerViewHeight > 0 {
+      let band = shouldShowControls ? Self.tSplitDismissBand : Self.tSplitSummonBand
+      stripHeightFraction = (readerSafeAreaTop + band) / readerViewHeight
+    } else {
+      stripHeightFraction = nil
     }
-  #endif
+    let action = TapZoneHelper.action(
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+      tapZoneMode: tapZoneMode,
+      tapZoneInversionMode: tapZoneInversionMode,
+      readingDirection: readingDirection,
+      stripHeightFraction: stripHeightFraction
+    )
+    handleTapZoneAction(action)
+  }
 
   private func handleTapZoneAction(_ action: TapZoneAction) {
+    guard viewModel.hasPages, !isPresentingModalSheet, !viewModel.isZoomed else { return }
     switch action {
     case .previous:
-      goToPreviousPage()
+      goToReaderPosition(.previous)
     case .next:
-      goToNextPage()
+      goToReaderPosition(.next)
     case .toggleControls:
       toggleControls()
     }
   }
 
-  private func goToNextPage() {
+  private func goToReaderPosition(_ step: ReaderNavigationStep) {
     guard viewModel.hasPages else { return }
     switch readingDirection {
-    case .ltr, .rtl, .vertical, .webtoon:
-      if let nextItem = viewModel.adjacentViewItem(offset: 1) {
-        viewModel.requestNavigation(toViewItem: nextItem)
-      } else {
-        Task { @MainActor in
-          _ = await navigateAcrossBoundaryIfNeeded(offset: 1)
-        }
-      }
+    case .ltr, .rtl, .vertical:
+      goToPagedReaderPosition(step)
+    case .webtoon:
+      sendWebtoonScrollCommand(for: step)
     }
   }
 
-  private func goToPreviousPage() {
-    guard viewModel.hasPages else { return }
-    switch readingDirection {
-    case .ltr, .rtl, .vertical, .webtoon:
-      if let previousItem = viewModel.adjacentViewItem(offset: -1) {
-        viewModel.requestNavigation(toViewItem: previousItem)
-      } else {
-        Task { @MainActor in
-          _ = await navigateAcrossBoundaryIfNeeded(offset: -1)
-        }
+  private func goToPagedReaderPosition(_ step: ReaderNavigationStep) {
+    let offset: Int =
+      switch step {
+      case .previous:
+        -1
+      case .next:
+        1
+      }
+
+    if let item = viewModel.adjacentViewItem(offset: offset) {
+      viewModel.requestNavigation(toViewItem: item)
+      syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: item.pageID.bookId)
+    } else {
+      Task { @MainActor in
+        _ = await navigateAcrossBoundaryIfNeeded(offset: offset)
       }
     }
   }
@@ -1440,17 +1809,55 @@ struct DivinaReaderView: View {
   #if os(tvOS)
     private func toggleControls() {
       // On tvOS, allow toggling controls even at endpage to enable navigation back
+      cancelAutoHideAfterResume()
       withAnimation {
         showingControls.toggle()
       }
     }
   #else
     private func toggleControls() {
+      cancelAutoHideAfterResume()
       withAnimation {
         showingControls.toggle()
       }
     }
   #endif
+
+  private func toggleFullscreenIfSupported() -> Bool {
+    #if os(macOS)
+      if let window = NSApplication.shared.keyWindow {
+        window.toggleFullScreen(nil)
+        return true
+      }
+    #endif
+    return false
+  }
+
+  private var supportsFullscreenToggle: Bool {
+    #if os(macOS)
+      true
+    #else
+      false
+    #endif
+  }
+
+  private var supportsLiveTextKeyboardShortcut: Bool {
+    #if os(iOS) || os(macOS)
+      true
+    #else
+      false
+    #endif
+  }
+
+  private func handleReaderExitCommand() {
+    #if os(tvOS)
+      if showingControls {
+        toggleControls()
+        return
+      }
+    #endif
+    closeReader()
+  }
 
   /// Hide helper overlay and cancel timer
   private func hideTapZoneOverlay() {
@@ -1486,8 +1893,17 @@ struct DivinaReaderView: View {
   /// Hide keyboard help overlay and cancel timer
   private func hideKeyboardHelp() {
     keyboardHelpTimer?.invalidate()
+    keyboardHelpTimer = nil
     withAnimation {
       showKeyboardHelp = false
+    }
+  }
+
+  private func toggleKeyboardHelpManually() {
+    keyboardHelpTimer?.invalidate()
+    keyboardHelpTimer = nil
+    withAnimation {
+      showKeyboardHelp.toggle()
     }
   }
 
@@ -1495,6 +1911,7 @@ struct DivinaReaderView: View {
   private func triggerKeyboardHelp(timeout: TimeInterval) {
     // Respect user preference and ensure we have content
     guard showKeyboardHelpOverlay, viewModel.hasPages else { return }
+    guard ReaderKeyboardAvailability.shouldAutoShowKeyboardHelp else { return }
 
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
       withAnimation {
@@ -1528,6 +1945,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )
     // Reset overlay state
@@ -1549,6 +1967,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )
     // Reset overlay state

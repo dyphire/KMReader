@@ -16,8 +16,6 @@ struct DivinaControlsOverlayView: View {
   @Binding var showingReaderSettingsSheet: Bool
   @Binding var showingDetailSheet: Bool
 
-  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
-
   let viewModel: ReaderViewModel
   let currentBook: Book?
   let dualPage: Bool
@@ -29,6 +27,10 @@ struct DivinaControlsOverlayView: View {
   let onNextBook: ((String) -> Void)?
   let controlsVisible: Bool
   let showingControls: Bool
+  let showGradientBackground: Bool
+  let showProgressBarWhileReading: Bool
+
+  @Namespace private var progressBarNamespace
 
   #if os(tvOS)
     private enum ControlFocus: Hashable {
@@ -40,12 +42,8 @@ struct DivinaControlsOverlayView: View {
     @FocusState private var focusedControl: ControlFocus?
   #endif
 
-  private var buttonStyle: AdaptiveButtonStyleType {
-    return .bordered
-  }
-
   private var animation: Animation {
-    .bouncy(duration: 0.25)
+    .easeInOut(duration: 0.2)
   }
 
   private var currentSegmentBookId: String? {
@@ -108,8 +106,17 @@ struct DivinaControlsOverlayView: View {
     return readingDirection != .webtoon && readingDirection != .vertical && pageLayout.supportsDualPageOptions
   }
 
-  private var isCurrentPageValid: Bool {
-    currentPageID != nil
+  private var pageIsolationActions: [ReaderPageIsolationActions.Action] {
+    ReaderPageIsolationActions.resolve(
+      supportsDualPageOptions: enableDualPageOptions,
+      dualPage: dualPage,
+      readingDirection: readingDirection,
+      currentPageID: currentPageID,
+      currentPairIDs: viewModel.currentViewItem()?.pagePairIDs,
+      isCurrentPageWide: viewModel.isCurrentPageWide,
+      isCurrentPageIsolated: viewModel.isCurrentPageIsolated,
+      displayPageNumber: displayPageNumber(for:)
+    )
   }
 
   #if os(iOS) || os(macOS)
@@ -133,34 +140,21 @@ struct DivinaControlsOverlayView: View {
       sharePages(ids: [id])
     }
 
-    private var sharePageFormat: String {
-      String(localized: "Share Page %d")
+    private var pageFormat: String {
+      String(localized: "Page %d")
     }
+
   #endif
 
   var body: some View {
-    VStack(spacing: 0) {
-      if controlsVisible {
-        topBar
-          .transition(
-            .move(edge: .top)
-              .combined(with: .opacity)
-              .combined(with: .scale(scale: 0.8, anchor: .top))
-          )
-      }
-
-      Spacer(minLength: 0)
-
-      if controlsVisible {
-        bottomBar
-          .transition(
-            .move(edge: .bottom)
-              .combined(with: .opacity)
-              .combined(with: .scale(scale: 0.8, anchor: .bottom))
-          )
-      }
+    ZStack(alignment: .bottom) {
+      topControlsLayer
+      bottomControlsLayer
+      hiddenProgressLayer
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .animation(animation, value: controlsVisible)
+    .animation(animation, value: showProgressBarWhileReading)
     .allowsHitTesting(controlsVisible)
     #if os(iOS)
       .tint(.primary)
@@ -183,18 +177,56 @@ struct DivinaControlsOverlayView: View {
     #endif
   }
 
+  private var bottomControlsTransition: AnyTransition {
+    guard showProgressBarWhileReading else {
+      return .move(edge: .bottom).combined(with: .opacity)
+    }
+    return .opacity
+  }
+
+  @ViewBuilder
+  private var topControlsLayer: some View {
+    VStack(spacing: 0) {
+      if controlsVisible {
+        topBar
+          .transition(
+            .move(edge: .top)
+              .combined(with: .opacity)
+          )
+      }
+
+      Spacer(minLength: 0)
+    }
+  }
+
+  @ViewBuilder
+  private var bottomControlsLayer: some View {
+    if controlsVisible {
+      visibleBottomOverlayBar
+        .transition(bottomControlsTransition)
+    }
+  }
+
+  @ViewBuilder
+  private var hiddenProgressLayer: some View {
+    if !controlsVisible && showProgressBarWhileReading {
+      hiddenProgressBar
+        .transition(.opacity)
+    }
+  }
+
   private var topBar: some View {
-    HStack(alignment: .top) {
+    HStack {
       #if !os(macOS)
         Button {
           onDismiss()
         } label: {
           Image(systemName: "xmark")
+            .contentShape(Circle())
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
           .id("closeButton")
@@ -228,10 +260,11 @@ struct DivinaControlsOverlayView: View {
           }
           .padding(.vertical, 2)
           .padding(.horizontal)
+          .readerHeaderTitleControlFrame()
+          .contentShape(Capsule())
         }
         .optimizedControlSize()
-        .contentShape(Capsule())
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .title)
           .id("titleLabel")
@@ -246,11 +279,11 @@ struct DivinaControlsOverlayView: View {
         } label: {
           Image(systemName: "ellipsis")
             .padding(4)
+            .contentShape(Circle())
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .contentShape(Circle())
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .settings)
         #endif
@@ -260,55 +293,85 @@ struct DivinaControlsOverlayView: View {
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .background {
-      if readerControlsGradientBackground {
-        gradientBackground(startPoint: .top, endPoint: .bottom)
-          .ignoresSafeArea(edges: .top)
-      }
+      gradientBackground(startPoint: .top, endPoint: .bottom)
+        .ignoresSafeArea(edges: .top)
     }
   }
 
-  private var bottomBar: some View {
-    VStack(spacing: 12) {
-      HStack {
-        Spacer(minLength: 0)
-
-        Button {
-          guard viewModel.hasPages else { return }
-          showingPageJumpSheet = true
-        } label: {
-          HStack(spacing: 6) {
-            Image(systemName: "bookmark")
-            Text("\(displayedCurrentPage) / \(currentSegmentPageCount)")
-              .monospacedDigit()
-          }
-        }
-        .contentShape(Capsule())
-        .adaptiveButtonStyle(buttonStyle)
-        #if os(tvOS)
-          .focused($focusedControl, equals: .pageNumber)
-        #endif
-
-        Spacer(minLength: 0)
-      }
-      .optimizedControlSize()
-      .allowsHitTesting(true)
-
-      ReadingProgressBar(progress: progress, type: .reader)
-        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-        .shadow(
-          color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
-          radius: readerControlsGradientBackground ? 0 : 4,
-          x: 0,
-          y: readerControlsGradientBackground ? 0 : 2
-        )
-    }
-    .padding()
-    .iPadIgnoresSafeArea(paddingTop: 24)
-    .background {
-      if readerControlsGradientBackground {
+  private var visibleBottomOverlayBar: some View {
+    bottomOverlayContent(showPageButton: true)
+      .padding()
+      .background {
         gradientBackground(startPoint: .bottom, endPoint: .top)
           .ignoresSafeArea(edges: .bottom)
       }
+  }
+
+  private var hiddenProgressBar: some View {
+    ZStack(alignment: .bottom) {
+      Color.clear
+      bottomOverlayContent(
+        showPageButton: false,
+        progressHorizontalPadding: PlatformHelper.bottomEdgeHorizontalPadding
+      )
+      .frame(maxWidth: .infinity)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .readerIgnoresSafeArea()
+    .allowsHitTesting(false)
+  }
+
+  private func bottomOverlayContent(
+    showPageButton: Bool,
+    progressHorizontalPadding: CGFloat = 0
+  ) -> some View {
+    VStack(spacing: 12) {
+      if showPageButton {
+        HStack {
+          Spacer(minLength: 0)
+
+          Button {
+            guard viewModel.hasPages else { return }
+            showingPageJumpSheet = true
+          } label: {
+            HStack(spacing: 6) {
+              Image(systemName: "bookmark")
+              Text("\(displayedCurrentPage) / \(currentSegmentPageCount)")
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            }
+            .contentShape(Capsule())
+          }
+          .readerControlButtonStyle()
+          #if os(tvOS)
+            .focused($focusedControl, equals: .pageNumber)
+          #endif
+
+          Spacer(minLength: 0)
+        }
+        .optimizedControlSize()
+        .allowsHitTesting(true)
+      }
+
+      progressBar
+        .padding(.horizontal, progressHorizontalPadding)
+    }
+    .animation(animation, value: currentBook?.id)
+    .animation(animation, value: displayedCurrentPage)
+    .animation(animation, value: currentSegmentPageCount)
+    .animation(animation, value: progress)
+    .animation(animation, value: progressHorizontalPadding)
+  }
+
+  @ViewBuilder
+  private var progressBar: some View {
+    let bar = ReadingProgressBar(progress: progress, type: .reader)
+      .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+
+    if showProgressBarWhileReading {
+      bar.matchedGeometryEffect(id: "readerProgressBar", in: progressBarNamespace)
+    } else {
+      bar
     }
   }
 
@@ -335,10 +398,6 @@ struct DivinaControlsOverlayView: View {
           Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
         }
         .pickerStyle(.menu)
-
-        if enableDualPageOptions {
-          pageIsolation()
-        }
       }
 
       if readingDirection != .webtoon {
@@ -377,14 +436,17 @@ struct DivinaControlsOverlayView: View {
       if currentPageID != nil {
         Section {
           if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs {
-            share(firstPage: pair.first, secondPage: pair.second)
+            pageActionsMenu(for: pair.first)
+            if let second = pair.second {
+              pageActionsMenu(for: second)
+            }
           } else if let currentPageID {
-            share(firstPage: currentPageID, secondPage: nil)
+            pageActionsMenu(for: currentPageID)
           } else {
             EmptyView()
           }
         } header: {
-          Text(String(localized: "Share"))
+          Text(String(localized: "Current Page"))
         }
       }
     #endif
@@ -395,59 +457,16 @@ struct DivinaControlsOverlayView: View {
     startPoint: UnitPoint,
     endPoint: UnitPoint
   ) -> some View {
-    LinearGradient(
-      gradient: Gradient(colors: [
-        Color.black.opacity(0.6),
-        Color.black.opacity(0.3),
-        Color.clear,
-      ]),
-      startPoint: startPoint,
-      endPoint: endPoint
-    )
-  }
-
-  @ViewBuilder
-  private func pageIsolation() -> some View {
-    Button {
-      isolateCoverPage.toggle()
-    } label: {
-      Label(
-        String(localized: "Isolate Cover Page"),
-        systemImage: isolateCoverPage ? "checkmark.rectangle.portrait" : "rectangle.portrait"
+    if showGradientBackground {
+      LinearGradient(
+        gradient: Gradient(colors: [
+          Color.black.opacity(0.72),
+          Color.black.opacity(0.44),
+          Color.clear,
+        ]),
+        startPoint: startPoint,
+        endPoint: endPoint
       )
-    }
-
-    if isCurrentPageValid && !viewModel.isCurrentPageWide {
-      if viewModel.isCurrentPageIsolated, let currentPageID {
-        Button {
-          viewModel.toggleIsolatePage(currentPageID)
-        } label: {
-          Label(String(localized: "Cancel Isolation"), systemImage: "rectangle.portrait.slash")
-        }
-      } else if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs,
-        let secondPage = pair.second
-      {
-        let leftPageID = readingDirection == .rtl ? secondPage : pair.first
-        let rightPageID = readingDirection == .rtl ? pair.first : secondPage
-        Button {
-          viewModel.toggleIsolatePage(leftPageID)
-        } label: {
-          let displayedPageNumber = displayPageNumber(for: leftPageID)
-          Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
-            systemImage: "rectangle.lefthalf.inset.filled"
-          )
-        }
-        Button {
-          viewModel.toggleIsolatePage(rightPageID)
-        } label: {
-          let displayedPageNumber = displayPageNumber(for: rightPageID)
-          Label(
-            String.localizedStringWithFormat(String(localized: "Isolate Page %d"), displayedPageNumber),
-            systemImage: "rectangle.righthalf.inset.filled"
-          )
-        }
-      }
     }
   }
 
@@ -504,25 +523,59 @@ struct DivinaControlsOverlayView: View {
 
   #if os(iOS) || os(macOS)
     @ViewBuilder
-    private func share(firstPage: ReaderPageID, secondPage: ReaderPageID?) -> some View {
-      Button {
-        sharePage(id: firstPage)
+    private func pageActionsMenu(for pageID: ReaderPageID) -> some View {
+      let displayedPageNumber = displayPageNumber(for: pageID)
+      let currentRotation = viewModel.pageRotationDegrees(for: pageID)
+      Menu {
+        Button {
+          sharePage(id: pageID)
+        } label: {
+          Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        }
+
+        if let isolationAction = pageIsolationAction(for: pageID) {
+          Button {
+            viewModel.toggleIsolatePage(isolationAction.pageID)
+          } label: {
+            Label(pageIsolationMenuTitle(for: isolationAction), systemImage: isolationAction.systemImage)
+          }
+        }
+
+        Menu {
+          pageRotationActions(for: pageID, currentRotation: currentRotation)
+        } label: {
+          Label("Rotate: \(currentRotation)°", systemImage: "rotate.right")
+        }
       } label: {
-        let displayedPageNumber = displayPageNumber(for: firstPage)
         Label(
-          String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
-          systemImage: "square.and.arrow.up"
+          String.localizedStringWithFormat(pageFormat, displayedPageNumber),
+          systemImage: "doc"
         )
       }
-      if let secondPage {
+    }
+
+    private func pageIsolationAction(for pageID: ReaderPageID) -> ReaderPageIsolationActions.Action? {
+      pageIsolationActions.first { $0.pageID == pageID }
+    }
+
+    private func pageIsolationMenuTitle(for action: ReaderPageIsolationActions.Action) -> String {
+      if action.title == String(localized: "Cancel Isolation") {
+        return action.title
+      }
+      return String(localized: "Isolate")
+    }
+
+    @ViewBuilder
+    private func pageRotationActions(for pageID: ReaderPageID, currentRotation: Int) -> some View {
+      ForEach([0, 90, 180, 270], id: \.self) { degrees in
         Button {
-          sharePage(id: secondPage)
+          viewModel.setPageRotation(degrees, for: pageID)
         } label: {
-          let displayedPageNumber = displayPageNumber(for: secondPage)
-          Label(
-            String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
-            systemImage: "square.and.arrow.up.on.square"
-          )
+          if currentRotation == degrees {
+            Label("\(degrees)°", systemImage: "checkmark")
+          } else {
+            Text("\(degrees)°")
+          }
         }
       }
     }

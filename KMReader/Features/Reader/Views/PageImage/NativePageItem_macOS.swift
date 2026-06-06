@@ -23,6 +23,9 @@
     private var readerBackground: ReaderBackground = .system
     private var showPageShadow = true
     private var enableLiveText = false
+    private var enableImageContextMenu = false
+    private var supportsPageIsolationActions = false
+    private var canIsolatePageFromCurrentPresentation = false
     private weak var readerViewModel: ReaderViewModel?
     private let logger = AppLogger(.reader)
     private var analysisSourceImage: NSImage?
@@ -49,6 +52,7 @@
 
     func prepareForDismantle() {
       clearAnalysis()
+      updateContextMenu(menu: nil)
       updateAnimatedPlayback(sourceFileURL: nil)
       imageView.isHidden = false
       imageView.image = nil
@@ -64,12 +68,11 @@
         prepareForDismantle()
       } else {
         if imageView.image == nil, let data = currentData {
-          let pageSourceImage: NSImage?
-          if let image = readerViewModel?.preloadedImage(for: data.pageID), data.splitMode != .none {
-            pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-          } else {
-            pageSourceImage = readerViewModel?.preloadedImage(for: data.pageID)
-          }
+          let pageSourceImage = preparedImage(
+            from: readerViewModel?.preloadedImage(for: data.pageID),
+            splitMode: data.splitMode,
+            rotationDegrees: data.rotationDegrees
+          )
           analysisSourceImage = pageSourceImage
           imageView.image = pageSourceImage
         }
@@ -79,6 +82,7 @@
             analyzeImage(image)
           }
         }
+        updateContextMenu()
       }
     }
 
@@ -195,6 +199,9 @@
       showPageNumber: Bool,
       showPageShadow: Bool,
       enableLiveText: Bool,
+      enableImageContextMenu: Bool,
+      supportsPageIsolationActions: Bool,
+      canIsolatePageFromCurrentPresentation: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
@@ -208,21 +215,24 @@
       self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
+      self.enableImageContextMenu = enableImageContextMenu
+      self.supportsPageIsolationActions = supportsPageIsolationActions
+      self.canIsolatePageFromCurrentPresentation = canIsolatePageFromCurrentPresentation
 
-      let pageSourceImage: PlatformImage?
-      if let image = image, data.splitMode != .none {
-        pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-      } else {
-        pageSourceImage = image
-      }
+      let pageSourceImage = preparedImage(
+        from: image,
+        splitMode: data.splitMode,
+        rotationDegrees: data.rotationDegrees
+      )
 
+      let hasDisplayableImage = pageSourceImage != nil
       analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       imageView.image = pageSourceImage
 
       updateHeightConstraint(targetHeight)
       updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
 
-      if pageSourceImage != nil, showPageNumber {
+      if hasDisplayableImage, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
           pageNumberLabel.stringValue = "\(displayedPageNumber)"
           pageNumberContainer.isHidden = false
@@ -237,7 +247,10 @@
         progressIndicator.stopAnimation(nil)
         errorLabel.stringValue = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if hasDisplayableImage {
+        errorLabel.isHidden = true
+        progressIndicator.stopAnimation(nil)
+      } else if data.isLoading {
         errorLabel.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
@@ -252,6 +265,7 @@
       }
 
       updateShadowAppearance()
+      updateContextMenu()
       updateOverlaysPosition()
     }
 
@@ -261,6 +275,54 @@
       if shadowOpacity == 0 {
         imageView.layer?.shadowPath = nil
       }
+    }
+
+    private func preparedImage(from image: NSImage?, splitMode: PageSplitMode, rotationDegrees: Int) -> NSImage? {
+      guard let image else { return nil }
+      let rotatedImage = rotateImage(image, degrees: rotationDegrees)
+      let splitImage =
+        splitMode == .none ? rotatedImage : cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+      return cropBordersIfNeeded(splitImage)
+    }
+
+    private func cropBordersIfNeeded(_ image: NSImage?) -> NSImage? {
+      guard let image else { return nil }
+      let mode = AppConfig.divinaPageBorderCropMode
+      guard mode != .disabled,
+        let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil),
+        let cropped = ReaderPageBorderCropper.crop(cgImage, mode: mode)
+      else {
+        return image
+      }
+      return NSImage(cgImage: cropped, size: NSSize(width: cropped.width, height: cropped.height))
+    }
+
+    private func rotateImage(_ image: NSImage, degrees: Int) -> NSImage {
+      let normalized = ((degrees % 360) + 360) % 360
+      guard normalized != 0 else { return image }
+      guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
+
+      let sourceSize = CGSize(width: cgImage.width, height: cgImage.height)
+      let radians = CGFloat(normalized) * .pi / 180
+      var rotatedRect = CGRect(origin: .zero, size: sourceSize)
+        .applying(CGAffineTransform(rotationAngle: radians))
+      rotatedRect.origin = .zero
+
+      let rotatedImage = NSImage(size: rotatedRect.size)
+      rotatedImage.lockFocus()
+      guard let context = NSGraphicsContext.current?.cgContext else {
+        rotatedImage.unlockFocus()
+        return image
+      }
+      context.translateBy(x: rotatedRect.size.width / 2, y: rotatedRect.size.height / 2)
+      context.rotate(by: radians)
+      context.draw(
+        cgImage,
+        in: CGRect(
+          x: -sourceSize.width / 2, y: -sourceSize.height / 2, width: sourceSize.width, height: sourceSize.height)
+      )
+      rotatedImage.unlockFocus()
+      return rotatedImage
     }
 
     private func cropImageForSplitMode(image: NSImage, splitMode: PageSplitMode) -> NSImage? {
@@ -492,6 +554,144 @@
       {
         analyzeImage(image)
       }
+
+      updateContextMenu()
+    }
+
+    private var contextMenuTargetViews: [NSView] {
+      [
+        imageView,
+        sepiaOverlayView,
+        animatedInlineContainer,
+        overlayView,
+        pageNumberContainer,
+        pageNumberLabel,
+      ]
+    }
+
+    private var shouldEnableContextMenu: Bool {
+      enableImageContextMenu && imageView.image != nil
+    }
+
+    private func updateContextMenu() {
+      let menu = shouldEnableContextMenu ? buildContextMenu() : nil
+      updateContextMenu(menu: menu)
+    }
+
+    private func updateContextMenu(menu: NSMenu?) {
+      for view in contextMenuTargetViews {
+        view.menu = menu
+      }
+    }
+
+    private func buildContextMenu() -> NSMenu? {
+      guard let currentData, imageView.image != nil else { return nil }
+
+      let menu = NSMenu()
+      menu.addItem(makeShareMenuItem(for: currentData.pageID))
+      menu.addItem(.separator())
+
+      if let isolationItem = makePageIsolationMenuItem(for: currentData.pageID) {
+        menu.addItem(isolationItem)
+        menu.addItem(.separator())
+      }
+
+      menu.addItem(makePageRotationMenuItem(for: currentData.pageID))
+
+      return menu.items.isEmpty ? nil : menu
+    }
+
+    private func makeShareMenuItem(for pageID: ReaderPageID) -> NSMenuItem {
+      let item = NSMenuItem(
+        title: String(localized: "Share"), action: #selector(handleShareContextMenuAction), keyEquivalent: "")
+      item.target = self
+      return item
+    }
+
+    private func makePageIsolationMenuItem(for pageID: ReaderPageID) -> NSMenuItem? {
+      guard supportsPageIsolationActions, let readerViewModel else { return nil }
+      guard let readerPage = readerViewModel.readerPage(for: pageID) else { return nil }
+      // Check effective portrait considering rotation
+      let rotation = readerViewModel.pageRotationDegrees(for: pageID)
+      let normalized = ((rotation % 360) + 360) % 360
+      let effectivelyPortrait: Bool
+      if normalized == 90 || normalized == 270 {
+        effectivelyPortrait = (readerPage.page.width ?? 0) > (readerPage.page.height ?? 0)
+      } else {
+        effectivelyPortrait = readerPage.page.isPortrait
+      }
+      guard effectivelyPortrait else { return nil }
+
+      if readerViewModel.isPageIsolated(pageID) {
+        let item = NSMenuItem(
+          title: String(localized: "Cancel Isolation"),
+          action: #selector(handleTogglePageIsolationContextMenuAction),
+          keyEquivalent: ""
+        )
+        item.target = self
+        return item
+      }
+
+      guard canIsolatePageFromCurrentPresentation else { return nil }
+      let item = NSMenuItem(
+        title: String(localized: "Isolate"),
+        action: #selector(handleTogglePageIsolationContextMenuAction),
+        keyEquivalent: ""
+      )
+      item.target = self
+      return item
+    }
+
+    private func makePageRotationMenuItem(for pageID: ReaderPageID) -> NSMenuItem {
+      let currentRotation = readerViewModel?.pageRotationDegrees(for: pageID) ?? 0
+      let item = NSMenuItem(
+        title: "\(String(localized: "Rotate")): \(currentRotation)°", action: nil, keyEquivalent: "")
+      item.image = NSImage(systemSymbolName: "rotate.right", accessibilityDescription: nil)
+      item.submenu = makePageRotationSubmenu(for: pageID, currentRotation: currentRotation)
+      return item
+    }
+
+    private func makePageRotationSubmenu(for pageID: ReaderPageID, currentRotation: Int) -> NSMenu {
+      let submenu = NSMenu()
+      for degrees in [0, 90, 180, 270] {
+        let item = NSMenuItem(
+          title: "\(degrees)°",
+          action: #selector(handleSetRotationContextMenuAction),
+          keyEquivalent: ""
+        )
+        item.image =
+          currentRotation == degrees
+          ? NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
+          : nil
+        item.target = self
+        item.representedObject = PageRotationMenuAction(pageID: pageID, degrees: degrees)
+        item.state = currentRotation == degrees ? .on : .off
+        submenu.addItem(item)
+      }
+      return submenu
+    }
+
+    @objc private func handleShareContextMenuAction() {
+      guard let pageID = currentData?.pageID, let image = imageView.image else { return }
+      let fileName = readerViewModel?.page(for: pageID)?.fileName
+      ImageShareHelper.share(image: image, fileName: fileName)
+    }
+
+    @objc private func handleTogglePageIsolationContextMenuAction() {
+      guard let pageID = currentData?.pageID else { return }
+      readerViewModel?.toggleIsolatePage(pageID)
+      updateContextMenu()
+    }
+
+    @objc private func handleSetRotationContextMenuAction(_ sender: NSMenuItem) {
+      guard let action = sender.representedObject as? PageRotationMenuAction else { return }
+      readerViewModel?.setPageRotation(action.degrees, for: action.pageID)
+      updateContextMenu()
+    }
+
+    private struct PageRotationMenuAction {
+      let pageID: ReaderPageID
+      let degrees: Int
     }
   }
 #endif

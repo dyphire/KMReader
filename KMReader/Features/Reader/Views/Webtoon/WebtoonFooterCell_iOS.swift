@@ -17,7 +17,8 @@
     private var readListContext: ReaderReadListContext?
     private var onDismiss: (() -> Void)?
 
-    private let containerStack = UIStackView()
+    private let topRegionView = UIView()
+    private let bottomRegionView = UIView()
     private let previousBookStack = UIStackView()
     private let previousBadgeLabel = UILabel()
     private let previousTitleLabel = UILabel()
@@ -58,39 +59,42 @@
     }
 
     private func setupUI() {
-      contentView.addSubview(containerStack)
-      containerStack.translatesAutoresizingMaskIntoConstraints = false
-      containerStack.axis = .vertical
-      containerStack.alignment = .center
-      containerStack.spacing = 20
-      containerStack.isLayoutMarginsRelativeArrangement = true
-      containerStack.layoutMargins = UIEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
+      topRegionView.translatesAutoresizingMaskIntoConstraints = false
+      bottomRegionView.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(topRegionView)
+      contentView.addSubview(bottomRegionView)
 
       previousBookStack.axis = .vertical
       previousBookStack.alignment = .center
       previousBookStack.spacing = 6
-      containerStack.addArrangedSubview(previousBookStack)
+      previousBookStack.translatesAutoresizingMaskIntoConstraints = false
+      previousBookStack.setContentHuggingPriority(.required, for: .vertical)
+      previousBookStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      topRegionView.addSubview(previousBookStack)
 
       previousBadgeLabel.numberOfLines = 1
       previousBadgeLabel.textAlignment = .center
-      previousBadgeLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      previousBadgeLabel.adjustsFontForContentSizeCategory = true
       previousBadgeLabel.text = String(localized: "reader.previousBook").uppercased()
       previousBookStack.addArrangedSubview(previousBadgeLabel)
 
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
-      previousTitleLabel.font = UIFont.preferredFont(forTextStyle: .title3)
+      previousTitleLabel.adjustsFontForContentSizeCategory = true
+      previousTitleLabel.lineBreakMode = .byTruncatingTail
       previousBookStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.numberOfLines = 1
       previousDetailLabel.textAlignment = .center
-      previousDetailLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      previousDetailLabel.adjustsFontForContentSizeCategory = true
+      previousDetailLabel.lineBreakMode = .byTruncatingTail
       previousBookStack.addArrangedSubview(previousDetailLabel)
 
       dividerStack.axis = .horizontal
       dividerStack.alignment = .center
       dividerStack.spacing = 10
-      containerStack.addArrangedSubview(dividerStack)
+      dividerStack.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(dividerStack)
 
       leadingDivider.translatesAutoresizingMaskIntoConstraints = false
       leadingDivider.heightAnchor.constraint(equalToConstant: 1).isActive = true
@@ -99,7 +103,7 @@
 
       dividerTitleLabel.numberOfLines = 1
       dividerTitleLabel.textAlignment = .center
-      dividerTitleLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      dividerTitleLabel.adjustsFontForContentSizeCategory = true
       dividerStack.addArrangedSubview(dividerTitleLabel)
 
       trailingDivider.translatesAutoresizingMaskIntoConstraints = false
@@ -110,37 +114,65 @@
       nextBookStack.axis = .vertical
       nextBookStack.alignment = .center
       nextBookStack.spacing = 6
-      containerStack.addArrangedSubview(nextBookStack)
+      nextBookStack.translatesAutoresizingMaskIntoConstraints = false
+      nextBookStack.setContentHuggingPriority(.required, for: .vertical)
+      nextBookStack.setContentCompressionResistancePriority(.required, for: .vertical)
+      bottomRegionView.addSubview(nextBookStack)
 
       nextBadgeLabel.numberOfLines = 1
       nextBadgeLabel.textAlignment = .center
-      nextBadgeLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      nextBadgeLabel.adjustsFontForContentSizeCategory = true
       nextBadgeLabel.text = String(localized: "reader.nextBook").uppercased()
       nextBookStack.addArrangedSubview(nextBadgeLabel)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
-      nextTitleLabel.font = UIFont.preferredFont(forTextStyle: .title3)
+      nextTitleLabel.adjustsFontForContentSizeCategory = true
+      nextTitleLabel.lineBreakMode = .byTruncatingTail
       nextBookStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.numberOfLines = 1
       nextDetailLabel.textAlignment = .center
-      nextDetailLabel.font = UIFont.preferredFont(forTextStyle: .caption1)
+      nextDetailLabel.adjustsFontForContentSizeCategory = true
+      nextDetailLabel.lineBreakMode = .byTruncatingTail
       nextBookStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpLabel.numberOfLines = 0
       caughtUpLabel.textAlignment = .center
-      caughtUpLabel.font = UIFont.preferredFont(forTextStyle: .headline)
+      caughtUpLabel.adjustsFontForContentSizeCategory = true
       nextBookStack.addArrangedSubview(caughtUpLabel)
+      nextBookStack.setCustomSpacing(20, after: caughtUpLabel)
 
       closeButton.addTarget(self, action: #selector(handleClose), for: .touchUpInside)
-      containerStack.addArrangedSubview(closeButton)
+      nextBookStack.addArrangedSubview(closeButton)
 
       NSLayoutConstraint.activate([
-        containerStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-        containerStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-        containerStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 32),
-        containerStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32),
+        dividerStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+        dividerStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        dividerStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+
+        topRegionView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 32),
+        topRegionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        topRegionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+        topRegionView.bottomAnchor.constraint(equalTo: dividerStack.topAnchor, constant: -12),
+
+        bottomRegionView.topAnchor.constraint(equalTo: dividerStack.bottomAnchor, constant: 12),
+        bottomRegionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 44),
+        bottomRegionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -44),
+        bottomRegionView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32),
+
+        previousBookStack.centerXAnchor.constraint(equalTo: topRegionView.centerXAnchor),
+        previousBookStack.centerYAnchor.constraint(equalTo: topRegionView.centerYAnchor),
+        previousBookStack.leadingAnchor.constraint(
+          greaterThanOrEqualTo: topRegionView.leadingAnchor),
+        previousBookStack.trailingAnchor.constraint(
+          lessThanOrEqualTo: topRegionView.trailingAnchor),
+
+        nextBookStack.centerXAnchor.constraint(equalTo: bottomRegionView.centerXAnchor),
+        nextBookStack.centerYAnchor.constraint(equalTo: bottomRegionView.centerYAnchor),
+        nextBookStack.leadingAnchor.constraint(greaterThanOrEqualTo: bottomRegionView.leadingAnchor),
+        nextBookStack.trailingAnchor.constraint(lessThanOrEqualTo: bottomRegionView.trailingAnchor),
+        leadingDivider.widthAnchor.constraint(equalTo: trailingDivider.widthAnchor),
       ])
 
       applyBackground()
@@ -150,6 +182,14 @@
     private func applyBackground() {
       contentView.backgroundColor = UIColor(readerBackground.color)
       let textColor = UIColor(readerBackground.contentColor)
+      previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
+      previousTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
+      previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
+      nextBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
+      nextTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
+      nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
       previousDetailLabel.textColor = textColor.withAlphaComponent(0.6)
@@ -160,7 +200,7 @@
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
-      closeButton.tintColor = textColor
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
     }
 
     private func applyContent() {
@@ -178,28 +218,43 @@
         closeButton.isHidden = true
         nextBadgeLabel.isHidden = false
         caughtUpLabel.isHidden = true
+        nextTitleLabel.isHidden = false
+        nextDetailLabel.isHidden = false
         nextTitleLabel.text = nextBook.readerChapterTitle
         nextDetailLabel.text = nextBook.readerChapterDetail
       } else {
         closeButton.isHidden = false
         nextBadgeLabel.isHidden = true
+        nextTitleLabel.isHidden = true
+        nextDetailLabel.isHidden = true
         nextTitleLabel.text = nil
         nextDetailLabel.text = nil
         caughtUpLabel.isHidden = false
         caughtUpLabel.text = String(localized: "You're all caught up!")
       }
 
-      var configuration = UIButton.Configuration.bordered()
-      configuration.image = UIImage(systemName: "xmark")
-      configuration.imagePlacement = .leading
-      configuration.imagePadding = 8
-      configuration.title = String(localized: "Close")
-      configuration.cornerStyle = .capsule
-      closeButton.configuration = configuration
+      EndPageCloseButtonStyle.apply(to: closeButton, textColor: UIColor(readerBackground.contentColor))
     }
 
     @objc private func handleClose() {
       onDismiss?()
+    }
+
+    private func preferredFont(
+      textStyle: UIFont.TextStyle,
+      design: UIFontDescriptor.SystemDesign? = nil,
+      weight: UIFont.Weight? = nil
+    ) -> UIFont {
+      var descriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: textStyle)
+      if let design, let designedDescriptor = descriptor.withDesign(design) {
+        descriptor = designedDescriptor
+      }
+      if let weight {
+        descriptor = descriptor.addingAttributes([
+          UIFontDescriptor.AttributeName.traits: [UIFontDescriptor.TraitKey.weight: weight]
+        ])
+      }
+      return UIFont(descriptor: descriptor, size: 0)
     }
   }
 #endif

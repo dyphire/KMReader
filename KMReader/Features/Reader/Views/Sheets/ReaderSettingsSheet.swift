@@ -18,10 +18,10 @@ struct ReaderSettingsSheet: View {
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
+  @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+  @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
@@ -32,8 +32,18 @@ struct ReaderSettingsSheet: View {
   @AppStorage("imageUpscaleAlwaysMaxScreenScale")
   private var imageUpscaleAlwaysMaxScreenScale: Double =
     AppConfig.imageUpscaleAlwaysMaxScreenScale
+  @AppStorage("divinaPageBorderCropMode") private var divinaPageBorderCropMode: ReaderPageBorderCropMode =
+    AppConfig.divinaPageBorderCropMode
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
-  @AppStorage("readerControlsGradientBackground") private var readerControlsGradientBackground: Bool = false
+  @AppStorage("enableDivinaImageContextMenu")
+  private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
+  @AppStorage("showDivinaControlsGradientBackground")
+  private var showControlsGradientBackground: Bool =
+    AppConfig.showDivinaControlsGradientBackground
+  @AppStorage("showDivinaProgressBarWhileReading")
+  private var showProgressBarWhileReading: Bool =
+    AppConfig.showDivinaProgressBarWhileReading
+  @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
 
   private var isWebtoonDirection: Bool {
     readingDirection == .webtoon
@@ -43,16 +53,8 @@ struct ReaderSettingsSheet: View {
     !isWebtoonDirection
   }
 
-  private var shouldShowTapTransitionDuration: Bool {
-    shouldShowPagedTurnSettings && pageTransitionStyle != .pageCurl
-  }
-
-  private var tapPageTransitionDurationText: String {
-    if tapPageTransitionDuration <= 0 {
-      return String(localized: "Page Turn Animation Off")
-    }
-
-    return String(format: "%.1fs", tapPageTransitionDuration)
+  private var shouldShowTapTurnAnimation: Bool {
+    isWebtoonDirection || shouldShowPagedTurnSettings
   }
 
   var body: some View {
@@ -75,12 +77,15 @@ struct ReaderSettingsSheet: View {
           }
 
           Toggle(isOn: $showPageShadow) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Show Page Shadow")
-              Text("Render a subtle shadow around pages. Turn off for seamless dual-page spreads.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
+            Text("Show Page Shadow")
+          }
+
+          Toggle(isOn: $showControlsGradientBackground) {
+            Text("Controls Gradient Background")
+          }
+
+          Toggle(isOn: $showProgressBarWhileReading) {
+            Text("Show Progress Bar While Reading")
           }
 
           #if os(iOS) || os(macOS)
@@ -107,12 +112,77 @@ struct ReaderSettingsSheet: View {
             }
           #endif
 
-          #if os(iOS)
-            Toggle(isOn: $readerControlsGradientBackground) {
-              Text("Controls Gradient Background")
+        }
+
+        // MARK: - Page Turn Section
+
+        Section(header: Text("Page Turn")) {
+          if shouldShowPagedTurnSettings {
+            Picker("Page Transition Style", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+          }
+
+          #if os(iOS) || os(macOS)
+            if shouldShowTapTurnAnimation {
+              Toggle(isOn: $animateTapTurns) {
+                Text("Animate Page Turns")
+              }
             }
           #endif
 
+          Toggle(isOn: $showKeyboardHelpOverlay) {
+            Text("Auto-Show Keyboard Help")
+          }
+
+          #if os(iOS) || os(macOS)
+            TapZoneModePicker(
+              selection: $tapZoneMode,
+              tapZoneInversionMode: tapZoneInversionMode,
+              readingDirection: readingDirection
+            )
+
+            if !tapZoneMode.isDisabled {
+              Picker("Tap Zone Mirroring", selection: $tapZoneInversionMode) {
+                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+
+              Toggle(isOn: $showTapZoneHints) {
+                Text("Show Tap Zone Hints")
+              }
+
+              if isWebtoonDirection {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Webtoon Tap Scroll Height")
+                    Spacer()
+                    Text("\(Int(webtoonTapScrollPercentage))%")
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $webtoonTapScrollPercentage,
+                    in: 25...100,
+                    step: 5
+                  )
+                }
+              }
+            }
+          #endif
+        }
+
+        Section(header: Text("Performance")) {
+          Picker("Image Preloading", selection: $divinaPreloadProfile) {
+            ForEach(ReaderPreloadProfile.allCases) { profile in
+              Text(profile.displayName).tag(profile)
+            }
+          }
+          .pickerStyle(.menu)
         }
 
         #if os(iOS)
@@ -142,7 +212,14 @@ struct ReaderSettingsSheet: View {
         #endif
 
         #if os(iOS) || os(macOS)
-          Section(header: Text("Image Upscaling")) {
+          Section(header: Text("Image Processing")) {
+            Picker("Border Cropping", selection: $divinaPageBorderCropMode) {
+              ForEach(ReaderPageBorderCropMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
+
             VStack(alignment: .leading, spacing: 8) {
               Picker("Waifu2x Mode", selection: $imageUpscalingMode) {
                 ForEach(ReaderImageUpscalingMode.allCases, id: \.self) { mode in
@@ -150,10 +227,6 @@ struct ReaderSettingsSheet: View {
                 }
               }
               .pickerStyle(.menu)
-
-              Text("Improve clarity for low-resolution pages using built-in waifu2x (2x).")
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
 
             Group {
@@ -171,9 +244,6 @@ struct ReaderSettingsSheet: View {
                     in: 1.0...1.5,
                     step: 0.01
                   )
-                  Text("Auto scale only when required scale to fit the page on screen is greater than this value.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
               case .always:
                 VStack(alignment: .leading, spacing: 8) {
@@ -188,9 +258,6 @@ struct ReaderSettingsSheet: View {
                     in: 1.0...3.0,
                     step: 0.05
                   )
-                  Text("In Always mode, upscale unless source width or height exceeds this multiple of the screen.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
               case .disabled:
                 EmptyView()
@@ -199,136 +266,32 @@ struct ReaderSettingsSheet: View {
           }
         #endif
 
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           Section(header: Text("Live Text")) {
             Toggle(isOn: $enableLiveText) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Enable Live Text")
-                Text("Automatically enable Live Text for all images.")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
+              Text("Enable Live Text")
             }
             #if os(iOS)
               Toggle(isOn: $shakeToOpenLiveText) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Shake to Open Live Text")
-                  Text("Shake your device to toggle Live Text")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
+                Text("Shake to Open Live Text")
               }
             #endif
           }
         #endif
 
-        // MARK: - Page Turn Section
-
-        Section(header: Text("Page Turn")) {
-          if shouldShowPagedTurnSettings {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Transition Style", selection: $pageTransitionStyle) {
-                ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
-                }
-              }
-              .pickerStyle(.menu)
-              Text(pageTransitionStyle.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
+        #if os(iOS) || os(macOS)
+          Section(header: Text("Context Menu")) {
+            Toggle(isOn: $enableDivinaImageContextMenu) {
+              Text("Enable Image Context Menu")
             }
-
-            #if os(iOS) || os(macOS)
-              if shouldShowTapTransitionDuration {
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text("Page Turn Animation Duration")
-                    Spacer()
-                    Text(tapPageTransitionDurationText)
-                      .foregroundColor(.secondary)
-                  }
-                  Slider(
-                    value: $tapPageTransitionDuration,
-                    in: 0...1,
-                    step: 0.1
-                  )
-                  Text("Animation duration for tap-based page turns. Set to 0 to turn off page turn animation.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-            #endif
           }
-
-          #if os(macOS)
-            Toggle(isOn: $showKeyboardHelpOverlay) {
-              Text("Show Keyboard Help Overlay")
-            }
-          #endif
-
-          #if os(iOS) || os(macOS)
-            Picker("Tap Zone Mode", selection: $tapZoneMode) {
-              ForEach(TapZoneMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-
-            if !tapZoneMode.isDisabled {
-              Toggle(isOn: $showTapZoneHints) {
-                Text("Show Tap Zone Hints")
-              }
-
-              VStack(alignment: .leading, spacing: 8) {
-                Picker("Tap Zone Size", selection: $tapZoneSize) {
-                  ForEach(TapZoneSize.allCases, id: \.self) { size in
-                    Text(size.displayName).tag(size)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                HStack(spacing: 12) {
-                  switch tapZoneMode {
-                  case .none:
-                    EmptyView()
-                  case .auto:
-                    TapZonePreview(size: tapZoneSize, direction: readingDirection)
-                  case .ltr:
-                    TapZonePreview(size: tapZoneSize, direction: .ltr)
-                  case .rtl:
-                    TapZonePreview(size: tapZoneSize, direction: .rtl)
-                  case .vertical:
-                    TapZonePreview(size: tapZoneSize, direction: .vertical)
-                  case .webtoon:
-                    TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                  }
-                }
-                .frame(height: 60)
-              }
-
-              if isWebtoonDirection {
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text("Webtoon Tap Scroll Height")
-                    Spacer()
-                    Text("\(Int(webtoonTapScrollPercentage))%")
-                      .foregroundColor(.secondary)
-                  }
-                  Slider(
-                    value: $webtoonTapScrollPercentage,
-                    in: 25...100,
-                    step: 5
-                  )
-                }
-              }
-            }
-          #endif
-        }
+        #endif
       }
     }
     .animation(.default, value: tapZoneMode)
     .animation(.default, value: doubleTapZoomMode)
     .animation(.default, value: imageUpscalingMode)
+    .animation(.default, value: divinaPageBorderCropMode)
     .animation(.default, value: pageTransitionStyle)
     .animation(.default, value: readingDirection)
     .presentationDragIndicator(.visible)

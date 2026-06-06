@@ -1,5 +1,5 @@
 //
-// EpubReaderPreferences.swift
+// EpubThemePreferences.swift
 //
 //
 
@@ -19,26 +19,35 @@ nonisolated enum EpubConstants {
 
   static let defaultPageMargins: Double = 1.0
 
-  static let defaultFontWeight: Double = 1.0
-  static let defaultTapScrollPercentage: Double = 80.0
+  static let defaultFontWeight: Double = 400.0
+  static let minimumFontWeight: Double = 100.0
+  static let maximumFontWeight: Double = 1000.0
+  static let fontWeightStep: Double = 10.0
 }
 
-nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
+nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
   typealias RawValue = String
 
   // Keep this list in sync with makeReadiumPayload.
   static let readiumPropertyKeys: [String] = [
     "--RS__textColor",
     "--RS__backgroundColor",
+    "--USER__textColor",
+    "--USER__backgroundColor",
+    "--USER__linkColor",
+    "--USER__visitedColor",
+    "--RS__disableOverflow",
     "--USER__view",
+    "--USER__iOSPatch",
+    "--USER__iPadOSPatch",
+    "--USER__blendImages",
     "--USER__fontOverride",
     "--USER__fontFamily",
-    "--USER__fontWeightOverride",
     "--USER__fontWeight",
     "--USER__colCount",
-    "--USER__pageMargins",
-    "--USER__appearance",
-    "--USER__advancedSettings",
+    "--USER__lineLength",
+    "--USER__textAlign",
+    "--USER__bodyHyphens",
     "--USER__fontSize",
     "--USER__lineHeight",
     "--USER__paraSpacing",
@@ -48,7 +57,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   ]
 
   var theme: ThemeChoice
-  var flowStyle: EpubFlowStyle
   var fontFamily: FontFamilyChoice
   var fontWeight: Double?
   var advancedLayout: Bool
@@ -59,12 +67,11 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   var letterSpacing: Double
   var lineHeight: Double
   var columnCount: EpubColumnCount
+  var textAlignment: EpubTextAlignment
   var pageMargins: Double
-  var tapScrollPercentage: Double
 
   init(
     theme: ThemeChoice = .system,
-    flowStyle: EpubFlowStyle = .paged,
     fontFamily: FontFamilyChoice = .publisher,
     fontWeight: Double? = nil,
     advancedLayout: Bool = false,
@@ -75,11 +82,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     letterSpacing: Double = EpubConstants.defaultLetterSpacing,
     lineHeight: Double = EpubConstants.defaultLineHeight,
     columnCount: EpubColumnCount = .auto,
+    textAlignment: EpubTextAlignment = .publisherDefault,
     pageMargins: Double = EpubConstants.defaultPageMargins,
-    tapScrollPercentage: Double = EpubConstants.defaultTapScrollPercentage,
   ) {
     self.theme = theme
-    self.flowStyle = flowStyle
     self.fontFamily = fontFamily
     self.fontSize = fontSize
     self.wordSpacing = wordSpacing
@@ -89,9 +95,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     self.columnCount = columnCount
     self.letterSpacing = letterSpacing
     self.lineHeight = lineHeight
+    self.textAlignment = textAlignment
     self.fontWeight = fontWeight
     self.advancedLayout = advancedLayout
-    self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
   }
 
   init?(rawValue: String) {
@@ -108,15 +114,10 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     }
 
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
-    let flowStyleRaw = dict["flowStyle"] as? String ?? EpubFlowStyle.paged.rawValue
-    let flowStyle = EpubFlowStyle(rawValue: flowStyleRaw) ?? .paged
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
     let rawFontWeight = dict["fontWeight"] as? Double
-    let fontWeight: Double? = {
-      guard let rawFontWeight else { return nil }
-      return rawFontWeight == EpubConstants.defaultFontWeight ? nil : rawFontWeight
-    }()
+    let fontWeight = rawFontWeight.flatMap(Self.normalizedStoredFontWeight)
     let advancedLayout = dict["advancedLayout"] as? Bool ?? false
     let fontSize = dict["fontSize"] as? Double ?? EpubConstants.defaultFontScale
     let wordSpacing = dict["wordSpacing"] as? Double ?? EpubConstants.defaultWordSpacing
@@ -126,15 +127,14 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     let lineHeight = dict["lineHeight"] as? Double ?? EpubConstants.defaultLineHeight
     let columnCountRaw = dict["columnCount"] as? String ?? EpubColumnCount.auto.rawValue
     let columnCount = EpubColumnCount(rawValue: columnCountRaw) ?? .auto
+    let textAlignmentRaw =
+      dict["textAlignment"] as? String ?? EpubTextAlignment.publisherDefault.rawValue
+    let textAlignment = EpubTextAlignment(rawValue: textAlignmentRaw) ?? .publisherDefault
     let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
     let pageMargins = Self.normalizedPageMargins(rawPageMargins)
-    let rawTapScrollPercentage =
-      dict["tapScrollPercentage"] as? Double ?? EpubConstants.defaultTapScrollPercentage
-    let tapScrollPercentage = Self.normalizedTapScrollPercentage(rawTapScrollPercentage)
 
     self.init(
       theme: theme,
-      flowStyle: flowStyle,
       fontFamily: font,
       fontWeight: fontWeight,
       advancedLayout: advancedLayout,
@@ -145,15 +145,14 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       letterSpacing: letterSpacing,
       lineHeight: lineHeight,
       columnCount: columnCount,
+      textAlignment: textAlignment,
       pageMargins: pageMargins,
-      tapScrollPercentage: tapScrollPercentage,
     )
   }
 
   var rawValue: String {
     var dict: [String: Any] = [
       "theme": theme.rawValue,
-      "flowStyle": flowStyle.rawValue,
       "fontFamily": fontFamily.rawValue,
       "advancedLayout": advancedLayout,
       "fontSize": fontSize,
@@ -163,8 +162,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       "letterSpacing": letterSpacing,
       "lineHeight": lineHeight,
       "columnCount": columnCount.rawValue,
+      "textAlignment": textAlignment.rawValue,
       "pageMargins": pageMargins,
-      "tapScrollPercentage": tapScrollPercentage,
     ]
     if let fontWeight {
       dict["fontWeight"] = fontWeight
@@ -184,15 +183,26 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   func makeReadiumPayload(
     theme: ReaderTheme,
     fontPath: String? = nil,
-    rootURL: URL? = nil
+    flowStyle: EpubFlowStyle = .paged,
+    rootURL: URL? = nil,
+    viewportSize: CGSize? = nil
   ) -> (css: String, properties: [String: String?]) {
     let fontName = fontFamily.fontName
+    let darkLinkColors = darkThemeLinkColors
 
     var properties: [String: String?] = [
       "--RS__textColor": theme.textColorHex,
       "--RS__backgroundColor": theme.backgroundColorHex,
     ]
     properties["--USER__view"] = flowStyle == .scrolled ? "readium-scroll-on" : nil
+    properties["--RS__disableOverflow"] = flowStyle == .scrolled ? "readium-noOverflow-on" : nil
+    #if os(iOS)
+      properties["--USER__iOSPatch"] = "readium-iOSPatch-on"
+      properties["--USER__iPadOSPatch"] = nil
+    #else
+      properties["--USER__iOSPatch"] = nil
+      properties["--USER__iPadOSPatch"] = nil
+    #endif
     properties["font-weight"] = nil
 
     let fontFamilyValue = fontName.map(cssFontFamilyValue)
@@ -200,20 +210,29 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
     properties["--USER__fontFamily"] = fontFamilyValue
     if let fontWeight {
       let fontWeightValue = readiumFontWeightValue(for: fontWeight)
-      properties["--USER__fontWeightOverride"] = "readium-font-weight-on"
       properties["--USER__fontWeight"] = "\(fontWeightValue)"
     } else {
-      properties["--USER__fontWeightOverride"] = nil
       properties["--USER__fontWeight"] = nil
     }
-    properties["--USER__colCount"] = columnCount.readiumValue
-    properties["--USER__pageMargins"] = String(format: "%.2f", max(0, pageMargins))
+    properties["--USER__colCount"] = resolvedReadiumColumnCount(flowStyle: flowStyle, for: viewportSize)
+    properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
+    properties["--USER__textAlign"] = nil
+    properties["--USER__bodyHyphens"] = nil
 
     if theme.isDark {
-      properties["--USER__appearance"] = "readium-night-on"
+      properties["--USER__textColor"] = theme.textColorHex
+      properties["--USER__backgroundColor"] = theme.backgroundColorHex
+      properties["--USER__linkColor"] = darkLinkColors.link
+      properties["--USER__visitedColor"] = darkLinkColors.visited
     } else {
-      properties["--USER__appearance"] = nil
+      properties["--USER__textColor"] = nil
+      properties["--USER__backgroundColor"] = nil
+      properties["--USER__linkColor"] = nil
+      properties["--USER__visitedColor"] = nil
     }
+    properties["--USER__blendImages"] =
+      shouldUseLightImageBlend(for: theme)
+      ? "readium-blend-on" : nil
 
     if advancedLayout {
       let fontSizePercent = fontSize * 100
@@ -222,7 +241,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       let paragraphSpacingRem = max(0, paragraphSpacing)
       let paragraphIndentRem = max(0, paragraphIndent)
 
-      properties["--USER__advancedSettings"] = "readium-advanced-on"
+      properties["--USER__textAlign"] = textAlignment.readiumTextAlign
+      properties["--USER__bodyHyphens"] = textAlignment.readiumBodyHyphens
       properties["--USER__fontSize"] = String(format: "%.2f%%", fontSizePercent)
       properties["--USER__lineHeight"] = String(format: "%.2f", lineHeight)
       properties["--USER__paraSpacing"] = String(format: "%.2frem", paragraphSpacingRem)
@@ -230,13 +250,14 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       properties["--USER__wordSpacing"] = String(format: "%.2frem", wordSpacingRem)
       properties["--USER__letterSpacing"] = String(format: "%.2frem", letterSpacingRem)
     } else {
-      properties["--USER__advancedSettings"] = nil
       properties["--USER__fontSize"] = nil
       properties["--USER__lineHeight"] = nil
       properties["--USER__paraSpacing"] = nil
       properties["--USER__paraIndent"] = nil
       properties["--USER__wordSpacing"] = nil
       properties["--USER__letterSpacing"] = nil
+      properties["--USER__textAlign"] = nil
+      properties["--USER__bodyHyphens"] = nil
     }
 
     let fontFaceCSS = makeFontFaceCSS(
@@ -245,39 +266,55 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       rootURL: rootURL
     )
 
-    var imageBlendCSS = ""
-    if shouldUseLightImageBlend(for: theme) {
-      imageBlendCSS = """
-        :root[data-kmreader-theme="light"] img,
-        :root[data-kmreader-theme="light"] svg {
-          mix-blend-mode: multiply;
-        }
-
-        """
-    }
-
-    let backgroundFillCSS = """
-      body {
-        min-height: 100vh;
-        display: flow-root;
-      }
-
-      """
-
-    let fontWeightCSS = makeFontWeightCSS()
+    let darkTextColorOverrideCSS = makeDarkTextColorOverrideCSS(theme: theme)
+    let paginationCompatibilityCSS = makePaginationCompatibilityCSS()
     return (
-      css: fontFaceCSS + fontWeightCSS + imageBlendCSS + backgroundFillCSS,
+      css: fontFaceCSS + darkTextColorOverrideCSS + paginationCompatibilityCSS,
       properties: properties
     )
   }
 
-  func makeCSS(theme: ReaderTheme, fontPath: String? = nil, rootURL: URL? = nil) -> String {
-    makeReadiumPayload(theme: theme, fontPath: fontPath, rootURL: rootURL).css
+  func makeCSS(
+    theme: ReaderTheme,
+    fontPath: String? = nil,
+    flowStyle: EpubFlowStyle = .paged,
+    rootURL: URL? = nil,
+    viewportSize: CGSize? = nil
+  ) -> String {
+    makeReadiumPayload(
+      theme: theme,
+      fontPath: fontPath,
+      flowStyle: flowStyle,
+      rootURL: rootURL,
+      viewportSize: viewportSize
+    ).css
+  }
+
+  private func resolvedReadiumColumnCount(flowStyle: EpubFlowStyle, for viewportSize: CGSize?) -> String? {
+    switch columnCount {
+    case .one, .two:
+      return columnCount.readiumValue
+    case .auto:
+      guard flowStyle == .paged else { return nil }
+      guard let viewportSize else { return nil }
+      let width = viewportSize.width
+      return width >= 900 ? EpubColumnCount.two.readiumValue : EpubColumnCount.one.readiumValue
+    }
   }
 
   private func readiumFontWeightValue(for weight: Double) -> Int {
-    let rawValue = 240 + Int(weight * 160)
-    return min(max(rawValue, 1), 1000)
+    let normalizedWeight = min(
+      max(weight.rounded(), EpubConstants.minimumFontWeight),
+      EpubConstants.maximumFontWeight
+    )
+    return Int(normalizedWeight)
+  }
+
+  private static func normalizedStoredFontWeight(_ weight: Double) -> Double? {
+    guard weight >= EpubConstants.minimumFontWeight else {
+      return nil
+    }
+    return min(max(weight, EpubConstants.minimumFontWeight), EpubConstants.maximumFontWeight)
   }
 
   private func cssFontFamilyValue(_ name: String) -> String {
@@ -288,12 +325,12 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   }
 
   private func makeFontFaceCSS(fontName: String?, fontPath: String?, rootURL: URL?) -> String {
-    guard let fontName, let path = fontPath, let rootURL else {
+    guard let fontName, let path = fontPath, rootURL != nil else {
       return ""
     }
 
     let fileName = URL(fileURLWithPath: path).lastPathComponent
-    let fontURL = rootURL.appendingPathComponent(".fonts").appendingPathComponent(fileName)
+    guard let fontURL = EpubResourceScheme.fontURL(fileName: fileName) else { return "" }
     let fileURLString = fontURL.absoluteString
     let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
 
@@ -306,35 +343,71 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
       """
   }
 
-  private func makeFontWeightCSS() -> String {
-    """
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] {
-      font-weight: var(--USER__fontWeight) !important;
-    }
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] body,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] p,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] li,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] div,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dt,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] dd,
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] i:not([xml\\:lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] em:not([xml\\:lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] cite:not([xml\\:lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] b:not([xml\\:lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] strong:not([xml\\:lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([lang]),
-    :root[style*="readium-font-weight-on"][style*="--USER__fontWeight"] span:not([xml\\:lang]) {
-      font-weight: var(--USER__fontWeight) !important;
-    }
-
-    """
+  private func readiumLineLengthValue(for pageMargins: Double) -> String {
+    let normalizedMargins = max(0, pageMargins)
+    let horizontalPadding = normalizedMargins * 20.0
+    let totalInset = max(0, horizontalPadding * 2.0)
+    return "calc(100% - \(String(format: "%.2f", totalInset))px)"
   }
 
+  private func makeDarkTextColorOverrideCSS(theme: ReaderTheme) -> String {
+    guard theme.isDark else {
+      return ""
+    }
+
+    return """
+      :root[style*="--USER__textColor"] body {
+        color: var(--USER__textColor) !important;
+        -webkit-text-fill-color: var(--USER__textColor) !important;
+      }
+
+      :root[style*="--USER__textColor"] body *:not(a) {
+        color: inherit !important;
+        background-color: transparent !important;
+        border-color: currentColor !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      :root[style*="--USER__textColor"] body svg text {
+        fill: currentColor !important;
+        stroke: none !important;
+      }
+
+      :root[style*="--USER__linkColor"] body a:link,
+      :root[style*="--USER__linkColor"] body a:link * {
+        color: var(--USER__linkColor) !important;
+        -webkit-text-fill-color: var(--USER__linkColor) !important;
+      }
+
+      :root[style*="--USER__visitedColor"] body a:visited,
+      :root[style*="--USER__visitedColor"] body a:visited * {
+        color: var(--USER__visitedColor) !important;
+        -webkit-text-fill-color: var(--USER__visitedColor) !important;
+      }
+
+      :root[style*="--USER__backgroundColor"] body,
+      :root[style*="--USER__backgroundColor"] body * {
+        background-color: transparent !important;
+      }
+
+      """
+  }
+
+  private var darkThemeLinkColors: (link: String, visited: String) {
+    ("#63CAFF", "#0099E5")
+  }
+
+  private func makePaginationCompatibilityCSS() -> String {
+    return """
+      body {
+        display: flow-root;
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+      }
+
+      """
+  }
   private func shouldUseLightImageBlend(for theme: ReaderTheme) -> Bool {
     switch theme {
     case .white, .lightQuiet, .lightSepia:
@@ -354,7 +427,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable {
   }
 }
 
-nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
+nonisolated enum ThemeChoice: String, CaseIterable, Identifiable, Sendable {
   case system
   case quiet
   case sepia
@@ -373,7 +446,7 @@ nonisolated enum ThemeChoice: String, CaseIterable, Identifiable {
   }
 }
 
-nonisolated enum ReaderTheme: String, CaseIterable {
+nonisolated enum ReaderTheme: String, CaseIterable, Sendable {
   case white
   case black
   case lightQuiet
@@ -438,7 +511,7 @@ nonisolated enum ReaderTheme: String, CaseIterable {
   }
 }
 
-nonisolated enum FontFamilyChoice: Hashable, Identifiable {
+nonisolated enum FontFamilyChoice: Hashable, Identifiable, Sendable {
   case publisher
   case system(String)
 

@@ -20,47 +20,40 @@
 
 ## Important Features
 
-### Native Reading Experience
+### Readers
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, customizable tap zones, page curl (iOS), cover-style page transitions on all platforms, optional page shadows, clearer page-turn animation controls, and steadier scroll/cover navigation with better RTL, wide-page, and interruption handling.
-- EPUB reader on iOS/macOS with paged, scrolled, and cover layouts, custom font importing (`.ttf`/`.otf`), theme presets, multi-column reading, and nested table of contents.
-- Animated GIF and WebP pages start immediately, stay smooth while you zoom or scroll, and remain reliable when reopening or revisiting pages.
-- PDF reading on iOS/macOS with a native PDF reader or DIVINA mode, plus search, table of contents, page jump, configurable render quality tiers for offline preparation, and clearer progress feedback.
-- Per-book preferences save reading direction, page layout, and theme settings.
-- Incognito mode and iOS Live Text support, including optional shake-to-toggle.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl on iOS, cover transitions, tap zone layout presets, keyboard support, per-page rotation, border cropping, preload profiles, and per-book preferences.
+- EPUB reader on iOS/macOS with paged, scrolled, curl, or cover layouts, custom fonts, per-book theme and typography controls, dedicated EPUB behavior settings, status/footer overlays, multi-column reading, and nested table of contents.
+- PDF reader on iOS/macOS with native PDF or DIVINA mode, search, table of contents, page jump, automatic or explicit page presentation modes, spread layouts, configurable render quality, and continuous reading options.
+- Animated GIF and WebP pages play inline. Incognito mode, page image actions, persistent reader progress overlays, AI upscaling, and iOS Live Text are supported where available.
 
-### Dashboard and Discovery
+### Browse and Discovery
 
-- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists.
-- Browse Series, Books, Collections, and Read Lists with metadata filters for publishers, authors, genres, tags, and languages using all/any logic.
-- Save and reuse filters across browse surfaces.
-- Optional unread-cover blur helps hide spoiler-heavy artwork until you start reading.
-- Reading history and stats help surface recent activity from synced local data.
-- Spotlight integration for downloaded content on iOS/macOS, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
-- UI localization includes English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
+- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with quick offline actions for current or full book sections where supported.
+- Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, and optional unread-cover blur.
+- Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 
 ### Offline and Sync
 
-- Download books for full offline reading across DIVINA, EPUB, and PDF workflows.
-- EPUB downloads use a single-file download plus local extraction for faster, more reliable offline saves.
-- Manual offline mode controls and more predictable iOS background downloads for page files and extra resources.
-- Optional iOS Live Activities for both active reading sessions and downloads, including reader progress or incognito status on iPhone.
-- Per-series download policies: Manual, Unread only, Unread + cleanup, and All books.
-- Offline mode includes dedicated downloaded-library browsing and metadata filters.
-- Progress and offline data sync automatically when reconnecting, including safer conflict handling.
-- Cache controls cover pages and thumbnails.
+- Download books for offline reading across DIVINA, EPUB, and PDF workflows, with optional offline-first reading that prepares local content before opening the reader.
+- Per-series policies support manual, unread-only, unread + cleanup, and all-books downloads.
+- Large downloads stream to disk, and CBZ, CBR, PDF, and supported EPUB offline flows use local extraction or storage.
+- Progress and offline changes sync when reconnecting, with stale progress protection and automatic recovery from server outages when offline mode was entered automatically. Cache controls cover pages and thumbnails.
+- iOS background downloads and Live Activities show reader progress, incognito status, download progress, and processing state.
 
 ### Multi-Server and Management
 
 - Save multiple Komga servers and switch instantly.
 - Sign in with username/password or API key, and manage Komga API keys inside the app.
-- Admin tools for metadata editing, library management, media management (media analysis, missing posters, duplicate files, duplicate pages, and page-hash matches), task monitoring, and log viewing/export.
+- Admin tools cover metadata editing, library management, media analysis, missing posters, duplicate files/pages, task monitoring, and log viewing/export.
 
 ### Platform Highlights
 
-- iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities for reader/downloads, background downloads, Live Text, and page curl/cover transitions.
-- macOS: dedicated reader windows, reader actions in the system menu bar, Spotlight search for downloaded content, keyboard shortcuts, and keyboard help overlay.
-- tvOS: remote-first DIVINA reading with cover transitions and a TV-optimized browsing experience.
+- iOS/iPadOS: widgets, quick actions, Spotlight search, Dynamic Island Live Activities, background downloads, Live Text, and reader keyboard shortcuts.
+- macOS: dedicated reader windows, menu bar reader actions, Spotlight search, keyboard shortcuts, and keyboard help.
+- tvOS: remote-first DIVINA reading and TV-optimized browsing.
+
+KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 ## Getting Started
 

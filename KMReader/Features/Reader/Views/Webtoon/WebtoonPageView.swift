@@ -10,7 +10,8 @@
     let viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let toggleControls: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
+    let scrollController: WebtoonScrollController
     let pageWidthPercentage: Double
     let renderConfig: ReaderRenderConfig
     @State private var zoomTargetPageID: ReaderPageID?
@@ -30,12 +31,11 @@
             renderConfig: renderConfig,
             readListContext: readListContext,
             onDismiss: onDismiss,
-            onCenterTap: {
-              toggleControls()
-            },
+            onTapZoneTap: onTapZoneTap,
             onZoomRequest: { pageID, anchor in
               openZoomOverlay(pageID: pageID, anchor: anchor)
-            }
+            },
+            scrollController: scrollController
           )
 
           if let zoomTargetPageID, let zoomRequestID {

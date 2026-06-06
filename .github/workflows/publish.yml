@@ -19,7 +19,7 @@ jobs:
       has_secrets: ${{ steps.check_secrets.outputs.has_secrets }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -123,7 +123,7 @@ jobs:
     if: needs.detect.outputs.marketing_changed == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Ensure GitHub release exists
         env:
@@ -149,7 +149,7 @@ jobs:
         platform: [ios, macos, tvos]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare App Store Connect API key
         id: prepare
@@ -163,7 +163,7 @@ jobs:
           echo "APP_STORE_CONNECT_API_KEY_PATH=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Import codesign certs
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v7
         with:
           p12-file-base64: ${{ secrets.APPSTORE_CERTIFICATES_FILE_BASE64 }}
           p12-password: ${{ secrets.APPSTORE_CERTIFICATES_PASSWORD }}

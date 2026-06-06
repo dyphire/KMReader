@@ -3,7 +3,7 @@
 
   struct PdfControlsOverlayView: View {
     @Binding var readingDirection: ReadingDirection
-    @Binding var pageLayout: PageLayout
+    @Binding var pagePresentation: PdfPagePresentation
     @Binding var isolateCoverPage: Bool
 
     @Binding var showingPageJumpSheet: Bool
@@ -11,9 +11,6 @@
     @Binding var showingTOCSheet: Bool
     @Binding var showingReaderSettingsSheet: Bool
     @Binding var showingDetailSheet: Bool
-
-    @AppStorage("pdfReaderControlsGradientBackground")
-    private var readerControlsGradientBackground: Bool = false
 
     let currentBook: Book?
     let fallbackTitle: String
@@ -23,14 +20,14 @@
     let hasTOC: Bool
     let canSearch: Bool
     let controlsVisible: Bool
+    let showGradientBackground: Bool
+    let showProgressBarWhileReading: Bool
     let onDismiss: () -> Void
 
-    private var buttonStyle: AdaptiveButtonStyleType {
-      .bordered
-    }
+    @Namespace private var progressBarNamespace
 
     private var animation: Animation {
-      .bouncy(duration: 0.25)
+      .easeInOut(duration: 0.2)
     }
 
     private var progress: Double {
@@ -48,46 +45,70 @@
     }
 
     var body: some View {
-      VStack(spacing: 0) {
-        if controlsVisible {
-          topBar
-            .transition(
-              .move(edge: .top)
-                .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.8, anchor: .top))
-            )
-        }
-
-        Spacer(minLength: 0)
-
-        if controlsVisible {
-          bottomBar
-            .transition(
-              .move(edge: .bottom)
-                .combined(with: .opacity)
-                .combined(with: .scale(scale: 0.8, anchor: .bottom))
-            )
-        }
+      ZStack(alignment: .bottom) {
+        topControlsLayer
+        bottomControlsLayer
+        hiddenProgressLayer
       }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
       .animation(animation, value: controlsVisible)
+      .animation(animation, value: showProgressBarWhileReading)
       .allowsHitTesting(controlsVisible)
       #if os(iOS)
         .tint(.primary)
       #endif
     }
 
+    private var bottomControlsTransition: AnyTransition {
+      guard showProgressBarWhileReading else {
+        return .move(edge: .bottom).combined(with: .opacity)
+      }
+      return .opacity
+    }
+
+    @ViewBuilder
+    private var topControlsLayer: some View {
+      VStack(spacing: 0) {
+        if controlsVisible {
+          topBar
+            .transition(
+              .move(edge: .top)
+                .combined(with: .opacity)
+            )
+        }
+
+        Spacer(minLength: 0)
+      }
+    }
+
+    @ViewBuilder
+    private var bottomControlsLayer: some View {
+      if controlsVisible {
+        visibleBottomOverlayBar
+          .transition(bottomControlsTransition)
+      }
+    }
+
+    @ViewBuilder
+    private var hiddenProgressLayer: some View {
+      if !controlsVisible && showProgressBarWhileReading {
+        hiddenProgressBar
+          .transition(.opacity)
+      }
+    }
+
     private var topBar: some View {
-      HStack(alignment: .top) {
+      HStack {
         #if !os(macOS)
           Button {
             onDismiss()
           } label: {
             Image(systemName: "xmark")
+              .contentShape(Circle())
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .contentShape(Circle())
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         #endif
 
         Spacer()
@@ -119,10 +140,11 @@
             }
             .padding(.vertical, 2)
             .padding(.horizontal)
+            .readerHeaderTitleControlFrame()
+            .contentShape(Capsule())
           }
           .optimizedControlSize()
-          .contentShape(Capsule())
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         }
 
         Spacer()
@@ -133,64 +155,89 @@
           } label: {
             Image(systemName: "ellipsis")
               .padding(4)
+              .contentShape(Circle())
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .contentShape(Circle())
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         #endif
       }
       .allowsHitTesting(true)
       .padding()
       .iPadIgnoresSafeArea(paddingTop: 24)
       .background {
-        if readerControlsGradientBackground {
-          gradientBackground(startPoint: .top, endPoint: .bottom)
-            .ignoresSafeArea(edges: .top)
-        }
+        gradientBackground(startPoint: .top, endPoint: .bottom)
+          .ignoresSafeArea(edges: .top)
       }
     }
 
-    private var bottomBar: some View {
-      VStack(spacing: 12) {
-        HStack {
-          Spacer(minLength: 0)
-
-          Button {
-            guard pageCount > 0 else { return }
-            showingPageJumpSheet = true
-          } label: {
-            HStack(spacing: 6) {
-              Image(systemName: "bookmark")
-              Text("\(displayedCurrentPage) / \(pageCount)")
-                .monospacedDigit()
-            }
-          }
-          .contentShape(Capsule())
-          .adaptiveButtonStyle(buttonStyle)
-          .disabled(pageCount <= 0)
-
-          Spacer(minLength: 0)
-        }
-        .optimizedControlSize()
-        .allowsHitTesting(true)
-
-        ReadingProgressBar(progress: progress, type: .reader)
-          .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
-          .shadow(
-            color: readerControlsGradientBackground ? .clear : .black.opacity(0.4),
-            radius: readerControlsGradientBackground ? 0 : 4,
-            x: 0,
-            y: readerControlsGradientBackground ? 0 : 2
-          )
-      }
-      .padding()
-      .iPadIgnoresSafeArea(paddingTop: 24)
-      .background {
-        if readerControlsGradientBackground {
+    private var visibleBottomOverlayBar: some View {
+      bottomOverlayContent(showPageButton: true)
+        .padding()
+        .background {
           gradientBackground(startPoint: .bottom, endPoint: .top)
             .ignoresSafeArea(edges: .bottom)
         }
+    }
+
+    private var hiddenProgressBar: some View {
+      ZStack(alignment: .bottom) {
+        Color.clear
+        bottomOverlayContent(
+          showPageButton: false,
+          progressHorizontalPadding: PlatformHelper.bottomEdgeHorizontalPadding
+        )
+        .frame(maxWidth: .infinity)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .readerIgnoresSafeArea()
+      .allowsHitTesting(false)
+    }
+
+    private func bottomOverlayContent(
+      showPageButton: Bool,
+      progressHorizontalPadding: CGFloat = 0
+    ) -> some View {
+      VStack(spacing: 12) {
+        if showPageButton {
+          HStack {
+            Spacer(minLength: 0)
+
+            Button {
+              guard pageCount > 0 else { return }
+              showingPageJumpSheet = true
+            } label: {
+              HStack(spacing: 6) {
+                Image(systemName: "bookmark")
+                Text("\(displayedCurrentPage) / \(pageCount)")
+                  .monospacedDigit()
+              }
+              .contentShape(Capsule())
+            }
+            .readerControlButtonStyle()
+            .disabled(pageCount <= 0)
+
+            Spacer(minLength: 0)
+          }
+          .optimizedControlSize()
+          .allowsHitTesting(true)
+        }
+
+        progressBar
+          .padding(.horizontal, progressHorizontalPadding)
+      }
+      .animation(animation, value: progressHorizontalPadding)
+    }
+
+    @ViewBuilder
+    private var progressBar: some View {
+      let bar = ReadingProgressBar(progress: progress, type: .reader)
+        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+
+      if showProgressBarWhileReading {
+        bar.matchedGeometryEffect(id: "readerProgressBar", in: progressBarNamespace)
+      } else {
+        bar
       }
     }
 
@@ -207,17 +254,17 @@
         }
         .pickerStyle(.menu)
 
-        Picker(selection: $pageLayout) {
-          ForEach(PageLayout.allCases, id: \.self) { layout in
-            Label(layout.displayName, systemImage: layout.icon)
-              .tag(layout)
+        Picker(selection: $pagePresentation) {
+          ForEach(PdfPagePresentation.allCases, id: \.self) { presentation in
+            Label(presentation.displayName, systemImage: presentation.icon)
+              .tag(presentation)
           }
         } label: {
-          Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
+          Label(String(localized: "Page Presentation"), systemImage: pagePresentation.icon)
         }
         .pickerStyle(.menu)
 
-        if pageLayout.supportsDualPageOptions {
+        if pagePresentation.supportsCoverIsolation {
           pageIsolation()
         }
       } header: {
@@ -275,15 +322,17 @@
       startPoint: UnitPoint,
       endPoint: UnitPoint
     ) -> some View {
-      LinearGradient(
-        gradient: Gradient(colors: [
-          Color.black.opacity(0.6),
-          Color.black.opacity(0.3),
-          Color.clear,
-        ]),
-        startPoint: startPoint,
-        endPoint: endPoint
-      )
+      if showGradientBackground {
+        LinearGradient(
+          gradient: Gradient(colors: [
+            Color.black.opacity(0.72),
+            Color.black.opacity(0.44),
+            Color.clear,
+          ]),
+          startPoint: startPoint,
+          endPoint: endPoint
+        )
+      }
     }
 
     private var titleText: String {

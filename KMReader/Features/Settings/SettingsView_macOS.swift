@@ -16,6 +16,8 @@ import SwiftUI
           Section(String(localized: "Reader")) {
             SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .pdfReader)
+            SettingsSectionRow(section: .epubTheme)
+            SettingsSectionRow(section: .epubSettings)
           }
 
           Section(String(localized: "Display")) {
@@ -26,6 +28,7 @@ import SwiftUI
 
           Section(String(localized: "Behavior")) {
             SettingsSectionRow(section: .sse)
+            SettingsSectionRow(section: .sync)
             SettingsSectionRow(section: .spotlight)
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .cache)
@@ -40,31 +43,8 @@ import SwiftUI
         .navigationTitle("Settings")
       } detail: {
         if let selectedSection {
-          Group {
-            switch selectedSection {
-            case .appearance:
-              SettingsAppearanceView()
-            case .browse:
-              SettingsBrowseView()
-            case .dashboard:
-              SettingsDashboardView()
-            case .cache:
-              SettingsCacheView()
-            case .divinaReader:
-              DivinaPreferencesView()
-            case .pdfReader:
-              PdfPreferencesView()
-            case .sse:
-              SettingsSSEView()
-            case .spotlight:
-              SettingsSpotlightView()
-            case .network:
-              SettingsNetworkView()
-            case .logs:
-              SettingsLogsView()
-            }
-          }
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          detailContent(for: selectedSection)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
           Text("Select a setting")
             .foregroundColor(.secondary)
@@ -77,6 +57,38 @@ import SwiftUI
             columnVisibility = .all
           }
         }
+      }
+    }
+
+    @ViewBuilder
+    private func detailContent(for section: SettingsSection) -> some View {
+      switch section {
+      case .appearance:
+        SettingsAppearanceView()
+      case .browse:
+        SettingsBrowseView()
+      case .dashboard:
+        SettingsDashboardView()
+      case .cache:
+        SettingsCacheView()
+      case .divinaReader:
+        DivinaPreferencesView()
+      case .pdfReader:
+        PdfPreferencesView()
+      case .epubTheme:
+        EpubThemePreferencesView()
+      case .epubSettings:
+        EpubReaderSettingsView()
+      case .sse:
+        SettingsSSEView()
+      case .sync:
+        SettingsSyncView()
+      case .spotlight:
+        SettingsSpotlightView()
+      case .network:
+        SettingsNetworkView()
+      case .logs:
+        SettingsLogsView()
       }
     }
   }

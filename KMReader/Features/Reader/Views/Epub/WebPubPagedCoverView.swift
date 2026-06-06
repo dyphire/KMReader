@@ -9,8 +9,9 @@
 
   struct WebPubPagedCoverView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -103,7 +104,7 @@
           || (targetChapterIndex == context.coordinator.currentChapterIndex
             && normalizedPageIndex > context.coordinator.currentPageIndex)
 
-        let shouldAnimate = context.coordinator.hasCompletedInitialUpdate
+        let shouldAnimate = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
 
         if shouldAnimate {
           context.coordinator.animateTransition(
@@ -225,20 +226,19 @@
           guard subPageIndex >= 0 else { return nil }
         }
 
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
         let fontPath = parent.preferences.fontFamily.fontName.flatMap {
           CustomFontStore.shared.getFontPath(for: $0)
         }
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
+        let chapterMediaType = parent.viewModel.chapterMediaType(at: chapterIndex)
         let rootURL = parent.viewModel.resourceRootURL
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: rootURL
+          rootURL: rootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
         let chapterIndexForCallback = chapterIndex
         let onPageCountReady: (Int) -> Void = { [weak viewModel = parent.viewModel] pageCount in
@@ -266,7 +266,9 @@
         if let cached = cachedControllers[key] {
           cached.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -301,7 +303,9 @@
         }) {
           reusable.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -333,7 +337,9 @@
 
         let controller = EpubPageViewController(
           chapterURL: chapterURL,
+          chapterMediaType: chapterMediaType,
           rootURL: rootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -384,18 +390,16 @@
 
       func configureVisibleController(_ controller: EpubPageViewController) {
         let chapterIndex = controller.chapterIndex
-        let containerInsets = parent.viewModel.containerInsetsForLabels()
+        let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
         let fontPath = parent.preferences.fontFamily.fontName.flatMap {
           CustomFontStore.shared.getFontPath(for: $0)
         }
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
           fontPath: fontPath,
-          rootURL: parent.viewModel.resourceRootURL
+          rootURL: parent.viewModel.resourceRootURL,
+          viewportSize: parent.viewModel.resolvedViewportSize
         )
 
         guard
@@ -413,7 +417,9 @@
 
         controller.configure(
           chapterURL: parent.viewModel.chapterURL(at: chapterIndex),
+          chapterMediaType: parent.viewModel.chapterMediaType(at: chapterIndex),
           rootURL: parent.viewModel.resourceRootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -1039,9 +1045,9 @@
         let action = TapZoneHelper.action(
           normalizedX: normalizedX,
           normalizedY: normalizedY,
-          tapZoneMode: AppConfig.tapZoneMode,
-          readingDirection: tapReadingDirection(),
-          zoneThreshold: AppConfig.tapZoneSize.value
+          tapZoneMode: AppConfig.epubTapZoneMode,
+          tapZoneInversionMode: AppConfig.epubTapZoneInversionMode,
+          readingDirection: tapReadingDirection()
         )
 
         switch action {

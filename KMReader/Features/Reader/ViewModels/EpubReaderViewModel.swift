@@ -3,11 +3,15 @@
 //
 //
 
-#if os(iOS)
+#if os(iOS) || os(macOS)
   import Foundation
   import Observation
   import SwiftUI
-  import UIKit
+  #if os(iOS)
+    import UIKit
+  #elseif os(macOS)
+    import AppKit
+  #endif
 
   struct WebPubLocation: Equatable {
     let href: String
@@ -53,6 +57,7 @@
     var targetPageIndex: Int?
     var currentLocation: WebPubLocation?
     var resourceRootURL: URL?
+    var mediaTypesByRelativePath: [String: String] = [:]
     var publicationLanguage: String?
     var publicationReadingProgression: WebPubReadingProgression?
 
@@ -77,7 +82,7 @@
     private let updateThrottleInterval: TimeInterval = 2.0
     private let logger = AppLogger(.reader)
     private var viewportSize: CGSize = .zero
-    private var preferences: EpubReaderPreferences = .init()
+    private var preferences: EpubThemePreferences = .init()
     private var theme: ReaderTheme = .lightSepia
 
     let incognito: Bool
@@ -102,7 +107,7 @@
       }
     }
 
-    func applyPreferences(_ prefs: EpubReaderPreferences, colorScheme: ColorScheme) {
+    func applyPreferences(_ prefs: EpubThemePreferences, colorScheme: ColorScheme) {
       preferences = prefs
       theme = prefs.resolvedTheme(for: colorScheme)
 
@@ -164,6 +169,7 @@
       targetPageIndex = nil
       currentLocation = nil
       resourceRootURL = nil
+      mediaTypesByRelativePath = [:]
       publicationLanguage = nil
       publicationReadingProgression = nil
       chapterPageCounts = [:]
@@ -196,9 +202,7 @@
           let database = await DatabaseOperator.databaseIfConfigured(),
           let manifest = await database.fetchWebPubManifest(bookId: bookId)
         else {
-          throw AppErrorType.missingRequiredData(
-            message: "Missing WebPub manifest. Please re-download this book."
-          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
         logger.debug("WebPub manifest loaded from offline storage")
         publicationLanguage = manifest.metadata?.language
@@ -210,9 +214,7 @@
             bookId: bookId
           )
         else {
-          throw AppErrorType.missingRequiredData(
-            message: "Offline resources are missing. Please re-download this book."
-          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
 
         downloadProgress = 1.0
@@ -222,7 +224,7 @@
         tocTitleByHref = buildTOCTitleMap(from: tableOfContents)
 
         resourceRootURL = offlineRoot
-        copyCustomFontsToResourceDirectory()
+        mediaTypesByRelativePath = Self.mediaTypeMap(from: manifest)
         // Page count cache is memory-only, no file loading needed
         loadTextLengthCache()
         try await cacheChapterURLs()
@@ -303,6 +305,31 @@
       }
     }
 
+    private static func mediaTypeMap(from manifest: WebPubPublication) -> [String: String] {
+      var map: [String: String] = [:]
+
+      func collect(_ links: [WebPubLink]) {
+        for link in links {
+          let normalized = normalizedHref(link.href)
+          if let safePath = EpubResourceSafeRelativePath(normalized), let type = link.type {
+            map[safePath] = type
+          }
+          if let children = link.children {
+            collect(children)
+          }
+        }
+      }
+
+      collect(manifest.readingOrder)
+      collect(manifest.resources)
+      collect(manifest.images)
+      collect(manifest.links)
+      collect(manifest.toc)
+      collect(manifest.pageList)
+      collect(manifest.landmarks)
+      return map
+    }
+
     private func ensureOfflineReady(
       downloadInfo: DownloadInfo,
       instanceId: String
@@ -322,15 +349,11 @@
       downloadBytesExpected = nil
 
       switch status {
-      case .notDownloaded:
-        await OfflineManager.shared.toggleDownload(
+      case .notDownloaded, .failed, .pending:
+        await OfflineManager.shared.downloadForReading(
           instanceId: instanceId,
           info: downloadInfo
         )
-      case .failed:
-        await OfflineManager.shared.retryDownload(instanceId: instanceId, bookId: bookId)
-      case .pending:
-        break
       case .downloaded:
         return
       }
@@ -349,7 +372,7 @@
           throw AppErrorType.operationFailed(message: error)
         case .notDownloaded:
           throw AppErrorType.operationFailed(
-            message: "Download did not start. Please try again."
+            message: String(localized: "Download did not start. Please try again.")
           )
         case .pending:
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
@@ -389,7 +412,7 @@
         case .notDownloaded:
           errorMessage =
             AppErrorType.operationFailed(
-              message: "Download did not start. Please try again."
+              message: String(localized: "Download did not start. Please try again.")
             ).localizedDescription
           loadingStage = .idle
           isLoading = false
@@ -610,8 +633,17 @@
       chapterURLCache[index]
     }
 
+    func chapterMediaType(at index: Int) -> String? {
+      guard index >= 0, index < readingOrder.count else { return nil }
+      return readingOrder[index].type
+    }
+
     func chapterPageCount(at index: Int) -> Int? {
       chapterPageCounts[index]
+    }
+
+    var resolvedViewportSize: CGSize? {
+      viewportSize.width > 0 && viewportSize.height > 0 ? viewportSize : nil
     }
 
     func initialProgression(for chapterIndex: Int) -> Double? {
@@ -652,20 +684,39 @@
       updateLocation(chapterIndex: currentChapterIndex, pageIndex: currentPageIndex)
 
       // Store in memory cache only (no file persistence)
-      let effectiveViewport = viewportSize.width > 0 ? viewportSize : UIScreen.main.bounds.size
+      let effectiveViewport = viewportSize.width > 0 ? viewportSize : Self.defaultViewportSize
       let href = readingOrder[chapterIndex].href
       let cacheKey = pageCountCacheKey(for: href, viewport: effectiveViewport)
       pageCountCache[cacheKey] = normalizedCount
     }
 
-    var labelTopOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 24 : 8 }
-    var labelBottomOffset: CGFloat { UIDevice.current.userInterfaceIdiom == .pad ? 16 : 8 }
-    var useSafeArea: Bool { UIDevice.current.userInterfaceIdiom != .pad }
+    var labelTopOffset: CGFloat {
+      #if os(iOS)
+        return PlatformHelper.isPad ? 24 : 8
+      #else
+        return 8
+      #endif
+    }
+    var labelBottomOffset: CGFloat {
+      #if os(iOS)
+        return PlatformHelper.isPad ? 16 : 8
+      #else
+        return 8
+      #endif
+    }
+    var useSafeArea: Bool {
+      #if os(iOS)
+        return !PlatformHelper.isPad
+      #else
+        return true
+      #endif
+    }
 
-    func containerInsetsForLabels() -> UIEdgeInsets {
-      let topPadding = labelTopOffset + 24
-      let bottomPadding = labelBottomOffset + 24
-      return UIEdgeInsets(top: topPadding, left: 0, bottom: bottomPadding, right: 0)
+    func containerInsetsForLabels() -> ReaderContainerInsets {
+      WebPubInfoOverlaySupport.containerInsets(
+        topOffset: labelTopOffset,
+        bottomOffset: labelBottomOffset
+      )
     }
 
     // MARK: - Private Methods
@@ -900,7 +951,7 @@
 
       var effectiveViewport = viewportSize
       if effectiveViewport.width <= 0 {
-        effectiveViewport = UIScreen.main.bounds.size
+        effectiveViewport = Self.defaultViewportSize
       }
 
       for (index, link) in readingOrder.enumerated() {
@@ -967,6 +1018,7 @@
     private func cacheChapterURLs() async throws {
       chapterURLCache = [:]
       for (index, link) in readingOrder.enumerated() {
+        let normalizedHref = Self.normalizedHref(link.href)
         guard
           let cachedURL = await OfflineManager.shared.cachedOfflineWebPubResourceURL(
             instanceId: AppConfig.current.instanceId,
@@ -974,10 +1026,18 @@
             href: link.href
           )
         else {
-          throw AppErrorType.invalidFileURL(url: link.href)
+          let rootPath = resourceRootURL?.path ?? "unknown"
+          logger.error(
+            "❌ Offline WebPub resource missing for book \(bookId): chapterIndex=\(index), href=\(normalizedHref), originalHref=\(link.href), root=\(rootPath)"
+          )
+          throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
         chapterURLCache[index] = cachedURL
       }
+    }
+
+    private func offlineEpubRecoveryMessage() -> String {
+      "Offline EPUB files are incomplete. Please delete and re-download this book."
     }
 
     private func loadTextLengthCache() {
@@ -1006,69 +1066,6 @@
     private func chapterIndexForHref(_ href: String) -> Int? {
       let normalized = Self.normalizedHref(href)
       return readingOrder.firstIndex { Self.normalizedHref($0.href) == normalized }
-    }
-
-    /// Ensures a specific font is copied to the resource directory
-    /// - Parameter fontName: The name of the font to copy
-    func ensureFontCopied(fontName: String) {
-      guard let rootURL = resourceRootURL else { return }
-      guard let sourcePath = CustomFontStore.shared.getFontPath(for: fontName) else { return }
-
-      let sourceURL = URL(fileURLWithPath: sourcePath)
-      guard FileManager.default.fileExists(atPath: sourceURL.path) else { return }
-
-      let fontsDirectory = rootURL.appendingPathComponent(".fonts", isDirectory: true)
-      try? FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
-
-      let fileName = sourceURL.lastPathComponent
-      let destinationURL = fontsDirectory.appendingPathComponent(fileName)
-
-      // Copy font file if it doesn't already exist
-      if !FileManager.default.fileExists(atPath: destinationURL.path) {
-        try? FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-      }
-    }
-
-    private func copyCustomFontsToResourceDirectory() {
-      guard let rootURL = resourceRootURL else { return }
-
-      // Create .fonts directory
-      let fontsDirectory = rootURL.appendingPathComponent(".fonts", isDirectory: true)
-      do {
-        try FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
-      } catch {
-        print("⚠️ Failed to create fonts directory: \(error)")
-        return
-      }
-
-      // Get all custom fonts with paths
-      let customFonts = CustomFontStore.shared.fetchCustomFonts()
-
-      for fontName in customFonts {
-        guard let sourcePath = CustomFontStore.shared.getFontPath(for: fontName) else {
-          continue
-        }
-
-        let sourceURL = URL(fileURLWithPath: sourcePath)
-
-        // Check if source file exists
-        guard FileManager.default.fileExists(atPath: sourceURL.path) else {
-          print("⚠️ Font file not found for '\(fontName)': \(sourcePath)")
-          continue
-        }
-
-        let fileName = sourceURL.lastPathComponent
-        let destinationURL = fontsDirectory.appendingPathComponent(fileName)
-
-        // Copy font file if it doesn't already exist
-        if !FileManager.default.fileExists(atPath: destinationURL.path) {
-          do {
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-          } catch {
-            print("⚠️ Failed to copy font '\(fontName)': \(error)")
-          }
-        }
-      }
     }
 
     private func syncRemoteProgressionToLocal(bookId: String) async {
@@ -1167,6 +1164,19 @@
         return components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
       }
       return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
+    private static var defaultViewportSize: CGSize {
+      #if os(iOS)
+        return UIScreen.main.bounds.size
+      #elseif os(macOS)
+        if let screen = NSScreen.main {
+          return screen.frame.size
+        }
+        return CGSize(width: 1280, height: 800)
+      #else
+        return CGSize(width: 1280, height: 800)
+      #endif
     }
   }
 

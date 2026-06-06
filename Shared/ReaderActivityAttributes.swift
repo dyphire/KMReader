@@ -11,22 +11,22 @@ import Foundation
 #if os(iOS)
   import ActivityKit
 
-  public struct ReaderActivityAttributes: ActivityAttributes {
-    public enum ReaderKind: String, Codable, Hashable {
+  public nonisolated struct ReaderActivityAttributes: ActivityAttributes {
+    public enum ReaderKind: String, Codable, Hashable, Sendable {
       case divina
       case epub
       case pdf
     }
 
-    public enum SessionState: String, Codable, Hashable {
+    public enum SessionState: String, Codable, Hashable, Sendable {
       case reading
       case closed
     }
 
-    public struct ContentState: Codable, Hashable {
+    public struct ContentState: Codable, Hashable, Sendable {
       public var sessionState: SessionState
       public var readerKind: ReaderKind
-      public var seriesTitle: String
+      public var seriesTitle: String?
       public var chapterTitle: String
       public var isIncognito: Bool
       public var readingProgress: Double
@@ -34,7 +34,7 @@ import Foundation
       public init(
         sessionState: SessionState,
         readerKind: ReaderKind,
-        seriesTitle: String,
+        seriesTitle: String? = nil,
         chapterTitle: String,
         isIncognito: Bool,
         readingProgress: Double

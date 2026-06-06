@@ -4,7 +4,7 @@
 
   struct PdfDocumentView: UIViewRepresentable {
     let documentURL: URL
-    let pageLayout: PageLayout
+    let pagePresentation: PdfPagePresentation
     let isolateCoverPage: Bool
     let readingDirection: ReadingDirection
     let initialPageNumber: Int
@@ -45,6 +45,11 @@
         context.coordinator.lastNavigationToken = navigationToken
         if let targetPageNumber {
           goToPage(targetPageNumber, in: pdfView)
+          scheduleInitialPageCorrection(
+            targetPage: targetPageNumber,
+            in: pdfView,
+            coordinator: context.coordinator
+          )
         }
       }
     }
@@ -57,7 +62,6 @@
 
       let clampedInitialPage = max(1, min(initialPageNumber, max(1, document.pageCount)))
       goToPage(clampedInitialPage, in: pdfView)
-      coordinator.lastKnownPageNumber = clampedInitialPage
 
       coordinator.lastNavigationToken = navigationToken
       coordinator.notifyCurrentPage(from: pdfView)
@@ -70,67 +74,61 @@
     }
 
     private func applyPresentationConfiguration(to pdfView: PDFView, coordinator: Coordinator) {
-      let resolvedLayout = resolvedPageLayout(for: pdfView.bounds.size)
       let direction: ReadingDirection = readingDirection == .webtoon ? .vertical : readingDirection
 
-      if coordinator.lastResolvedPageLayout == resolvedLayout,
+      if coordinator.lastResolvedPagePresentation == pagePresentation,
         coordinator.lastResolvedReadingDirection == direction,
         coordinator.lastResolvedIsolateCoverPage == isolateCoverPage
       {
         return
       }
 
-      let currentPage = pdfView.currentPage
-      let currentPageNumberBeforeConfiguration = currentPageNumber(in: pdfView)
+      let targetPageAfterConfiguration = currentPageNumber(in: pdfView) ?? initialPageNumber
       let displayMode: PDFDisplayMode
 
-      switch resolvedLayout {
-      case .dual:
-        displayMode = .twoUpContinuous
-      case .single, .auto:
+      switch pagePresentation {
+      case .auto:
+        displayMode = .singlePage
+      case .singlePaged:
+        displayMode = .singlePage
+      case .singleContinuous:
         displayMode = .singlePageContinuous
+      case .dualContinuous:
+        displayMode = .twoUpContinuous
       }
 
       pdfView.displayMode = displayMode
       pdfView.displayDirection = direction == .vertical ? .vertical : .horizontal
       pdfView.displaysRTL = direction == .rtl
-      pdfView.displaysAsBook = resolvedLayout == .dual && isolateCoverPage
-      pdfView.usePageViewController(false, withViewOptions: nil)
+      pdfView.displaysAsBook = pagePresentation == .dualContinuous && isolateCoverPage
+      pdfView.usePageViewController(pagePresentation == .singlePaged, withViewOptions: nil)
 
-      coordinator.lastResolvedPageLayout = resolvedLayout
+      coordinator.lastResolvedPagePresentation = pagePresentation
       coordinator.lastResolvedReadingDirection = direction
       coordinator.lastResolvedIsolateCoverPage = isolateCoverPage
 
-      if let currentPage {
-        if currentPageNumber(in: pdfView) != currentPageNumberBeforeConfiguration {
-          pdfView.go(to: currentPage)
-        }
-      } else if pdfView.document != nil {
-        let fallbackPage = coordinator.lastKnownPageNumber > 0 ? coordinator.lastKnownPageNumber : initialPageNumber
-        goToPage(fallbackPage, in: pdfView)
-      }
-    }
-
-    private func resolvedPageLayout(for size: CGSize) -> PageLayout {
-      guard pageLayout == .auto else {
-        return pageLayout
+      if pdfView.document != nil {
+        goToPage(targetPageAfterConfiguration, in: pdfView)
       }
 
-      let effectiveSize: CGSize = {
-        guard size.width > 0, size.height > 0 else {
-          return UIScreen.main.bounds.size
-        }
-        return size
-      }()
-
-      return effectiveSize.width > effectiveSize.height ? .dual : .single
+      scheduleInitialPageCorrection(
+        targetPage: targetPageAfterConfiguration,
+        in: pdfView,
+        coordinator: coordinator
+      )
     }
 
     private func goToPage(_ pageNumber: Int, in pdfView: PDFView) {
       guard let document = pdfView.document else { return }
       let index = max(0, min(pageNumber - 1, document.pageCount - 1))
       guard let page = document.page(at: index) else { return }
-      pdfView.go(to: page)
+      let bounds = page.bounds(for: pdfView.displayBox)
+      let destination = PDFDestination(
+        page: page,
+        at: CGPoint(x: bounds.minX, y: bounds.maxY)
+      )
+      destination.zoom = kPDFDestinationUnspecifiedValue
+      pdfView.go(to: destination)
     }
 
     private func scheduleInitialPageCorrection(
@@ -138,17 +136,19 @@
       in pdfView: PDFView,
       coordinator: Coordinator
     ) {
-      // In continuous mode, PDFKit may reset current page multiple times
-      // during initial layout; retry briefly until the target page sticks.
-      let retryDelays: [TimeInterval] = [0.0, 0.05, 0.2, 0.5]
-      for delay in retryDelays {
+      // PDFKit may reset current page multiple times during initial layout;
+      // retry briefly until the target page sticks.
+      let retryDelays: [TimeInterval] = [0.0, 0.05, 0.2, 0.5, 1.0]
+      for (index, delay) in retryDelays.enumerated() {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak pdfView, weak coordinator] in
           guard let pdfView, let coordinator else { return }
           guard coordinator.loadedDocumentURL == documentURL else { return }
           if currentPageNumber(in: pdfView) != targetPage {
             goToPage(targetPage, in: pdfView)
           }
-          coordinator.notifyCurrentPage(from: pdfView)
+          if index == retryDelays.indices.last {
+            coordinator.notifyCurrentPage(from: pdfView)
+          }
         }
       }
     }
@@ -164,10 +164,9 @@
       var onSingleTap: (CGPoint) -> Void
       var loadedDocumentURL: URL?
       var lastNavigationToken: UUID?
-      var lastResolvedPageLayout: PageLayout?
+      var lastResolvedPagePresentation: PdfPagePresentation?
       var lastResolvedReadingDirection: ReadingDirection?
       var lastResolvedIsolateCoverPage: Bool?
-      var lastKnownPageNumber: Int = 1
       private weak var observedPDFView: PDFView?
       private weak var singleTapRecognizer: UITapGestureRecognizer?
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
@@ -333,17 +332,13 @@
         }
 
         let pageNumber = document.index(for: currentPage) + 1
-        lastKnownPageNumber = max(1, pageNumber)
         onPageChange(max(1, pageNumber), totalPages)
       }
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         lastTouchStartTime = Date()
         hadSelectionAtTouchStart = (observedPDFView?.currentSelection != nil)
-        if let view = touch.view, view is UIControl {
-          return false
-        }
-        return true
+        return !isInteractiveElement(touch.view)
       }
 
       func gestureRecognizer(
@@ -351,6 +346,42 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      private func isInteractiveElement(_ view: UIView?) -> Bool {
+        var current = view
+        while let candidate = current {
+          if candidate is UIControl {
+            return true
+          }
+
+          let className = NSStringFromClass(type(of: candidate))
+          if className.contains("Button")
+            || className.contains("Slider")
+            || className.contains("Switch")
+            || className.contains("TextField")
+            || className.contains("TextView")
+            || className.contains("Segmented")
+            || className.contains("NavigationBar")
+            || className.contains("Toolbar")
+            || className.contains("Menu")
+            || className.contains("ContextMenu")
+            || className.contains("Popover")
+          {
+            return true
+          }
+
+          if candidate.isAccessibilityElement {
+            let traits = candidate.accessibilityTraits
+            if traits.contains(.button) || traits.contains(.link) {
+              return true
+            }
+          }
+
+          current = candidate.superview
+        }
+
+        return false
       }
     }
   }

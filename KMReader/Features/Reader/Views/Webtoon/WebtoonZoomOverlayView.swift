@@ -18,12 +18,14 @@
 
     private var zoomRenderConfig: ReaderRenderConfig {
       ReaderRenderConfig(
-        tapZoneSize: renderConfig.tapZoneSize,
         tapZoneMode: .none,
+        tapZoneInversionMode: renderConfig.tapZoneInversionMode,
         showPageNumber: renderConfig.showPageNumber,
         showPageShadow: renderConfig.showPageShadow,
         readerBackground: renderConfig.readerBackground,
         enableLiveText: renderConfig.enableLiveText,
+        enableImageContextMenu: renderConfig.enableImageContextMenu,
+        supportsPageIsolationActions: false,
         doubleTapZoomScale: renderConfig.doubleTapZoomScale,
         doubleTapZoomMode: renderConfig.doubleTapZoomMode
       )

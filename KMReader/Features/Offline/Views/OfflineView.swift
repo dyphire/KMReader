@@ -145,7 +145,7 @@ struct OfflineView: View {
     }
     .inlineNavigationBarTitle(title)
     .searchable(text: $searchQuery)
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         if librarySelection == nil {
           #if os(macOS)
@@ -234,7 +234,6 @@ struct OfflineView: View {
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
-      triggerReadingProgressSync()
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }
@@ -314,7 +313,7 @@ struct OfflineView: View {
                   defaultValue: "Last read"
                 )
               )
-              Text(syncTime, style: .relative)
+              Text(syncTime.formatted(.relative(presentation: .named, unitsStyle: .abbreviated)))
                 .monospacedDigit()
             }
             .font(.caption2)

@@ -18,8 +18,11 @@ struct SettingsView: View {
           }
         #endif
         #if os(iOS)
-          NavigationLink(value: NavDestination.settingsEpubReader) {
-            SettingsSectionRow(section: .epubReader)
+          NavigationLink(value: NavDestination.settingsEpubTheme) {
+            SettingsSectionRow(section: .epubTheme)
+          }
+          NavigationLink(value: NavDestination.settingsEpubSettings) {
+            SettingsSectionRow(section: .epubSettings)
           }
         #endif
       }
@@ -40,12 +43,15 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
-        #if !os(tvOS)
+        NavigationLink(value: NavDestination.settingsSync) {
+          SettingsSectionRow(section: .sync)
+        }
+        #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsSpotlight) {
             SettingsSectionRow(section: .spotlight)
           }
         #endif
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsNetwork) {
             SettingsSectionRow(section: .network)
           }

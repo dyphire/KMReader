@@ -2,8 +2,11 @@ import Foundation
 import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
+import os
 
-#if os(macOS)
+#if os(iOS) || os(tvOS)
+  import UIKit
+#elseif os(macOS)
   import AppKit
 #endif
 
@@ -23,10 +26,7 @@ final class ReaderPageLoadScheduler {
 
   private let logger = AppLogger(.reader)
   private let pageImageCache = ImageCache()
-  private let preloadBefore: Int
-  private let preloadAfter: Int
-  private let keepRangeBefore: Int
-  private let keepRangeAfter: Int
+  private var preloadWindow: ReaderPreloadWindow
 
   private var readerPages: [ReaderPage] = []
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
@@ -44,20 +44,33 @@ final class ReaderPageLoadScheduler {
   private var preloadTask: Task<Void, Never>?
   private var visiblePageIDs: [ReaderPageID] = []
 
-  init(
-    preloadBefore: Int = ReaderConstants.preloadBefore,
-    preloadAfter: Int = ReaderConstants.preloadAfter,
-    keepRangeBefore: Int = ReaderConstants.keepRangeBefore,
-    keepRangeAfter: Int = ReaderConstants.keepRangeAfter
-  ) {
-    self.preloadBefore = preloadBefore
-    self.preloadAfter = preloadAfter
-    self.keepRangeBefore = keepRangeBefore
-    self.keepRangeAfter = keepRangeAfter
+  init(preloadWindow: ReaderPreloadWindow = ReaderPreloadWindow.balanced) {
+    self.preloadWindow = preloadWindow
+
+    #if os(iOS) || os(tvOS)
+      MemoryWarningCenter.shared.addListener(self)
+    #endif
   }
 
   func setPresentationInvalidationHandler(_ handler: PresentationInvalidationHandler?) {
     presentationInvalidationHandler = handler
+  }
+
+  func updatePreloadWindow(_ preloadWindow: ReaderPreloadWindow) {
+    guard self.preloadWindow != preloadWindow else { return }
+    self.preloadWindow = preloadWindow
+    preloadTask?.cancel()
+    preloadTask = nil
+    lastPreloadRequestTime = nil
+
+    let keepPageIDs = prioritizedPageIDs(around: visiblePageIDs)
+    if !keepPageIDs.isEmpty {
+      cancelTrackedURLTasksOutsideWindow(&downloadingTasks, keeping: keepPageIDs)
+      cancelTrackedURLTasksOutsideWindow(&upscalingTasks, keeping: keepPageIDs)
+      cancelTrackedImageTasksOutsideWindow(&preloadingImageTasks, keeping: keepPageIDs)
+    }
+
+    cleanupDistantImagesAroundCurrentPage()
   }
 
   func updateReaderPages(_ readerPages: [ReaderPage]) {
@@ -124,8 +137,8 @@ final class ReaderPageLoadScheduler {
 
     let pagesToPreload = pageWindowEntries(
       around: currentPageID,
-      before: preloadBefore,
-      after: max(preloadAfter - 1, 0)
+      before: preloadWindow.preloadBefore,
+      after: max(preloadWindow.preloadAfter - 1, 0)
     )
     guard !pagesToPreload.isEmpty else { return }
 
@@ -150,8 +163,8 @@ final class ReaderPageLoadScheduler {
     var keepPageIDs = Set(
       pageWindowEntries(
         around: currentPageID,
-        before: keepRangeBefore,
-        after: keepRangeAfter
+        before: preloadWindow.keepRangeBefore,
+        after: preloadWindow.keepRangeAfter
       ).map(\.pageID)
     )
     keepPageIDs.formUnion(visiblePageIDs)
@@ -169,6 +182,42 @@ final class ReaderPageLoadScheduler {
     for key in animatedKeysToRemove {
       updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
     }
+  }
+
+  /// Drop decoded bitmaps for every page outside the visible set, keeping
+  /// only what's strictly required to render the current screen. More
+  /// aggressive than `cleanupDistantImagesAroundCurrentPage` (which keeps
+  /// the full `keepRangeBefore`/`keepRangeAfter` keep-window of ~10 pages)
+  /// because this is invoked under memory pressure, when iOS would
+  /// otherwise reclaim the view tree and force a full reader rebuild.
+  ///
+  /// The on-disk image cache survives this prune untouched; the next
+  /// preload cycle (driven by the next page change) re-decodes the keep
+  /// window from disk transparently. Falls back to keeping `currentPageID`
+  /// when `visiblePageIDs` is unexpectedly empty so the user never loses
+  /// the page they're actively reading.
+  func pruneToVisiblePagesOnly() {
+    var keepPageIDs = Set(visiblePageIDs)
+    if keepPageIDs.isEmpty, let currentPageID {
+      keepPageIDs.insert(currentPageID)
+    }
+
+    let imageKeysToRemove = preloadedImagesByID.keys.filter { !keepPageIDs.contains($0) }
+    for key in imageKeysToRemove {
+      clearPreloadedImage(for: key)
+    }
+
+    let animatedKeysToRemove = Set(animatedPageStates.keys)
+      .union(animatedPageSourceFileURLs.keys)
+      .filter { !keepPageIDs.contains($0) }
+
+    for key in animatedKeysToRemove {
+      updateAnimatedPresentation(knownAnimatedState: nil, sourceFileURL: nil, for: key)
+    }
+
+    logger.debug(
+      "🧹 [Reader/Memory] Pruned to visible pages: kept=\(keepPageIDs.count), removed=\(imageKeysToRemove.count)"
+    )
   }
 
   func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
@@ -295,8 +344,8 @@ final class ReaderPageLoadScheduler {
       keepPageIDs.formUnion(
         pageWindowEntries(
           around: pageID,
-          before: preloadBefore,
-          after: preloadAfter
+          before: preloadWindow.preloadBefore,
+          after: preloadWindow.preloadAfter
         ).map(\.pageID)
       )
     }
@@ -869,3 +918,12 @@ final class ReaderPageLoadScheduler {
     return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
   }
 }
+
+#if os(iOS) || os(tvOS)
+  extension ReaderPageLoadScheduler: MemoryWarningListener {
+    func handleMemoryWarning() {
+      logger.warning("⚠️ [Reader/Memory] Received memory warning; pruning to visible pages only")
+      pruneToVisiblePagesOnly()
+    }
+  }
+#endif

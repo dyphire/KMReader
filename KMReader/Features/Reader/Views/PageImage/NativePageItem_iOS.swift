@@ -2,7 +2,7 @@
   import SwiftUI
   import UIKit
 
-  #if !os(tvOS)
+  #if os(iOS) || os(macOS)
     import VisionKit
   #endif
 
@@ -21,14 +21,21 @@
     private var readerBackground: ReaderBackground = .system
     private var showPageShadow = true
     private var enableLiveText = false
+    private var enableImageContextMenu = false
+    private var supportsPageIsolationActions = false
+    private var canIsolatePageFromCurrentPresentation = false
     private let logger = AppLogger(.reader)
 
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       private let interaction = ImageAnalysisInteraction()
       private var analysisTask: Task<Void, Never>?
       private var analyzedImage: UIImage?
       private var analysisSourceImage: UIImage?
       private var analysisRequestID: UInt64 = 0
+    #endif
+
+    #if os(iOS)
+      private lazy var contextMenuInteraction = UIContextMenuInteraction(delegate: self)
     #endif
 
     private var heightConstraint: NSLayoutConstraint?
@@ -41,19 +48,22 @@
     required init?(coder: NSCoder) { fatalError() }
 
     deinit {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         analysisTask?.cancel()
       #endif
     }
 
     func prepareForDismantle() {
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if imageView.interactions.contains(where: { $0 === interaction }) {
           imageView.removeInteraction(interaction)
         }
         clearAnalysis()
         analyzedImage = nil
         analysisSourceImage = nil
+      #endif
+      #if os(iOS)
+        removeContextMenuInteractionIfNeeded()
       #endif
       updateAnimatedPlayback(sourceFileURL: nil)
       imageView.isHidden = false
@@ -68,22 +78,24 @@
         prepareForDismantle()
       } else {
         if imageView.image == nil, let data = currentData {
-          let pageSourceImage: UIImage?
-          if let image = viewModel?.preloadedImage(for: data.pageID), data.splitMode != .none {
-            pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-          } else {
-            pageSourceImage = viewModel?.preloadedImage(for: data.pageID)
-          }
-          #if !os(tvOS)
+          let pageSourceImage = preparedImage(
+            from: viewModel?.preloadedImage(for: data.pageID),
+            splitMode: data.splitMode,
+            rotationDegrees: data.rotationDegrees
+          )
+          #if os(iOS) || os(macOS)
             analysisSourceImage = pageSourceImage
           #endif
           imageView.image = pageSourceImage
         }
         updateAnimatedPlayback(sourceFileURL: currentData?.animatedSourceFileURL)
-        #if !os(tvOS)
+        #if os(iOS) || os(macOS)
           if enableLiveText {
             analyzeImage()
           }
+        #endif
+        #if os(iOS)
+          updateContextMenuInteraction()
         #endif
       }
     }
@@ -150,6 +162,9 @@
       showPageNumber: Bool,
       showPageShadow: Bool,
       enableLiveText: Bool,
+      enableImageContextMenu: Bool,
+      supportsPageIsolationActions: Bool,
+      canIsolatePageFromCurrentPresentation: Bool,
       background: ReaderBackground,
       readingDirection: ReadingDirection,
       displayMode: PageDisplayMode,
@@ -163,24 +178,27 @@
       self.showPageShadow = showPageShadow
       let shouldEnableLiveText = enableLiveText && !viewModel.isAnimatedPage(for: data.pageID)
       self.enableLiveText = shouldEnableLiveText
+      self.enableImageContextMenu = enableImageContextMenu
+      self.supportsPageIsolationActions = supportsPageIsolationActions
+      self.canIsolatePageFromCurrentPresentation = canIsolatePageFromCurrentPresentation
 
-      let pageSourceImage: PlatformImage?
-      if let image = image, data.splitMode != .none {
-        pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-      } else {
-        pageSourceImage = image
-      }
+      let pageSourceImage = preparedImage(
+        from: image,
+        splitMode: data.splitMode,
+        rotationDegrees: data.rotationDegrees
+      )
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
       #endif
 
+      let hasDisplayableImage = pageSourceImage != nil
       imageView.image = pageSourceImage
 
       updateHeightConstraint(targetHeight)
       updateAnimatedPlayback(sourceFileURL: data.animatedSourceFileURL)
 
-      if pageSourceImage != nil, showPageNumber {
+      if hasDisplayableImage, showPageNumber {
         if let displayedPageNumber = viewModel.displayPageNumber(for: data.pageID) {
           pageNumberLabel.text = "\(displayedPageNumber)"
           pageNumberLabel.isHidden = false
@@ -195,7 +213,10 @@
         loadingIndicator.stopAnimating()
         errorLabel.text = error
         errorLabel.isHidden = false
-      } else if pageSourceImage == nil || data.isLoading {
+      } else if hasDisplayableImage {
+        errorLabel.isHidden = true
+        loadingIndicator.stopAnimating()
+      } else if data.isLoading {
         errorLabel.isHidden = true
         loadingIndicator.startAnimating()
       } else {
@@ -203,7 +224,7 @@
         loadingIndicator.stopAnimating()
       }
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if shouldEnableLiveText {
           if window != nil && !isHidden {
             if !imageView.interactions.contains(where: { $0 === interaction }) {
@@ -219,6 +240,10 @@
         }
       #endif
 
+      #if os(iOS)
+        updateContextMenuInteraction()
+      #endif
+
       updateShadowAppearance()
       setNeedsLayout()
     }
@@ -228,6 +253,45 @@
       imageView.layer.shadowOpacity = shadowOpacity
       if shadowOpacity == 0 {
         imageView.layer.shadowPath = nil
+      }
+    }
+
+    private func preparedImage(from image: UIImage?, splitMode: PageSplitMode, rotationDegrees: Int) -> UIImage? {
+      guard let image else { return nil }
+      let rotatedImage = rotateImage(image, degrees: rotationDegrees)
+      let splitImage =
+        splitMode == .none ? rotatedImage : cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+      return cropBordersIfNeeded(splitImage)
+    }
+
+    private func cropBordersIfNeeded(_ image: UIImage?) -> UIImage? {
+      guard let image else { return nil }
+      let mode = AppConfig.divinaPageBorderCropMode
+      guard mode != .disabled, let cgImage = image.cgImage else { return image }
+      guard let cropped = ReaderPageBorderCropper.crop(cgImage, mode: mode) else { return image }
+      return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    private func rotateImage(_ image: UIImage, degrees: Int) -> UIImage {
+      let normalized = ((degrees % 360) + 360) % 360
+      guard normalized != 0 else { return image }
+
+      let radians = CGFloat(normalized) * .pi / 180
+      var rotatedRect = CGRect(origin: .zero, size: image.size)
+        .applying(CGAffineTransform(rotationAngle: radians))
+      rotatedRect.origin = .zero
+
+      let renderer = UIGraphicsImageRenderer(size: rotatedRect.size)
+      return renderer.image { context in
+        context.cgContext.translateBy(x: rotatedRect.size.width / 2, y: rotatedRect.size.height / 2)
+        context.cgContext.rotate(by: radians)
+        image.draw(
+          in: CGRect(
+            x: -image.size.width / 2,
+            y: -image.size.height / 2,
+            width: image.size.width,
+            height: image.size.height
+          ))
       }
     }
 
@@ -314,7 +378,7 @@
       }
     }
 
-    #if !os(tvOS)
+    #if os(iOS) || os(macOS)
       private func analyzeImage() {
         guard let image = analysisSourceImage ?? imageView.image else { return }
 
@@ -392,7 +456,7 @@
         imageView.layer.shadowPath = nil
       }
 
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         if enableLiveText, imageView.image != nil,
           window != nil, !isHidden, interaction.analysis == nil, analysisTask == nil
         {
@@ -401,6 +465,10 @@
           }
           analyzeImage()
         }
+      #endif
+
+      #if os(iOS)
+        updateContextMenuInteraction()
       #endif
     }
 
@@ -480,5 +548,141 @@
 
       return combinedRect
     }
+
+    #if os(iOS)
+      private var shouldEnableContextMenuInteraction: Bool {
+        enableImageContextMenu && !enableLiveText && imageView.image != nil
+      }
+
+      private func updateContextMenuInteraction() {
+        guard shouldEnableContextMenuInteraction else {
+          removeContextMenuInteractionIfNeeded()
+          return
+        }
+
+        if !imageView.interactions.contains(where: { $0 === contextMenuInteraction }) {
+          imageView.addInteraction(contextMenuInteraction)
+        }
+      }
+
+      private func removeContextMenuInteractionIfNeeded() {
+        if imageView.interactions.contains(where: { $0 === contextMenuInteraction }) {
+          imageView.removeInteraction(contextMenuInteraction)
+        }
+      }
+
+      private func makeContextMenu() -> UIMenu? {
+        guard let currentData, imageView.image != nil else { return nil }
+
+        var sections: [UIMenuElement] = [
+          UIMenu(options: .displayInline, children: [makeShareAction(for: currentData.pageID)])
+        ]
+        if let isolateAction = makePageIsolationAction(for: currentData.pageID) {
+          sections.append(UIMenu(options: .displayInline, children: [isolateAction]))
+        }
+        sections.append(makePageRotationMenu(for: currentData.pageID))
+
+        return UIMenu(children: sections)
+      }
+
+      private func makeShareAction(for pageID: ReaderPageID) -> UIAction {
+        UIAction(title: String(localized: "Share"), image: UIImage(systemName: "square.and.arrow.up")) {
+          [weak self] _ in
+          self?.shareCurrentImage(for: pageID)
+        }
+      }
+
+      private func makePageIsolationAction(for pageID: ReaderPageID) -> UIAction? {
+        guard supportsPageIsolationActions, let viewModel else { return nil }
+        guard let readerPage = viewModel.readerPage(for: pageID) else { return nil }
+        // Check effective portrait considering rotation
+        let rotation = viewModel.pageRotationDegrees(for: pageID)
+        let normalized = ((rotation % 360) + 360) % 360
+        let effectivelyPortrait: Bool
+        if normalized == 90 || normalized == 270 {
+          effectivelyPortrait = (readerPage.page.width ?? 0) > (readerPage.page.height ?? 0)
+        } else {
+          effectivelyPortrait = readerPage.page.isPortrait
+        }
+        guard effectivelyPortrait else { return nil }
+
+        if viewModel.isPageIsolated(pageID) {
+          return UIAction(
+            title: String(localized: "Cancel Isolation"),
+            image: UIImage(systemName: "rectangle.portrait.slash")
+          ) { [weak self] _ in
+            self?.viewModel?.toggleIsolatePage(pageID)
+          }
+        }
+
+        guard canIsolatePageFromCurrentPresentation else { return nil }
+        return UIAction(
+          title: String(localized: "Isolate"),
+          image: UIImage(systemName: "rectangle.portrait")
+        ) { [weak self] _ in
+          self?.viewModel?.toggleIsolatePage(pageID)
+        }
+      }
+
+      private func makePageRotationMenu(for pageID: ReaderPageID) -> UIMenu {
+        let currentRotation = viewModel?.pageRotationDegrees(for: pageID) ?? 0
+        let actions = [0, 90, 180, 270].map { degrees in
+          UIAction(
+            title: "\(degrees)°",
+            image: currentRotation == degrees ? UIImage(systemName: "checkmark") : nil
+          ) { [weak self] _ in
+            self?.viewModel?.setPageRotation(degrees, for: pageID)
+          }
+        }
+        return UIMenu(
+          title: "\(String(localized: "Rotate")): \(currentRotation)°",
+          image: UIImage(systemName: "rotate.right"),
+          children: actions
+        )
+      }
+
+      private func shareCurrentImage(for pageID: ReaderPageID) {
+        guard let image = imageView.image else { return }
+        let fileName = viewModel?.page(for: pageID)?.fileName
+        ImageShareHelper.share(image: image, fileName: fileName)
+      }
+
+      private func makePreview() -> UITargetedPreview? {
+        guard !imageView.bounds.isEmpty else { return nil }
+        let parameters = UIPreviewParameters()
+        parameters.backgroundColor = .clear
+        parameters.visiblePath = UIBezierPath(rect: imageView.bounds)
+        return UITargetedPreview(view: imageView, parameters: parameters)
+      }
+    #endif
   }
+
+  #if os(iOS)
+    extension NativePageItem: UIContextMenuInteractionDelegate {
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        configurationForMenuAtLocation location: CGPoint
+      ) -> UIContextMenuConfiguration? {
+        guard imageView.bounds.contains(location) else { return nil }
+        guard makeContextMenu() != nil else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+          self?.makeContextMenu()
+        }
+      }
+
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForHighlightingMenuWithConfiguration configuration: UIContextMenuConfiguration
+      ) -> UITargetedPreview? {
+        makePreview()
+      }
+
+      func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        previewForDismissingMenuWithConfiguration configuration: UIContextMenuConfiguration
+      ) -> UITargetedPreview? {
+        makePreview()
+      }
+    }
+  #endif
 #endif

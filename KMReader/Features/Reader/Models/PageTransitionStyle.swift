@@ -5,13 +5,21 @@
 
 import Foundation
 
-enum PageTransitionStyle: String, CaseIterable, Hashable {
+enum PageTransitionStyle: String, CaseIterable, Hashable, Sendable {
   case scroll = "scroll"
   case cover = "cover"
   case pageCurl = "pageCurl"
 
   /// Platform-specific available cases
   static var availableCases: [PageTransitionStyle] {
+    #if os(iOS)
+      return [.scroll, .cover, .pageCurl]
+    #else
+      return [.scroll, .cover]
+    #endif
+  }
+
+  static var epubAvailableCases: [PageTransitionStyle] {
     #if os(iOS)
       return [.scroll, .cover, .pageCurl]
     #else

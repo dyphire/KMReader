@@ -163,7 +163,7 @@ Test with:
 
 ### Tech Stack
 
-- **UI**: SwiftUI over UIKit/AppKit, use UIKit/AppKit as less as possible.
+- **UI**: SwiftUI, UIKit, and AppKit are all acceptable. Choose the most maintainable and platform-appropriate approach per feature.
 - **State**: `@Observable` pattern (not `ObservableObject`)
 - **Persistence**: SwiftData for profiles/libraries/fonts/series/books/collections/read lists/dashboard caches, UserDefaults via `AppConfig`
 - **Networking**: Centralized `APIClient` with feature-specific services
@@ -339,20 +339,22 @@ KMReader/
 
 1. **Comments**: Minimal, in English only
 2. **Commit messages**: Concise, clear, semantic format, in English
-3. **SwiftUI over UIKit/AppKit**: Prefer SwiftUI exclusively
+3. **UI framework choice**: SwiftUI, UIKit, and AppKit may all be used. Pick the approach that best fits the feature, platform APIs, and maintainability.
 4. **No inline Binding**: Avoid inline Binding usage
 5. **No confirmationDialog**: Do not use confirmationDialog
 6. **One type per file**: Every struct or class in a separate file
 7. **@Observable over ObservableObject**: Use @Observable pattern for view models
 8. **@AppStorage over UserDefaults**: In views use @AppStorage; elsewhere use AppConfig, UserDefaults is forbidden in files except AppConfig.swift
 9. **Computed properties in view bodies**: Avoid stored variables in view bodies
-10. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
-11. **Direction rule (UI bridging)**: Allow `SwiftUI -> UIKit/AppKit`, but do not use `UIKit/AppKit -> SwiftUI` (`UIHostingController`/`NSHostingController`) for feature screens/components, because `UIHostingController`/`NSHostingController` does not inherit required SwiftUI environment values in this project.
-12. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
-13. **No unchecked/unsafe APIs**: Do not use `@unchecked Sendable`, `nonisolated(unsafe)`, `unsafeBitCast`, or other `unsafe*` escape hatches in app code. Prefer safe ownership, actor boundaries, copying, or explicit wrappers. If a low-level API appears to require them, stop and redesign instead of introducing them.
-14. **Strongly avoid patch-style fixes for structural problems**: When the current abstraction or ownership boundary is wrong, do not preserve it by stacking flags, delays, version counters, bridge layers, or special cases just to keep the diff small. Prefer the larger refactor that moves the code toward the final stable architecture.
-15. **Prioritize end-state quality over local diff size**: Stability, simplicity, clarity of ownership, and long-term maintainability are more important than minimizing code churn. Do not be afraid to rewrite or replace a local subsystem when that is the cleaner and more reliable design.
-16. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
+10. **Settings descriptions**: Full settings pages may include explanatory description text, but in-reader settings sheets should keep controls compact and omit extra description text unless absolutely necessary.
+11. **Platform differences**: Use `PlatformHelper` and `#if os(...)` blocks
+12. **UI bridging discipline**: Interop between SwiftUI and UIKit/AppKit is allowed in either direction. Be explicit about dependency injection and verify environment/data propagation across hosting boundaries instead of assuming it will behave correctly.
+13. **Object environment safety**: Do not use non-optional object-style environment dependencies (`@Environment(SomeType.self)`, `@EnvironmentObject`) in app code. Treat them as banned patterns. Pass object dependencies explicitly via initializers, context structs, or action closures. If environment lookup is still required, use a non-object custom `EnvironmentKey` or an optional lookup with controlled fallback/logging instead of crashing.
+14. **No unchecked/unsafe APIs**: Do not use `@unchecked Sendable`, `nonisolated(unsafe)`, `unsafeBitCast`, or other `unsafe*` escape hatches in app code. Prefer safe ownership, actor boundaries, copying, or explicit wrappers. If a low-level API appears to require them, stop and redesign instead of introducing them.
+15. **SwiftUI closure storage compatibility**: Do not store async, throwing async, actor-isolated, or `@Sendable` loader/transform closures directly in SwiftUI `View` value types. iOS 17 AttributeGraph can crash while visiting Swift 6 function metadata such as `nonisolated(nonsending)`. Prefer concrete source/command types, enums with methods, or explicitly passed model/service objects for this behavior. Ordinary synchronous UI callbacks are acceptable for simple event handlers, but avoid using closure fields as a general-purpose abstraction boundary in reusable views.
+16. **Strongly avoid patch-style fixes for structural problems**: When the current abstraction or ownership boundary is wrong, do not preserve it by stacking flags, delays, version counters, bridge layers, or special cases just to keep the diff small. Prefer the larger refactor that moves the code toward the final stable architecture.
+17. **Prioritize end-state quality over local diff size**: Stability, simplicity, clarity of ownership, and long-term maintainability are more important than minimizing code churn. Do not be afraid to rewrite or replace a local subsystem when that is the cleaner and more reliable design.
+18. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
 
 Additional patterns:
 
@@ -374,13 +376,18 @@ When changing any SwiftData `@Model`, migration updates are mandatory.
 
 - Any persisted model shape change requires a new schema version: add/remove/rename field, type change, default semantics change, relationship/index/uniqueness change.
 - Never mutate already-shipped schema definitions in place. Keep historical versions frozen and add a new `VersionedSchema` (for example `KMReaderSchemaV3` -> `KMReaderSchemaV4`).
-- Historical schemas must define their own model snapshots for entities that may evolve (for example nested `KMReaderSchemaVx.KomgaCollection`) instead of pointing to current runtime model types.
+- Treat every shipped `VersionedSchema` as an immutable database migration artifact: do not change its `models` list, model nesting, field names, field types, defaults, uniqueness/index annotations, relationships, or `versionIdentifier` after release.
+- Historical schemas must define their own nested model snapshots for entities that may evolve (for example `KMReaderSchemaVx.KomgaCollection`) instead of pointing to current runtime model types such as `KomgaCollection.self`.
+- The app's current target schema must use the runtime model types that production code fetches/inserts; nested snapshot models are for historical migration sources only. Do not point `MainApp.makeModelContainer` at a schema whose models are nested snapshots unless the runtime code also uses those exact nested types.
+- The latest schema may reference runtime model types while it is the active app schema. Once it ships and a future persisted model change is needed, freeze the shipped shape into a historical snapshot and introduce a new runtime-backed target schema version.
 - Update `KMReaderMigrationPlan` in lockstep: append the new schema in `schemas`, add an explicit migration stage, and keep stage order strictly linear.
 - Update app container target schema to the latest version in `MainApp.makeModelContainer` (`Schema(versionedSchema: KMReaderSchemaVx.self)`).
-- Prefer lightweight migration only for additive/compatible changes; use custom migration when data transform/backfill is needed.
-- Do not change old `versionIdentifier` values and do not rewrite old migration stages after release.
+- Prefer lightweight migration only for additive/compatible changes that are verified against real stores; use custom migration when data transform/backfill is needed or when SwiftData's lightweight inference is fragile.
+- Do not rewrite old migration stages after release. Add a new compatibility stage/schema instead, or adjust only unreleased code.
 - Validation before merge:
-  - open existing DB from previous release and verify upgrade to latest schema;
+  - open an existing DB from the previous release and verify upgrade to latest schema;
+  - open an existing DB from at least one important older release and verify direct upgrade to latest schema;
+  - verify upgrade from any already-shipped broken/intermediate release that may have written a different store shape;
   - verify fresh install creates latest schema directly;
   - verify ModelContainer init does not fail and critical flows still work (login, dashboard load, reader open).
 

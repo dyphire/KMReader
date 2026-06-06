@@ -14,11 +14,13 @@ enum SettingsSection: String, CaseIterable {
   #if os(iOS) || os(macOS)
     case pdfReader
   #endif
-  #if os(iOS)
-    case epubReader
+  #if os(iOS) || os(macOS)
+    case epubTheme
+    case epubSettings
   #endif
   case sse
-  #if !os(tvOS)
+  case sync
+  #if os(iOS) || os(macOS)
     case spotlight
   #endif
   case network
@@ -35,18 +37,22 @@ enum SettingsSection: String, CaseIterable {
     case .cache:
       return "externaldrive"
     case .divinaReader:
-      return "book.pages"
+      return "photo.on.rectangle.angled"
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return "doc.richtext"
     #endif
-    #if os(iOS)
-      case .epubReader:
+    #if os(iOS) || os(macOS)
+      case .epubTheme:
+        return "textformat.size"
+      case .epubSettings:
         return "character.book.closed"
     #endif
     case .sse:
       return "antenna.radiowaves.left.and.right"
-    #if !os(tvOS)
+    case .sync:
+      return "arrow.triangle.2.circlepath"
+    #if os(iOS) || os(macOS)
       case .spotlight:
         return "magnifyingglass.circle"
     #endif
@@ -73,13 +79,17 @@ enum SettingsSection: String, CaseIterable {
       case .pdfReader:
         return String(localized: "PDF Reader")
     #endif
-    #if os(iOS)
-      case .epubReader:
-        return String(localized: "EPUB Reader")
+    #if os(iOS) || os(macOS)
+      case .epubTheme:
+        return String(localized: "EPUB Theme")
+      case .epubSettings:
+        return String(localized: "EPUB Settings")
     #endif
     case .sse:
       return String(localized: "Real-time Updates")
-    #if !os(tvOS)
+    case .sync:
+      return String(localized: "Sync & Handoff")
+    #if os(iOS) || os(macOS)
       case .spotlight:
         return String(localized: "Spotlight")
     #endif

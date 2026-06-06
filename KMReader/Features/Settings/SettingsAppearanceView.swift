@@ -9,11 +9,9 @@ import SwiftUI
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
+  @AppStorage("showDashboardSectionGradientBackground") private var showDashboardSectionGradientBackground: Bool =
+    AppConfig.showDashboardSectionGradientBackground
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
-  @AppStorage("dashboardShowGradient") private var dashboardShowGradient: Bool = true
-  #if os(iOS)
-    @AppStorage("enableReaderLiveActivity") private var enableReaderLiveActivity: Bool = true
-  #endif
   #if os(iOS)
     @State private var selectedAppIcon: AppIconOption = .primary
     @State private var isUpdatingAppIcon: Bool = false
@@ -101,10 +99,10 @@ struct SettingsAppearanceView: View {
             supportsOpacity: false)
         #endif
 
-        Toggle(isOn: $dashboardShowGradient) {
+        Toggle(isOn: $showDashboardSectionGradientBackground) {
           VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "dashboard.gradient.title"))
-            Text(String(localized: "dashboard.gradient.caption"))
+            Text(String(localized: "settings.appearance.dashboardSectionGradientBackground.title"))
+            Text(String(localized: "settings.appearance.dashboardSectionGradientBackground.caption"))
               .font(.caption)
               .foregroundColor(.secondary)
           }
@@ -122,18 +120,6 @@ struct SettingsAppearanceView: View {
         }
       }
 
-      #if os(iOS)
-        Section(header: Text("Live Activities")) {
-          Toggle(isOn: $enableReaderLiveActivity) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Reader Live Activity")
-              Text("Show reader progress on the Lock Screen and in Dynamic Island.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-          }
-        }
-      #endif
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.appearance.title)

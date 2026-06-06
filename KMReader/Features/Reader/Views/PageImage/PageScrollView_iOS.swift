@@ -153,6 +153,10 @@
       func updatePages() {
         guard let stack = contentStack else { return }
         let pages = parent.pages
+        let canIsolatePageFromCurrentPresentation =
+          parent.renderConfig.supportsPageIsolationActions
+          && pages.count == 2
+          && Set(pages.map(\.pageID)).count == 2
 
         if pageViews.count != pages.count {
           pageViews.forEach { view in
@@ -175,6 +179,9 @@
             showPageNumber: parent.renderConfig.showPageNumber,
             showPageShadow: parent.renderConfig.showPageShadow,
             enableLiveText: parent.renderConfig.enableLiveText,
+            enableImageContextMenu: parent.renderConfig.enableImageContextMenu,
+            supportsPageIsolationActions: parent.renderConfig.supportsPageIsolationActions,
+            canIsolatePageFromCurrentPresentation: canIsolatePageFromCurrentPresentation,
             background: parent.renderConfig.readerBackground,
             readingDirection: parent.readingDirection,
             displayMode: parent.displayMode,
@@ -263,7 +270,7 @@
         guard width > 0 else { return parent.screenSize.height }
 
         if let image = image {
-          let imageSize = image.size
+          let imageSize = rotatedSize(image.size, degrees: data.rotationDegrees)
           if imageSize.width > 0, imageSize.height > 0 {
             let height = width * imageSize.height / imageSize.width
             if height.isFinite && height > 0 {
@@ -285,6 +292,14 @@
         }
 
         return parent.screenSize.height
+      }
+
+      private func rotatedSize(_ size: CGSize, degrees: Int) -> CGSize {
+        let normalized = ((degrees % 360) + 360) % 360
+        if normalized == 90 || normalized == 270 {
+          return CGSize(width: size.height, height: size.width)
+        }
+        return size
       }
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {

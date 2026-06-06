@@ -6,7 +6,7 @@
 import SwiftData
 import SwiftUI
 
-#if !os(tvOS)
+#if os(iOS) || os(macOS)
   import CoreSpotlight
 #endif
 
@@ -71,17 +71,27 @@ struct MainApp: App {
   init() {
     PlatformHelper.setup()
     AnimatedImageSupport.configureCoders()
+    AppConfig.migrateOfflineProvenanceIfNeeded()
     _authViewModel = State(initialValue: AuthViewModel())
   }
 
   private func makeModelContainer() throws -> ModelContainer {
-    let schema = Schema(versionedSchema: KMReaderSchemaV3.self)
+    let schema = Schema(versionedSchema: KMReaderSchemaV6.self)
     let configuration = ModelConfiguration(schema: schema)
-    return try ModelContainer(
-      for: schema,
-      migrationPlan: KMReaderMigrationPlan.self,
-      configurations: [configuration]
-    )
+
+    do {
+      return try ModelContainer(
+        for: schema,
+        migrationPlan: KMReaderMigrationPlan.self,
+        configurations: [configuration]
+      )
+    } catch {
+      let stagedErrorMessage = String(describing: error)
+      AppLogger(.database).warning(
+        "Staged SwiftData migration failed; retrying with inferred lightweight migration for legacy runtime-backed V4/V5 stores: \(stagedErrorMessage)"
+      )
+      return try ModelContainer(for: schema, configurations: [configuration])
+    }
   }
 
   @MainActor
@@ -110,6 +120,22 @@ struct MainApp: App {
     }
   }
 
+  @MainActor
+  private func resetLocalDataAndRetryModelContainer() async {
+    modelContainer = nil
+    modelContainerFailureDetails = nil
+
+    do {
+      try LocalDataResetService.resetAllLocalData()
+      authViewModel = AuthViewModel()
+      await prepareModelContainerIfNeeded(forceRetry: true)
+    } catch {
+      let errorMessage = String(describing: error)
+      AppLogger(.database).error("Failed to reset local data: \(errorMessage)")
+      modelContainerFailureDetails = errorMessage
+    }
+  }
+
   @ViewBuilder
   private func modelContainerGate<Content: View>(
     @ViewBuilder content: (ModelContainer) -> Content
@@ -122,6 +148,11 @@ struct MainApp: App {
         onRetry: {
           Task {
             await prepareModelContainerIfNeeded(forceRetry: true)
+          }
+        },
+        onReset: {
+          Task {
+            await resetLocalDataAndRetryModelContainer()
           }
         }
       )
@@ -153,105 +184,211 @@ struct MainApp: App {
       }
     #endif
     .modelContainer(modelContainer)
+    .task {
+      await StoreManager.shared.start()
+    }
   }
 
   #if os(macOS)
     @CommandsBuilder
     private var readerCommands: some Commands {
       CommandMenu("Reader") {
-        let state = readerPresentation.macReaderCommandState
+        let state = readerPresentation.readerCommandState
 
-        Button("Reader Settings") {
-          readerPresentation.showReaderSettingsFromCommand()
+        if state.supportsReaderSettings {
+          Button("Reader Settings") {
+            readerPresentation.showReaderSettingsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Button("Book Details") {
-          readerPresentation.showBookDetailsFromCommand()
+        if state.supportsBookDetails {
+          Button("Book Details") {
+            readerPresentation.showBookDetailsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Divider()
-
-        Button("Table of Contents") {
-          readerPresentation.showTableOfContentsFromCommand()
+        if state.hasTableOfContents || state.supportsPageJump || state.supportsSearch {
+          Divider()
         }
-        .disabled(!state.isActive || !state.hasTableOfContents)
 
-        Button("Jump to Page") {
-          readerPresentation.showPageJumpFromCommand()
+        if state.hasTableOfContents {
+          Button("Table of Contents") {
+            readerPresentation.showTableOfContentsFromCommand()
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.hasPages)
 
-        Divider()
+        if state.supportsPageJump {
+          Button("Jump to Page") {
+            readerPresentation.showPageJumpFromCommand()
+          }
+          .disabled(!state.isActive || !state.hasPages)
+        }
 
-        Menu("Reading Direction") {
-          ForEach(ReadingDirection.availableCases, id: \.self) { direction in
-            Button {
-              readerPresentation.setReadingDirectionFromCommand(direction)
-            } label: {
-              if state.readingDirection == direction {
-                Label(direction.displayName, systemImage: "checkmark")
-              } else {
-                Text(direction.displayName)
+        if state.supportsSearch {
+          Button("Search") {
+            readerPresentation.showSearchFromCommand()
+          }
+          .disabled(!state.isActive || !state.canSearch)
+        }
+
+        if state.supportsReadingDirectionSelection || state.supportsPageLayoutSelection {
+          Divider()
+        }
+
+        if state.supportsReadingDirectionSelection {
+          Menu("Reading Direction") {
+            ForEach(state.availableReadingDirections, id: \.self) { direction in
+              Button {
+                readerPresentation.setReadingDirectionFromCommand(direction)
+              } label: {
+                if state.readingDirection == direction {
+                  Label(direction.displayName, systemImage: "checkmark")
+                } else {
+                  Text(direction.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Menu("Page Layout") {
-          ForEach(PageLayout.allCases, id: \.self) { layout in
-            Button {
-              readerPresentation.setPageLayoutFromCommand(layout)
-            } label: {
-              if state.pageLayout == layout {
-                Label(layout.displayName, systemImage: "checkmark")
-              } else {
-                Text(layout.displayName)
+        if state.supportsPageLayoutSelection {
+          Menu("Page Layout") {
+            ForEach(PageLayout.allCases, id: \.self) { layout in
+              Button {
+                readerPresentation.setPageLayoutFromCommand(layout)
+              } label: {
+                if state.pageLayout == layout {
+                  Label(layout.displayName, systemImage: "checkmark")
+                } else {
+                  Text(layout.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive)
 
-        Button(
-          state.isolateCoverPage
-            ? "Disable Isolate Cover Page"
-            : "Enable Isolate Cover Page"
-        ) {
-          readerPresentation.toggleIsolateCoverPageFromCommand()
+        if state.supportsDualPageOptions
+          || state.supportsSplitWidePageMode
+          || state.supportsContinuousScrollToggle
+        {
+          Divider()
         }
-        .disabled(!state.isActive || !state.supportsDualPageOptions)
 
-        Menu("Split Wide Pages") {
-          ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
-            Button {
-              readerPresentation.setSplitWidePageModeFromCommand(mode)
-            } label: {
-              if state.splitWidePageMode == mode {
-                Label(mode.displayName, systemImage: "checkmark")
-              } else {
-                Text(mode.displayName)
+        if state.supportsDualPageOptions {
+          Button {
+            readerPresentation.toggleIsolateCoverPageFromCommand()
+          } label: {
+            if state.isolateCoverPage {
+              Label(String(localized: "Isolate Cover Page"), systemImage: "checkmark")
+            } else {
+              Text(String(localized: "Isolate Cover Page"))
+            }
+          }
+          .disabled(!state.isActive)
+        }
+
+        if state.supportsSplitWidePageMode {
+          Menu("Split Wide Pages") {
+            ForEach(SplitWidePageMode.allCases, id: \.self) { mode in
+              Button {
+                readerPresentation.setSplitWidePageModeFromCommand(mode)
+              } label: {
+                if state.splitWidePageMode == mode {
+                  Label(mode.displayName, systemImage: "checkmark")
+                } else {
+                  Text(mode.displayName)
+                }
               }
             }
           }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.supportsSplitWidePageMode)
 
-        Divider()
-
-        Button("Open Previous Book") {
-          readerPresentation.openPreviousBookFromCommand()
+        if state.supportsContinuousScrollToggle {
+          Button {
+            readerPresentation.toggleContinuousScrollFromCommand()
+          } label: {
+            if state.continuousScroll {
+              Label(String(localized: "Continuous Scroll"), systemImage: "checkmark")
+            } else {
+              Text(String(localized: "Continuous Scroll"))
+            }
+          }
+          .disabled(!state.isActive)
         }
-        .disabled(!state.isActive || !state.canOpenPreviousBook)
 
-        Button("Open Next Book") {
-          readerPresentation.openNextBookFromCommand()
+        if state.supportsBookNavigation {
+          Divider()
         }
-        .disabled(!state.isActive || !state.canOpenNextBook)
+
+        if state.supportsBookNavigation {
+          Button("Open Previous Book") {
+            readerPresentation.openPreviousBookFromCommand()
+          }
+          .disabled(!state.isActive || !state.canOpenPreviousBook)
+        }
+
+        if state.supportsBookNavigation {
+          Button("Open Next Book") {
+            readerPresentation.openNextBookFromCommand()
+          }
+          .disabled(!state.isActive || !state.canOpenNextBook)
+        }
+
+        if !state.commandPageIDs.isEmpty {
+          Divider()
+
+          ForEach(state.commandPageIDs, id: \.self) { pageID in
+            let displayPageNumber = state.displayPageNumbersByID[pageID] ?? pageID.pageNumber + 1
+            let currentRotation = state.pageRotationsByID[pageID] ?? 0
+            Menu("Page \(displayPageNumber)") {
+              Button("Share") {
+                readerPresentation.sharePageFromCommand(pageID)
+              }
+              .disabled(!state.isActive)
+
+              if let isolationAction = state.pageIsolationActions.first(where: { $0.pageID == pageID }) {
+                Divider()
+                Button(readerPageIsolationTitle(for: isolationAction)) {
+                  readerPresentation.toggleIsolatePageFromCommand(isolationAction.pageID)
+                }
+                .disabled(!state.isActive)
+              }
+
+              Divider()
+              Menu("Rotate: \(currentRotation)°") {
+                ForEach([0, 90, 180, 270], id: \.self) { degrees in
+                  Button {
+                    readerPresentation.setPageRotationFromCommand(pageID, degrees: degrees)
+                  } label: {
+                    if currentRotation == degrees {
+                      Label("\(degrees)°", systemImage: "checkmark")
+                    } else {
+                      Text("\(degrees)°")
+                    }
+                  }
+                  .disabled(!state.isActive)
+                }
+              }
+            }
+            .disabled(!state.isActive)
+          }
+        }
       }
     }
+
+    private func readerPageIsolationTitle(for action: ReaderPageIsolationActions.Action) -> String {
+      if action.title == String(localized: "Cancel Isolation") {
+        return action.title
+      }
+      return String(localized: "Isolate")
+    }
+
   #endif
 
   var body: some Scene {
@@ -262,7 +399,7 @@ struct MainApp: App {
       .onOpenURL { url in
         deepLinkRouter.handle(url: url)
       }
-      #if !os(tvOS)
+      #if os(iOS) || os(macOS)
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
           if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
             if let deepLink = SpotlightIndexService.deepLink(for: identifier) {
