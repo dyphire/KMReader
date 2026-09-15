@@ -43,7 +43,6 @@ struct SettingsServerCardView: View {
           .frame(maxWidth: .infinity, alignment: .leading)
         }
 
-        ServerUpdateStatusView(showsTasksLink: false)
       }
       .contentShape(Rectangle())
     }

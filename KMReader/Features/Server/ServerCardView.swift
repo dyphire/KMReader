@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Current-server summary card: display name, role badge, switch button,
-/// account and server rows, and last-update status. Shown on the Server page
+/// account and server rows. Shown on the Server page
 /// (iPad and macOS sidebar, tvOS).
 struct ServerCardView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -55,10 +55,6 @@ struct ServerCardView: View {
         value: current.serverURL.isEmpty ? current.serverDisplayName : current.serverURL,
         icon: "globe"
       )
-
-      ServerUpdateStatusView()
-        .foregroundColor(.secondary)
-        .font(.footnote)
 
     }
     .padding(12)

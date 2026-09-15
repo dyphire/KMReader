@@ -22,9 +22,6 @@ struct DashboardView: View {
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
-  #if os(iOS) || os(macOS)
-    @AppStorage("taskQueueStatus") private var taskQueueStatusRaw: String = ""
-  #endif
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   private let sseService = SSEService.shared
@@ -71,17 +68,6 @@ struct DashboardView: View {
     }
   }
 
-  #if os(iOS) || os(macOS)
-    /// The iOS/macOS header only hosts the server status view, and the
-    /// toolbar already carries the offline/reconnect button — show the
-    /// header only when there are running tasks to report.
-    private var showsServerStatusHeader: Bool {
-      guard enableSSE, !isOffline else { return false }
-      let status = TaskQueueSSEDto(rawValue: taskQueueStatusRaw) ?? TaskQueueSSEDto()
-      return status.count > 0
-    }
-  #endif
-
   @ViewBuilder
   private var dashboardHeader: some View {
     #if os(tvOS)
@@ -124,19 +110,10 @@ struct DashboardView: View {
             }
             .disabled(isRefreshing)
           }
-          ServerUpdateStatusView()
         }
         Spacer()
       }
       .padding()
-    #else
-      if showsServerStatusHeader {
-        HStack {
-          ServerUpdateStatusView()
-          Spacer()
-        }
-        .padding()
-      }
     #endif
   }
 
