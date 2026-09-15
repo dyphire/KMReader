@@ -126,7 +126,6 @@ final class DashboardRefreshCoordinator {
     guard isAutoRefreshEnabled else { return }
 
     logger.debug("Dashboard auto refresh scheduled: \(reason)")
-    AppConfig.serverLastUpdate = Date()
 
     if activeReaderSessionID != nil {
       mergeDeferredAutoSections(sections)
@@ -163,7 +162,6 @@ final class DashboardRefreshCoordinator {
       return
     }
 
-    AppConfig.serverLastUpdate = Date()
     let refreshReason =
       refreshDelay > 0 ? "Auto after debounce: \(reason)" : "Auto immediately: \(reason)"
     logger.debug("Dashboard auto refresh executing: \(refreshReason)")
