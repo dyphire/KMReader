@@ -197,6 +197,9 @@ struct DashboardView: View {
       DashboardRefreshCoordinator.shared.configure(
         autoRefreshEnabled: enableSSEAutoRefresh
       )
+      if enableSSE && !isOffline {
+        await SSEService.shared.connect()
+      }
     }
     .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
