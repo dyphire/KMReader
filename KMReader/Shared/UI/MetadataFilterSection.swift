@@ -16,12 +16,16 @@ struct MetadataFilterSection: View {
   let showGenres: Bool
   let showTags: Bool
   let showLanguages: Bool
+  let showAgeRatings: Bool
+  let showReleaseYears: Bool
 
   @State private var publishers: [String]?
   @State private var authors: [String]?
   @State private var genres: [String]?
   @State private var tags: [String]?
   @State private var languages: [String]?
+  @State private var ageRatings: [String]?
+  @State private var releaseYears: [String]?
 
   init(
     metadataFilter: Binding<MetadataFilterConfig>,
@@ -33,7 +37,9 @@ struct MetadataFilterSection: View {
     showAuthors: Bool = false,
     showGenres: Bool = false,
     showTags: Bool = false,
-    showLanguages: Bool = false
+    showLanguages: Bool = false,
+    showAgeRatings: Bool = false,
+    showReleaseYears: Bool = false
   ) {
     self._metadataFilter = metadataFilter
     self.libraryIds = libraryIds
@@ -45,10 +51,12 @@ struct MetadataFilterSection: View {
     self.showGenres = showGenres
     self.showTags = showTags
     self.showLanguages = showLanguages
+    self.showAgeRatings = showAgeRatings
+    self.showReleaseYears = showReleaseYears
   }
 
   var body: some View {
-    if showPublisher || showAuthors || showGenres || showTags || showLanguages {
+    if showPublisher || showAuthors || showGenres || showTags || showLanguages || showAgeRatings || showReleaseYears {
       Section(String(localized: "Metadata")) {
         if showPublisher {
           publisherPicker
@@ -68,6 +76,14 @@ struct MetadataFilterSection: View {
 
         if showLanguages {
           languagesSection
+        }
+
+        if showAgeRatings {
+          ageRatingsSection
+        }
+
+        if showReleaseYears {
+          releaseYearsSection
         }
       }
     }
@@ -218,6 +234,62 @@ struct MetadataFilterSection: View {
           let logicSymbol = metadataFilter.languagesLogic == .all ? "∧" : "∨"
           let displayNames = languages.map { LanguageCodeHelper.displayName(for: $0) }
           Text(displayNames.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+      }
+    }
+  }
+  @ViewBuilder
+  private var ageRatingsSection: some View {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Age Ratings"),
+        cachedItems: $ageRatings,
+        source: .ageRatings(libraryIds: libraryIds, collectionId: collectionId),
+        selectedItems: Binding(
+          get: { Set(metadataFilter.ageRatings ?? []) },
+          set: { metadataFilter.ageRatings = $0.isEmpty ? nil : Array($0).localizedSorted() }
+        ),
+        logic: $metadataFilter.ageRatingsLogic,
+        emptyDescription: String(localized: "No age ratings available"),
+        displayStyle: .ageRating
+      )
+    } label: {
+      HStack {
+        Text(String(localized: "Age Ratings"))
+        Spacer()
+        if let ageRatings = metadataFilter.ageRatings, !ageRatings.isEmpty {
+          let logicSymbol = metadataFilter.ageRatingsLogic == .all ? "∧" : "∨"
+          Text(ageRatings.map { "\($0)+" }.joined(separator: " \(logicSymbol) "))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var releaseYearsSection: some View {
+    NavigationLink {
+      MetadataMultiSelectLoader(
+        title: String(localized: "Release Years"),
+        cachedItems: $releaseYears,
+        source: .releaseYears(libraryIds: libraryIds, collectionId: collectionId),
+        selectedItems: Binding(
+          get: { Set(metadataFilter.releaseYears ?? []) },
+          set: { metadataFilter.releaseYears = $0.isEmpty ? nil : Array($0).localizedSorted() }
+        ),
+        logic: $metadataFilter.releaseYearsLogic,
+        emptyDescription: String(localized: "No release years available")
+      )
+    } label: {
+      HStack {
+        Text(String(localized: "Release Years"))
+        Spacer()
+        if let releaseYears = metadataFilter.releaseYears, !releaseYears.isEmpty {
+          let logicSymbol = metadataFilter.releaseYearsLogic == .all ? "∧" : "∨"
+          Text(releaseYears.joined(separator: " \(logicSymbol) "))
             .foregroundStyle(.secondary)
             .lineLimit(1)
         }
