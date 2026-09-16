@@ -113,6 +113,18 @@ nonisolated enum CollectionService {
       }
     }
 
+    if let ageRatings = browseOpts.metadataFilter.ageRatings, !ageRatings.isEmpty {
+      for ageRating in ageRatings {
+        queryItems.append(URLQueryItem(name: "age_rating", value: ageRating))
+      }
+    }
+
+    if let releaseYears = browseOpts.metadataFilter.releaseYears, !releaseYears.isEmpty {
+      for releaseYear in releaseYears {
+        queryItems.append(URLQueryItem(name: "release_year", value: releaseYear))
+      }
+    }
+
     return try await apiClient.request(
       path: "/api/v1/collections/\(collectionId)/series",
       queryItems: queryItems

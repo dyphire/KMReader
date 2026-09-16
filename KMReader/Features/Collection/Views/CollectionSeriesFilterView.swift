@@ -139,6 +139,26 @@ struct CollectionSeriesFilterView: View {
           )
         }
 
+        if let ageRatings = browseOpts.metadataFilter.ageRatings, !ageRatings.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.ageRatingsLogic == .all ? "∧" : "∨"
+          let label = ageRatings.map { "\($0)+" }.joined(separator: " \(logicSymbol) ")
+          FilterChip(
+            label: label,
+            systemImage: "lock",
+            openSheet: $showFilterSheet
+          )
+        }
+
+        if let releaseYears = browseOpts.metadataFilter.releaseYears, !releaseYears.isEmpty {
+          let logicSymbol = browseOpts.metadataFilter.releaseYearsLogic == .all ? "∧" : "∨"
+          let label = releaseYears.joined(separator: " \(logicSymbol) ")
+          FilterChip(
+            label: label,
+            systemImage: "calendar",
+            openSheet: $showFilterSheet
+          )
+        }
+
       }
       .padding(4)
     }
