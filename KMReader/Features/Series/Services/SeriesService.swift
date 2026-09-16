@@ -42,7 +42,11 @@ nonisolated enum SeriesService {
         tags: effectiveMetadataFilter.tags,
         tagsLogic: effectiveMetadataFilter.tagsLogic,
         languages: effectiveMetadataFilter.languages,
-        languagesLogic: effectiveMetadataFilter.languagesLogic
+        languagesLogic: effectiveMetadataFilter.languagesLogic,
+        ageRatings: effectiveMetadataFilter.ageRatings?.compactMap { Int($0) },
+        ageRatingsLogic: effectiveMetadataFilter.ageRatingsLogic,
+        releaseYears: effectiveMetadataFilter.releaseYears?.compactMap { Int($0) },
+        releaseYearsLogic: effectiveMetadataFilter.releaseYearsLogic
       ))
 
     let search = SeriesSearch(

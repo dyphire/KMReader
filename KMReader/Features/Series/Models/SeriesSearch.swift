@@ -62,6 +62,10 @@ nonisolated struct SeriesSearchFilters {
   var tagsLogic: FilterLogic = .all
   var languages: [String]? = nil
   var languagesLogic: FilterLogic = .all
+  var ageRatings: [Int]? = nil
+  var ageRatingsLogic: FilterLogic = .all
+  var releaseYears: [Int]? = nil
+  var releaseYearsLogic: FilterLogic = .all
 }
 
 // Helper functions to build conditions
@@ -184,6 +188,27 @@ extension SeriesSearch {
       }
       let wrapperKey = filters.languagesLogic == .all ? "allOf" : "anyOf"
       conditions.append([wrapperKey: languageConditions])
+    }
+
+    if let ageRatings = filters.ageRatings, !ageRatings.isEmpty {
+      let ageRatingConditions = ageRatings.map { rating in
+        ["ageRating": ["operator": "is", "value": rating]]
+      }
+      let wrapperKey = filters.ageRatingsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: ageRatingConditions])
+    }
+
+    if let releaseYears = filters.releaseYears, !releaseYears.isEmpty {
+      let releaseYearConditions = releaseYears.map { year in
+        [
+          "allOf": [
+            ["releaseDate": ["operator": "after", "dateTime": "\(year - 1)-12-31T12:00:00Z"]],
+            ["releaseDate": ["operator": "before", "dateTime": "\(year + 1)-01-01T12:00:00Z"]],
+          ]
+        ]
+      }
+      let wrapperKey = filters.releaseYearsLogic == .all ? "allOf" : "anyOf"
+      conditions.append([wrapperKey: releaseYearConditions])
     }
 
     if conditions.isEmpty {
