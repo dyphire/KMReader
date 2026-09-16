@@ -19,6 +19,10 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
   var tagsLogic: FilterLogic = .all
   var languages: [String]?
   var languagesLogic: FilterLogic = .all
+  var ageRatings: [String]?
+  var ageRatingsLogic: FilterLogic = .all
+  var releaseYears: [String]?
+  var releaseYearsLogic: FilterLogic = .all
 
   init(
     publishers: [String]? = nil,
@@ -30,7 +34,11 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
     tags: [String]? = nil,
     tagsLogic: FilterLogic = .all,
     languages: [String]? = nil,
-    languagesLogic: FilterLogic = .all
+    languagesLogic: FilterLogic = .all,
+    ageRatings: [String]? = nil,
+    ageRatingsLogic: FilterLogic = .all,
+    releaseYears: [String]? = nil,
+    releaseYearsLogic: FilterLogic = .all
   ) {
     self.publishers = publishers
     self.publishersLogic = publishersLogic
@@ -42,11 +50,16 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
     self.tagsLogic = tagsLogic
     self.languages = languages
     self.languagesLogic = languagesLogic
+    self.ageRatings = ageRatings
+    self.ageRatingsLogic = ageRatingsLogic
+    self.releaseYears = releaseYears
+    self.releaseYearsLogic = releaseYearsLogic
   }
 
   /// Check if any filter is active
   var hasAnyFilter: Bool {
     return publishers != nil || authors != nil || genres != nil || tags != nil || languages != nil
+    || ageRatings != nil || releaseYears != nil
   }
 
   var rawValue: String {
@@ -71,6 +84,14 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
       dict["languages"] = languages
     }
     dict["languagesLogic"] = languagesLogic.rawValue
+    if let ageRatings = ageRatings {
+      dict["ageRatings"] = ageRatings
+    }
+    dict["ageRatingsLogic"] = ageRatingsLogic.rawValue
+    if let releaseYears = releaseYears {
+      dict["releaseYears"] = releaseYears
+    }
+    dict["releaseYearsLogic"] = releaseYearsLogic.rawValue
     if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
     {
@@ -128,6 +149,22 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
     } else {
       self.languagesLogic = .all
     }
+    self.ageRatings = dict["ageRatings"] as? [String]
+    if let ageRatingsLogicRaw = dict["ageRatingsLogic"] as? String,
+      let logic = FilterLogic(rawValue: ageRatingsLogicRaw)
+    {
+      self.ageRatingsLogic = logic
+    } else {
+      self.ageRatingsLogic = .all
+    }
+    self.releaseYears = dict["releaseYears"] as? [String]
+    if let releaseYearsLogicRaw = dict["releaseYearsLogic"] as? String,
+      let logic = FilterLogic(rawValue: releaseYearsLogicRaw)
+    {
+      self.releaseYearsLogic = logic
+    } else {
+      self.releaseYearsLogic = .all
+    }
   }
 
   /// Create config for publisher filter
@@ -168,5 +205,15 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
   /// Create config for tags filter
   static func forTags(_ tags: [String]) -> MetadataFilterConfig {
     return MetadataFilterConfig(tags: tags)
+  }
+
+  /// Create config for age rating filter
+  static func forAgeRating(_ ageRating: String) -> MetadataFilterConfig {
+    return MetadataFilterConfig(ageRatings: [ageRating])
+  }
+
+  /// Create config for release year filter
+  static func forReleaseYear(_ releaseYear: String) -> MetadataFilterConfig {
+    return MetadataFilterConfig(releaseYears: [releaseYear])
   }
 }
